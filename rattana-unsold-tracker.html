@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v1.9</title>
+<title>Rattana สินค้ายังไม่ขาย v2.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -150,7 +150,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
       <div class="foot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>มีปัญหาเข้าใช้งาน? ติดต่อผู้ดูแลระบบ</div>
       <div class="foot" style="margin-top:8px;font-size:10px;opacity:.5"><span id="originText">—</span></div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v1.9 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v2.0 · 2026-05-11</div>
   </div>
 </div>
 
@@ -206,28 +206,20 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 </div>
 
 <script>
-/* CONFIG */
-const SHEET_ID    = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
-const S_USER      = 'User';
-const S_PDDT      = 'PDDT';
-const S_UNSOLD    = 'สินค้ายังไม่ขาย';
-const SESSION_KEY = 'rattanaUnsoldUser';
-const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
-// Role = 3 → ดูตัวเอง, Role > 3 → ดูทุกเซลล์
-const MANAGER_ROLE = 4;
+const SHEET_ID='1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
+const S_USER='User',S_PDDT='PDDT',S_UNSOLD='สินค้ายังไม่ขาย';
+const SESSION_KEY='rattanaUnsoldUser',SESSION_TTL=30*24*60*60*1000,MANAGER_ROLE=4;
+const csvUrl=s=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;
+const CLIENT_ID='594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com';
 
-const csvUrl = (sheet) =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
+let currentUser=null,allProducts=[],soldMap={},salesAgg={},allSellers=[],selView=null;
 
-let currentUser = null;
-let allProducts = [], soldMap = {}, salesAgg = {}, allSellers = [], selView = null;
-
-const $ = id => document.getElementById(id);
-function sp(msg='โหลด…'){ $('sp').classList.add('on'); $('st').textContent=msg }
-function spOff(){ $('sp').classList.remove('on') }
-function toast(msg,dur=3500){ const e=$('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),dur) }
-function toggleDark(){ document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');$('darkBtn').textContent=d?'☀️':'🌙';localStorage.setItem('rtn_dk',d?'1':'0') }
-if(localStorage.getItem('rtn_dk')==='1') toggleDark();
+const $=id=>document.getElementById(id);
+function sp(msg='โหลด…'){$('sp').classList.add('on');$('st').textContent=msg}
+function spOff(){$('sp').classList.remove('on')}
+function toast(msg,dur=3500){const e=$('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),dur)}
+function toggleDark(){document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');$('darkBtn').textContent=d?'☀️':'🌙';localStorage.setItem('rtn_dk',d?'1':'0')}
+if(localStorage.getItem('rtn_dk')==='1')toggleDark();
 
 function parseCsvToArray(text){
   const rows=[];let row=[],field='',inQ=false;
@@ -236,72 +228,85 @@ function parseCsvToArray(text){
     if(inQ){if(c==='"'&&text[i+1]==='"'){field+='"';i++}else if(c==='"'){inQ=false}else field+=c}
     else if(c==='"')inQ=true;
     else if(c===','){row.push(field.trim());field=''}
-    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field.trim());if(row.some(f=>f!=''))rows.push(row);row=[];field=''}
+    else if(c==='
+'||c==='
+'){if(c==='
+'&&text[i+1]==='
+')i++;row.push(field.trim());if(row.some(f=>f!=''))rows.push(row);row=[];field=''}
     else field+=c;
   }
   if(field||row.length){row.push(field.trim());if(row.some(f=>f!=''))rows.push(row)}
   return rows;
 }
-
 async function fetchCsv(sheet){
   const r=await fetch(csvUrl(sheet));
-  if(!r.ok) throw new Error(`โหลด "${sheet}" ไม่สำเร็จ (${r.status})`);
-  return await r.text();
+  if(!r.ok)throw new Error(`โหลด "${sheet}" ไม่สำเร็จ (${r.status})`);
+  return r.text();
 }
 
-/* LOGIN */
-function showLoginError(msg){ $('loginError').innerHTML=msg;$('loginError').style.display='block';$('loginSpinner').style.display='none';$('loginStatus').style.display='none' }
-function setLoginLoading(on,msg){ $('loginSpinner').style.display=on?'block':'none';const s=$('loginStatus');s.textContent=msg||'กำลังตรวจสอบสิทธิ์...';s.style.display=on?'block':'none';if(on)$('loginError').style.display='none' }
+/* ── LOGIN ── */
+function showLoginError(msg){$('loginError').innerHTML=msg;$('loginError').style.display='block';$('loginSpinner').style.display='none';$('loginStatus').style.display='none'}
+function setLoginLoading(on,msg){$('loginSpinner').style.display=on?'block':'none';const s=$('loginStatus');s.textContent=msg||'กำลังตรวจสอบ...';s.style.display=on?'block':'none';if(on)$('loginError').style.display='none'}
 
-async function handleGoogleLogin(response){
+// Core verify — ใช้ได้ทั้ง JWT และ token flow
+async function verifyAndEnter(email, fallbackName){
+  const CI={email:8,role:15,name:31,nick:6,wh:1};
+  setLoginLoading(true,'กำลังโหลดข้อมูลผู้ใช้...');
+  const rows=parseCsvToArray(await fetchCsv(S_USER));
+  let found=null;
+  for(let i=1;i<rows.length;i++){
+    if((rows[i][CI.email]||'').toLowerCase().trim()===email){found=rows[i];break}
+  }
+  if(!found){showLoginError(`❌ ไม่พบ email นี้ในระบบ<br><span style="opacity:.7">${email}</span><br>กรุณาติดต่อผู้ดูแลระบบ`);return}
+  const roleVal=(found[CI.role]||'').trim();
+  if(!roleVal){showLoginError('❌ บัญชีนี้ยังไม่ได้รับ <b>User Role</b><br>กรุณาติดต่อผู้ดูแลระบบ');return}
+  const fullName=(found[CI.name]||fallbackName||email).trim();
+  const roleNum=parseInt(roleVal)||0;
+  currentUser={email,name:fullName,nickname:(found[CI.nick]||'').trim(),sellerName:'คุณ '+fullName,role:roleNum,warehouse:(found[CI.wh]||'').trim(),isManager:roleNum>=MANAGER_ROLE,loginAt:Date.now()};
+  try{localStorage.setItem(SESSION_KEY,JSON.stringify({user:currentUser,expiresAt:Date.now()+SESSION_TTL}))}catch(e){}
+  enterApp();
+}
+
+// Google Sign-In button callback (JWT)
+async function handleGoogleLogin(resp){
   setLoginLoading(true,'กำลังตรวจสอบสิทธิ์...');
   try{
-    const b64=response.credential.split('.')[1];
-    const padded=b64.replace(/-/g,'+').replace(/_/g,'/').padEnd(b64.length+(4-b64.length%4)%4,'=');
-    const payload=JSON.parse(decodeURIComponent(Array.from(atob(padded)).map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-    const email=(payload.email||'').toLowerCase().trim();
-    if(!email) throw new Error('ไม่พบ email ใน token');
+    const b64=resp.credential.split('.')[1];
+    const pad=b64.replace(/-/g,'+').replace(/_/g,'/').padEnd(b64.length+(4-b64.length%4)%4,'=');
+    const p=JSON.parse(decodeURIComponent(Array.from(atob(pad)).map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+    await verifyAndEnter((p.email||'').toLowerCase().trim(), p.name||'');
+  }catch(e){console.error(e);showLoginError('❌ เกิดข้อผิดพลาด: '+e.message)}
+}
+window.handleGoogleLogin=handleGoogleLogin;
 
-    setLoginLoading(true,'กำลังโหลดข้อมูลผู้ใช้...');
-    const rows=parseCsvToArray(await fetchCsv(S_USER));
-
-    // col indices (0-based)
-    const CI={email:8,role:15,name:31,nick:6,wh:1};
-
-    let found=null;
-    for(let i=1;i<rows.length;i++){
-      if((rows[i][CI.email]||'').toLowerCase().trim()===email){found=rows[i];break}
-    }
-    if(!found){ showLoginError(`❌ ไม่พบ email นี้ในระบบ<br><span style="opacity:.7">${email}</span><br>กรุณาติดต่อผู้ดูแลระบบ`); return }
-
-    const roleVal=(found[CI.role]||'').trim();
-    if(!roleVal){ showLoginError('❌ บัญชีนี้ยังไม่ได้รับ <b>User Role</b><br>กรุณาติดต่อผู้ดูแลระบบ'); return }
-
-    const fullName=(found[CI.name]||payload.name||email).trim();
-    const roleNum=parseInt(roleVal)||0;
-    currentUser={
-      email, name:fullName,
-      nickname:(found[CI.nick]||'').trim(),
-      sellerName:'คุณ '+fullName,
-      role:roleNum,
-      warehouse:(found[CI.wh]||'').trim(),
-      isManager:roleNum>=MANAGER_ROLE,
-      loginAt:Date.now()
-    };
-    try{ localStorage.setItem(SESSION_KEY,JSON.stringify({user:currentUser,expiresAt:Date.now()+SESSION_TTL})) }catch(e){}
-    enterApp();
-  }catch(err){ console.error(err); showLoginError(`❌ เกิดข้อผิดพลาด: ${err.message||err}`) }
+// Mobile button — ใช้ token client ตรงๆ ไม่ผ่าน popup
+function mobileLogin(){
+  setLoginLoading(true,'กำลังเปิด Google...');
+  const wait=()=>{
+    if(!window.google){setTimeout(wait,300);return}
+    const tc=google.accounts.oauth2.initTokenClient({
+      client_id:CLIENT_ID,
+      scope:'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+      callback:async(r)=>{
+        if(r.error){showLoginError('❌ '+r.error);return}
+        try{
+          const info=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+r.access_token}}).then(x=>x.json());
+          await verifyAndEnter((info.email||'').toLowerCase().trim(), info.name||'');
+        }catch(e){showLoginError('❌ '+e.message)}
+      }
+    });
+    tc.requestAccessToken({prompt:'select_account'});
+  };
+  wait();
 }
 
 function checkSession(){
   try{
-    const raw=localStorage.getItem(SESSION_KEY);
-    if(!raw) return false;
-    const d=JSON.parse(raw);
-    if(!d?.user||!d?.expiresAt) return false;
-    if(Date.now()>d.expiresAt){ localStorage.removeItem(SESSION_KEY); return false }
-    currentUser=d.user; enterApp(); return true;
-  }catch(e){ return false }
+    const raw=localStorage.getItem(SESSION_KEY);if(!raw)return false;
+    const d=JSON.parse(raw);if(!d?.user||!d?.expiresAt)return false;
+    if(Date.now()>d.expiresAt){localStorage.removeItem(SESSION_KEY);return false}
+    currentUser=d.user;enterApp();return true;
+  }catch(e){return false}
 }
 
 function enterApp(){
@@ -311,165 +316,108 @@ function enterApp(){
   $('userBadge').style.display='flex';
   $('heroName').textContent=currentUser.name;
   $('heroHi').textContent='สวัสดีคุณ 👋';
-  $('heroSub').textContent=currentUser.isManager
-    ?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`
-    :`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:'แสดงสินค้าที่ยังไม่ขาย'}`;
-  $('loginScreen').style.display='none';
-  $('mainApp').style.display='block';
+  $('heroSub').textContent=currentUser.isManager?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`:`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:'แสดงสินค้าที่ยังไม่ขาย'}`;
+  $('loginScreen').style.display='none';$('mainApp').style.display='block';
   loadData();
 }
-
 function doLogout(){
-  if(!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-  try{ localStorage.removeItem(SESSION_KEY); if(window.google&&google.accounts&&google.accounts.id) google.accounts.id.disableAutoSelect() }catch(e){}
-  currentUser=null; location.reload();
-}
-window.handleGoogleLogin=handleGoogleLogin;
-
-/* Mobile login fallback */
-function mobileLogin(){
-  if(!window.google) return;
-  google.accounts.id.initialize({
-    client_id:'594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com',
-    callback: handleGoogleLogin,
-    ux_mode: 'popup'
-  });
-  google.accounts.id.prompt((n)=>{
-    if(n.isNotDisplayed()||n.isSkippedMoment()){
-      // Final fallback: use token client
-      const tc = google.accounts.oauth2.initTokenClient({
-        client_id:'594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com',
-        scope:'https://www.googleapis.com/auth/userinfo.email',
-        callback: async(resp)=>{
-          if(resp.error){ showLoginError('❌ '+resp.error); return }
-          const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+resp.access_token}}).then(r=>r.json());
-          await handleGoogleLogin({credential: btoa(JSON.stringify({alg:'RS256'})) + '.' + btoa(JSON.stringify({email:info.email,name:info.name})) + '.sig'});
-        }
-      });
-      tc.requestAccessToken({prompt:'select_account'});
-    }
-  });
+  if(!confirm('ต้องการออกจากระบบใช่หรือไม่?'))return;
+  try{localStorage.removeItem(SESSION_KEY);if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.disableAutoSelect()}catch(e){}
+  currentUser=null;location.reload();
 }
 
-/* DATA */
+/* ── DATA ── */
 async function loadData(){
-  sp('โหลดรายชื่อสินค้า (PDDT)…');
+  sp('โหลดรายชื่อสินค้า...');
   try{
     const pddtRows=parseCsvToArray(await fetchCsv(S_PDDT));
     allProducts=[];
     for(let i=0;i<pddtRows.length;i++){
       const name=(pddtRows[i][0]||'').trim();
-      if(i===0&&(name.toLowerCase().includes('ชื่อสินค้า')||name.toLowerCase().includes('product'))) continue;
-      if(name) allProducts.push(name);
+      if(i===0&&(name.toLowerCase().includes('ชื่อสินค้า')||name.toLowerCase().includes('product')))continue;
+      if(name)allProducts.push(name);
     }
-    sp('โหลดข้อมูลยอดขาย…');
+    sp('โหลดข้อมูลยอดขาย...');
     const saleRows=parseCsvToArray(await fetchCsv(S_UNSOLD));
     soldMap={};salesAgg={};const selSet=new Set();
     for(let i=0;i<saleRows.length;i++){
       const row=saleRows[i];
       const seller=(row[0]||'').trim(),product=(row[1]||'').trim();
-      const cs=parseFloat((row[2]||'').replace(/,/g,''))||0;
-      const baht=parseFloat((row[3]||'').replace(/,/g,''))||0;
-      if(!seller||!product) continue;
-      if(i===0&&seller.toLowerCase().includes('sale')) continue;
-      if(!soldMap[seller]) soldMap[seller]=new Set();
-      soldMap[seller].add(product); selSet.add(seller);
-      if(!salesAgg[product]) salesAgg[product]={cs:0,baht:0,sellers:new Set()};
-      salesAgg[product].cs+=cs; salesAgg[product].baht+=baht; salesAgg[product].sellers.add(seller);
+      const cs=parseFloat((row[2]||'').replace(/,/g,''))||0,baht=parseFloat((row[3]||'').replace(/,/g,''))||0;
+      if(!seller||!product)continue;
+      if(i===0&&seller.toLowerCase().includes('sale'))continue;
+      if(!soldMap[seller])soldMap[seller]=new Set();
+      soldMap[seller].add(product);selSet.add(seller);
+      if(!salesAgg[product])salesAgg[product]={cs:0,baht:0,sellers:new Set()};
+      salesAgg[product].cs+=cs;salesAgg[product].baht+=baht;salesAgg[product].sellers.add(seller);
     }
     allSellers=[...selSet].sort((a,b)=>a.localeCompare(b,'th'));
     if(currentUser&&currentUser.isManager){
       $('sellerBar').style.display='block';
       const sel=$('selSel');
-      sel.innerHTML='<option value="">— ดูทุกเซลล์ (ภาพรวม) —</option>';
-      allSellers.forEach(s=>{ const o=document.createElement('option');o.value=s;o.textContent=s;if(s===currentUser.sellerName)o.selected=true;sel.appendChild(o) });
+      sel.innerHTML='<option value="">— ดูทุกเซลล์ —</option>';
+      allSellers.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;if(s===currentUser.sellerName)o.selected=true;sel.appendChild(o)});
       selView=currentUser.sellerName;
-    } else { selView=currentUser?currentUser.sellerName:null }
-    render(); spOff(); toast(`✅ โหลดสำเร็จ ${allProducts.length} สินค้า`);
+    }else{selView=currentUser?currentUser.sellerName:null}
+    render();spOff();toast(`✅ โหลดสำเร็จ ${allProducts.length} สินค้า`);
   }catch(err){
-    spOff(); console.error(err);
-    $('pgrid').innerHTML=`<div class="errbox"><strong>❌ โหลดข้อมูลไม่สำเร็จ</strong>${err.message}<br><br><b>สาเหตุที่พบบ่อย:</b><br>• Google Sheet ยังไม่ได้แชร์เป็น "ทุกคนที่มีลิงก์" → View<br>• ชื่อ Sheet ไม่ตรง: <b>PDDT</b> · <b>สินค้ายังไม่ขาย</b> · <b>User</b><br><br><button onclick="loadData()">🔄 ลองใหม่</button></div>`;
+    spOff();console.error(err);
+    $('pgrid').innerHTML=`<div class="errbox"><strong>❌ โหลดไม่สำเร็จ</strong>${err.message}<br><br>• Sheet ต้องแชร์ "ทุกคนที่มีลิงก์ → ดูได้"<br><br><button onclick="loadData()">🔄 ลองใหม่</button></div>`;
   }
 }
+function onSelChange(){selView=$('selSel').value||null;render()}
 
-function onSelChange(){ selView=$('selSel').value||null; render() }
-
-/* RENDER */
+/* ── RENDER ── */
 function getStars(p){
-  const agg=salesAgg[p];
-  if(!agg||agg.cs<=0) return{stars:'',tier:0};
+  const agg=salesAgg[p];if(!agg||agg.cs<=0)return{stars:'',tier:0};
   const score=agg.cs*Math.sqrt(agg.sellers.size);
   const allS=Object.values(salesAgg).filter(a=>a.cs>0).map(a=>a.cs*Math.sqrt(a.sellers.size)).sort((a,b)=>b-a);
-  if(!allS.length) return{stars:'',tier:0};
+  if(!allS.length)return{stars:'',tier:0};
   const pct=allS.findIndex(s=>s<=score)/allS.length;
-  if(pct<0.20) return{stars:'🌟🌟🌟',tier:1};
-  if(pct<0.40) return{stars:'🌟🌟',tier:2};
-  if(pct<0.60) return{stars:'🌟',tier:3};
+  if(pct<0.20)return{stars:'🌟🌟🌟',tier:1};if(pct<0.40)return{stars:'🌟🌟',tier:2};if(pct<0.60)return{stars:'🌟',tier:3};
   return{stars:'',tier:0};
 }
-function fmt(n,d=0){ return(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:d}) }
+function fmt(n,d=0){return(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:d})}
 
 function render(){
-  if(!currentUser) return;
-  const q=($('srch').value||'').trim().toLowerCase();
-  const sortBy=$('fsort').value;
-  const seller=selView||currentUser.sellerName;
-  const soldSet=soldMap[seller]||new Set();
+  if(!currentUser)return;
+  const q=($('srch').value||'').trim().toLowerCase(),sortBy=$('fsort').value;
+  const seller=selView||currentUser.sellerName,soldSet=soldMap[seller]||new Set();
   let unsold=allProducts.filter(p=>!soldSet.has(p));
-  if(q) unsold=unsold.filter(p=>p.toLowerCase().includes(q));
-  if(sortBy==='pop') unsold.sort((a,b)=>{const A=salesAgg[a]?salesAgg[a].cs*Math.sqrt(salesAgg[a].sellers.size):-1,B=salesAgg[b]?salesAgg[b].cs*Math.sqrt(salesAgg[b].sellers.size):-1;return B-A});
-  else if(sortBy==='sellers') unsold.sort((a,b)=>(salesAgg[b]?.sellers.size||0)-(salesAgg[a]?.sellers.size||0));
-  else if(sortBy==='name') unsold.sort((a,b)=>a.localeCompare(b,'th'));
-  else if(sortBy==='none') unsold=unsold.filter(p=>!salesAgg[p]||salesAgg[p].cs<=0);
+  if(q)unsold=unsold.filter(p=>p.toLowerCase().includes(q));
+  if(sortBy==='pop')unsold.sort((a,b)=>{const A=salesAgg[a]?salesAgg[a].cs*Math.sqrt(salesAgg[a].sellers.size):-1,B=salesAgg[b]?salesAgg[b].cs*Math.sqrt(salesAgg[b].sellers.size):-1;return B-A});
+  else if(sortBy==='sellers')unsold.sort((a,b)=>(salesAgg[b]?.sellers.size||0)-(salesAgg[a]?.sellers.size||0));
+  else if(sortBy==='name')unsold.sort((a,b)=>a.localeCompare(b,'th'));
+  else if(sortBy==='none')unsold=unsold.filter(p=>!salesAgg[p]||salesAgg[p].cs<=0);
   const total=allProducts.length,sold=soldSet.size;
-  $('stTotal').textContent=total; $('stUnsold').textContent=total-sold; $('stSold').textContent=sold;
+  $('stTotal').textContent=total;$('stUnsold').textContent=total-sold;$('stSold').textContent=sold;
   $('fcnt').textContent=`${unsold.length} สินค้า`;
   const hotC=unsold.filter(p=>salesAgg[p]?.sellers.size>0).length;
   $('hotNote').innerHTML=hotC>0?`💡 มี <strong>${hotC}</strong> สินค้าที่เซลล์คนอื่นขายแล้ว — แต่ <strong>${seller}</strong> ยังไม่ขายเลย!`:'';
   $('legBox').style.display=unsold.some(p=>getStars(p).tier>0)?'':'none';
-  if(currentUser.isManager&&selView&&selView!==currentUser.sellerName){
-    $('heroHi').textContent='กำลังดูข้อมูลของ:';$('heroName').textContent=selView;$('heroSub').textContent='⚡ มุมมองผู้จัดการ';
-  } else {
-    $('heroHi').textContent='สวัสดีคุณ 👋';$('heroName').textContent=currentUser.name;
-    $('heroSub').textContent=currentUser.isManager?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`:`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`;
-  }
+  if(currentUser.isManager&&selView&&selView!==currentUser.sellerName){$('heroHi').textContent='กำลังดูข้อมูลของ:';$('heroName').textContent=selView;$('heroSub').textContent='⚡ มุมมองผู้จัดการ'}
+  else{$('heroHi').textContent='สวัสดีคุณ 👋';$('heroName').textContent=currentUser.name;$('heroSub').textContent=currentUser.isManager?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`:`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`}
   const grid=$('pgrid');
   if(allProducts.length===0){grid.innerHTML='<div class="empty"><div class="ic">📭</div><div class="em">ยังไม่มีข้อมูลสินค้า</div><div class="es">กด 🔄 เพื่อโหลด</div></div>';return}
-  if(unsold.length===0){grid.innerHTML='<div class="empty"><div class="ic">🎉🏆🎊</div><div class="em">ยอดเยี่ยม! ขายครบทุกสินค้าแล้ว!</div><div class="es">ไม่มีสินค้าค้างขายเดือนนี้</div></div>';return}
+  if(unsold.length===0){grid.innerHTML='<div class="empty"><div class="ic">🎉🏆🎊</div><div class="em">ยอดเยี่ยม! ขายครบแล้ว!</div><div class="es">ไม่มีสินค้าค้างขายเดือนนี้</div></div>';return}
   grid.innerHTML='';
   unsold.forEach((prod,idx)=>{
-    const agg=salesAgg[prod];
-    const{stars,tier}=getStars(prod);
-    const rank=idx+1;
+    const agg=salesAgg[prod],{stars,tier}=getStars(prod),rank=idx+1;
     const rankStr=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`<span style="font-size:14px">${rank}</span>`;
-    const selCnt=agg?agg.sellers.size:0;
-    const hotTag=selCnt>0?`<span class="phot">🔥 ${selCnt} เซลล์ขายแล้ว!</span>`:'';
-    const card=document.createElement('div');
-    card.className=`pcard t${tier}`;
-    card.innerHTML=`<div class="pbody">
-      <div class="prank">${rankStr}</div>
-      <div class="pinfo">
-        <div class="pname">${prod}${hotTag}</div>
-        ${stars?`<div class="pstars">${stars} <span style="font-size:11px;color:var(--muted)">เซลล์คนอื่นขายดีมาก!</span></div>`:''}
-        ${agg&&agg.cs>0?`<div class="pdetail">💰 ฿${fmt(agg.baht)} · 📦 ${fmt(agg.cs,2)} ลัง รวมทุกเซลล์</div>`:`<div class="pdetail" style="color:var(--border)">ยังไม่มียอดขายจากเซลล์คนอื่น</div>`}
-      </div>
-      <div class="pmeta">
-        ${selCnt>0?`<div class="pvol">${selCnt} คน</div><div class="psl">ขายแล้ว</div>`:`<div class="pno">ยังไม่มี<br>ใครขาย</div>`}
-      </div>
-    </div>`;
+    const selCnt=agg?agg.sellers.size:0,hotTag=selCnt>0?`<span class="phot">🔥 ${selCnt} เซลล์ขายแล้ว!</span>`:'';
+    const card=document.createElement('div');card.className=`pcard t${tier}`;
+    card.innerHTML=`<div class="pbody"><div class="prank">${rankStr}</div><div class="pinfo"><div class="pname">${prod}${hotTag}</div>${stars?`<div class="pstars">${stars} <span style="font-size:11px;color:var(--muted)">เซลล์คนอื่นขายดีมาก!</span></div>`:''}${agg&&agg.cs>0?`<div class="pdetail">💰 ฿${fmt(agg.baht)} · 📦 ${fmt(agg.cs,2)} ลัง</div>`:`<div class="pdetail" style="color:var(--border)">ยังไม่มียอดขายจากเซลล์คนอื่น</div>`}</div><div class="pmeta">${selCnt>0?`<div class="pvol">${selCnt} คน</div><div class="psl">ขายแล้ว</div>`:`<div class="pno">ยังไม่มี<br>ใครขาย</div>`}</div></div>`;
     grid.appendChild(card);
   });
 }
 
-/* INIT */
+/* ── INIT ── */
 (function(){
-  const el=$('originText'); if(!el) return;
+  const el=$('originText');if(!el)return;
   const isFile=location.protocol==='file:';
-  el.textContent='Origin: '+(isFile?'file:// (ใช้กับ OAuth ไม่ได้)':location.origin);
-  if(isFile){ $('loginError').innerHTML='⚠️ <b>เปิดจาก file:// ไม่ได้</b><br>ต้องเปิดผ่าน HTTPS เช่น GitHub Pages';$('loginError').style.display='block' }
-  // Show mobile button on mobile devices
-  const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if(isMobile) $('mobileLoginBtn').style.display='block';
+  el.textContent='Origin: '+(isFile?'file:// (OAuth ไม่ได้)':location.origin);
+  if(isFile){$('loginError').innerHTML='⚠️ ต้องเปิดผ่าน HTTPS';$('loginError').style.display='block'}
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))$('mobileLoginBtn').style.display='block';
 })();
 checkSession();
 </script>
