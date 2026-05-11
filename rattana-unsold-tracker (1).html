@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v1.6</title>
+<title>Rattana สินค้ายังไม่ขาย v2.2-nologin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-/* ═══ TOKENS ═══ */
 :root{
   --navy:#0d1b3e;--navy-mid:#1a2f5e;--navy-light:#243b73;
   --gold:#c9a84c;--gold-light:#e8c86a;
@@ -21,322 +20,113 @@
   --shadow-gold:0 4px 12px rgba(201,168,76,.35);
   --radius-sm:6px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
 }
-body.dark{
-  --bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;
-  --border:#243b73;--muted:#8a98b8;--row-alt:#0f1830;
-}
+body.dark{--bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;--border:#243b73;--muted:#8a98b8;--row-alt:#0f1830}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);
-  min-height:100dvh;overflow-x:hidden;transition:background .25s,color .25s}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;transition:background .25s,color .25s}
 button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
 input,select{font-family:inherit;font-size:16px}
 
-/* ═══ LOGIN SCREEN (Route Optimizer style) ═══ */
-#loginScreen{
-  position:fixed;inset:0;z-index:100000;
-  background:linear-gradient(135deg,#0a0e1a 0%,#1a2f5e 60%,#243b73 100%);
-  display:flex;align-items:center;justify-content:center;padding:20px;
-  font-family:'Outfit','Sarabun',sans-serif;overflow-y:auto
-}
-#loginScreen::before{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background:
-    radial-gradient(circle at 20% 20%,rgba(245,158,11,0.15),transparent 40%),
-    radial-gradient(circle at 80% 80%,rgba(59,130,246,0.12),transparent 40%)
-}
-#loginCard{
-  position:relative;background:rgba(255,255,255,0.06);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid rgba(245,158,11,0.25);border-radius:20px;
-  padding:36px 30px;max-width:400px;width:100%;text-align:center;
-  box-shadow:0 20px 60px rgba(0,0,0,0.5)
-}
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;z-index:100000;background:linear-gradient(135deg,#0a0e1a 0%,#1a2f5e 60%,#243b73 100%);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Outfit','Sarabun',sans-serif;overflow-y:auto}
+#loginScreen::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 20%,rgba(245,158,11,0.15),transparent 40%),radial-gradient(circle at 80% 80%,rgba(59,130,246,0.12),transparent 40%)}
+#loginCard{position:relative;background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(245,158,11,0.25);border-radius:20px;padding:36px 30px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
 #loginCard .logo-emoji{font-size:56px;margin-bottom:10px;display:block}
 #loginCard .brand{color:#f59e0b;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
-#loginCard h2{color:#fff;font-size:22px;font-weight:700;margin-bottom:8px;letter-spacing:-0.3px}
+#loginCard h2{color:#fff;font-size:22px;font-weight:700;margin-bottom:8px}
 #loginCard .tagline{color:rgba(255,255,255,0.65);font-size:13px;margin-bottom:24px;line-height:1.7}
 #loginCard .g-wrap{display:flex;justify-content:center;min-height:44px}
 #loginCard .divider{height:1px;background:rgba(245,158,11,0.2);margin:20px 0 14px}
 #loginCard .foot{color:rgba(255,255,255,0.45);font-size:11px;line-height:1.7}
 #loginCard .foot b{color:#f59e0b}
-#loginSpinner{
-  display:none;margin:16px auto 0;width:36px;height:36px;
-  border:3px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;
-  border-radius:50%;animation:lspin .8s linear infinite
-}
+#loginSpinner{display:none;margin:16px auto 0;width:36px;height:36px;border:3px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;border-radius:50%;animation:lspin .8s linear infinite}
 @keyframes lspin{to{transform:rotate(360deg)}}
 #loginStatus{display:none;color:rgba(255,255,255,0.8);font-size:13px;margin-top:10px}
-#loginError{
-  display:none;background:rgba(239,68,68,0.15);
-  border:1px solid rgba(239,68,68,0.4);color:#fca5a5;
-  padding:10px 14px;border-radius:8px;font-size:12.5px;
-  margin-top:14px;line-height:1.6;text-align:left
-}
+#loginError{display:none;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;padding:10px 14px;border-radius:8px;font-size:12.5px;margin-top:14px;line-height:1.6;text-align:left}
 .lver{margin-top:28px;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.8px;position:relative}
 
-/* ═══ MAIN APP ═══ */
+/* MAIN APP */
 #mainApp{display:none}
-header{
-  background:var(--navy);color:#fff;padding:12px 16px;
-  position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;
-  border-bottom:3px solid var(--gold);padding-top:max(12px,env(safe-area-inset-top))
-}
+header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--gold);padding-top:max(12px,env(safe-area-inset-top))}
 .logo-txt{font-weight:700;font-size:16px;color:#fff;flex:1;letter-spacing:.5px}
 .logo-txt span{color:var(--gold)}
-.icon-btn{
-  background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);
-  width:38px;height:38px;border-radius:var(--radius-sm);display:flex;
-  align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:background .15s
-}
+.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:background .15s}
 .icon-btn:hover{background:rgba(255,255,255,.12)}
-/* User badge (same as route optimizer) */
-.user-badge{
-  display:flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;
-  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
-  border-radius:999px;cursor:pointer;transition:background .15s
-}
+.user-badge{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:999px;cursor:pointer;transition:background .15s}
 .user-badge:hover{background:rgba(255,255,255,.14)}
-.user-badge .avatar{
-  width:26px;height:26px;border-radius:50%;
-  background:linear-gradient(135deg,#3b82f6,#f59e0b);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:11px;flex-shrink:0
-}
-.user-badge .uname{
-  font-size:12px;font-weight:600;color:rgba(255,255,255,.9);
-  max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
-}
-
-/* ═══ HERO ═══ */
-.hero{
-  background:linear-gradient(135deg,var(--navy),var(--navy-mid));color:#fff;
-  padding:18px 16px 16px;border-bottom:3px solid var(--gold)
-}
+.user-badge .avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#f59e0b);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0}
+.user-badge .uname{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy-mid));color:#fff;padding:18px 16px 16px;border-bottom:3px solid var(--gold)}
 .hero-hi{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:2px}
 .hero-name{font-size:20px;font-weight:700;margin-bottom:2px}
 .hero-sub{font-size:12px;color:var(--gold-light)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.sbox{
-  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);
-  border-radius:var(--radius-md);padding:10px;text-align:center
-}
+.sbox{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-md);padding:10px;text-align:center}
 .sbox-n{font-size:22px;font-weight:700;color:var(--gold)}
 .sbox-l{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px}
-
-/* ═══ SELLER PICKER ═══ */
-.seller-bar{
-  background:var(--card-bg);border-bottom:1px solid var(--border);padding:10px 14px
-}
-.seller-bar label{
-  display:block;font-size:11px;font-weight:700;color:var(--muted);
-  letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px
-}
-.seller-bar select{
-  width:100%;height:44px;padding:0 12px;border-radius:var(--radius-sm);
-  border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);
-  font-size:16px;font-family:inherit;outline:none;transition:border-color .15s
-}
+.seller-bar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:10px 14px}
+.seller-bar label{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
+.seller-bar select{width:100%;height:44px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:16px;font-family:inherit;outline:none;transition:border-color .15s}
 .seller-bar select:focus{border-color:var(--gold)}
-
-/* ═══ FILTER BAR ═══ */
-.fbar{
-  background:var(--card-bg);border-bottom:1px solid var(--border);
-  padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
-  position:sticky;top:67px;z-index:50
-}
+.fbar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:sticky;top:67px;z-index:50}
 .sbox-wrap{position:relative;flex:1;min-width:160px}
-.sbox-wrap input{
-  width:100%;height:40px;padding:0 12px 0 36px;
-  border-radius:20px;border:1.5px solid var(--border);
-  background:var(--card-bg);color:var(--text);
-  font-size:14px;font-family:inherit;outline:none;transition:border-color .15s
-}
+.sbox-wrap input{width:100%;height:40px;padding:0 12px 0 36px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
 .sbox-wrap input:focus{border-color:var(--gold)}
-.sbox-wrap .si{
-  position:absolute;left:12px;top:50%;transform:translateY(-50%);
-  color:var(--muted);font-size:15px;pointer-events:none
-}
-.fsort{
-  height:40px;padding:0 10px;border-radius:var(--radius-sm);
-  border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);
-  font-size:13px;font-family:inherit;outline:none;min-width:150px
-}
+.sbox-wrap .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+.fsort{height:40px;padding:0 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;min-width:150px}
 .fsort:focus{border-color:var(--gold)}
 .fcnt{font-size:12px;color:var(--muted);white-space:nowrap}
 .hot-note{padding:5px 14px;font-size:12px;color:var(--muted);line-height:1.5}
-
-/* ═══ LEGEND ═══ */
-.legend{
-  background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);
-  padding:10px 14px;margin:0 14px 10px;box-shadow:var(--shadow-sm)
-}
+.legend{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 14px;margin:0 14px 10px;box-shadow:var(--shadow-sm)}
 .legend-t{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
 .legend-items{display:flex;flex-wrap:wrap;gap:10px}
 .li{display:flex;align-items:center;gap:5px;font-size:12px}
 .ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-
-/* ═══ PRODUCT CARDS ═══ */
 .pgrid{padding:10px 14px;display:flex;flex-direction:column;gap:8px;padding-bottom:40px}
-.pcard{
-  background:var(--card-bg);border-radius:var(--radius-md);
-  border:1px solid var(--border);box-shadow:var(--shadow-sm);
-  overflow:hidden;transition:box-shadow .2s,transform .15s;
-  border-left:4px solid transparent
-}
+.pcard{background:var(--card-bg);border-radius:var(--radius-md);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .2s,transform .15s;border-left:4px solid transparent}
 .pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
-.pcard.t1{border-left-color:#ff6b35}
-.pcard.t2{border-left-color:var(--gold)}
-.pcard.t3{border-left-color:var(--info)}
-.pcard.t0{border-left-color:var(--border)}
+.pcard.t1{border-left-color:#ff6b35}.pcard.t2{border-left-color:var(--gold)}.pcard.t3{border-left-color:var(--info)}.pcard.t0{border-left-color:var(--border)}
 .pbody{display:flex;align-items:center;gap:10px;padding:11px 14px}
 .prank{font-size:18px;font-weight:800;width:28px;text-align:center;flex-shrink:0;color:var(--muted)}
 .t1 .prank{color:#ff6b35}.t2 .prank{color:var(--gold)}.t3 .prank{color:var(--info)}
 .pinfo{flex:1;min-width:0}
 .pname{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;word-break:break-word}
 .pstars{font-size:14px;margin-top:1px;letter-spacing:.5px}
-.phot{
-  display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;
-  border-radius:7px;background:#fff3e0;color:#e65100;
-  border:1px solid #ffcc80;margin-left:5px;vertical-align:middle
-}
+.phot{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:7px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;margin-left:5px;vertical-align:middle}
 .pdetail{font-size:11px;color:var(--muted);margin-top:2px}
 .pmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
-.pvol{font-size:13px;font-weight:700;color:var(--navy)}
-.psl{font-size:11px;color:var(--muted)}
-.pno{font-size:11px;color:var(--muted);font-style:italic;text-align:right}
-
-/* ═══ EMPTY / ERROR ═══ */
+.pvol{font-size:13px;font-weight:700;color:var(--navy)}.psl{font-size:11px;color:var(--muted)}.pno{font-size:11px;color:var(--muted);font-style:italic;text-align:right}
 .empty{text-align:center;padding:48px 20px;color:var(--muted);grid-column:1/-1}
-.empty .ic{font-size:52px;margin-bottom:10px}
-.empty .em{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}
-.empty .es{font-size:13px;line-height:1.7}
-.errbox{
-  background:#ffd5d0;border:1px solid #e74c3c;border-radius:var(--radius-md);
-  padding:14px 16px;font-size:13px;color:#c0392b;margin:14px;line-height:1.7;grid-column:1/-1
-}
+.empty .ic{font-size:52px;margin-bottom:10px}.empty .em{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}.empty .es{font-size:13px;line-height:1.7}
+.errbox{background:#ffd5d0;border:1px solid #e74c3c;border-radius:var(--radius-md);padding:14px 16px;font-size:13px;color:#c0392b;margin:14px;line-height:1.7;grid-column:1/-1}
 .errbox strong{display:block;margin-bottom:4px}
-.errbox button{
-  margin-top:8px;background:var(--navy);color:#fff;border:none;
-  border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;
-  font-weight:600;cursor:pointer;font-family:inherit
-}
-
-/* ═══ TOAST & SPINNER ═══ */
-#toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:var(--navy);color:#fff;padding:11px 18px;border-radius:var(--radius-md);
-  font-size:13px;z-index:9999;transition:transform .3s;box-shadow:var(--shadow-lg);
-  white-space:nowrap;max-width:90vw
-}
+.errbox button{margin-top:8px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:11px 18px;border-radius:var(--radius-md);font-size:13px;z-index:9999;transition:transform .3s;box-shadow:var(--shadow-lg);white-space:nowrap;max-width:90vw}
 #toast.show{transform:translateX(-50%) translateY(0)}
-#sp{
-  position:fixed;inset:0;background:rgba(13,27,62,.8);display:none;
-  flex-direction:column;align-items:center;justify-content:center;z-index:9000;gap:14px
-}
+#sp{position:fixed;inset:0;background:rgba(13,27,62,.8);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:9000;gap:14px}
 #sp.on{display:flex}
-.sr{
-  width:44px;height:44px;border:4px solid rgba(201,168,76,.3);
-  border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite
-}
+.sr{width:44px;height:44px;border:4px solid rgba(201,168,76,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
 .st{color:#fff;font-size:14px}
 @keyframes spin{to{transform:rotate(360deg)}}
-
 @media(min-width:600px){.pgrid{display:grid;grid-template-columns:repeat(2,1fr)}}
 @media(min-width:960px){.pgrid{grid-template-columns:repeat(3,1fr)}}
-
-/* ═══ PRODUCT DETAIL MODAL ═══ */
-#detailOverlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:5000;
-  display:none;align-items:flex-end;justify-content:center;
-  animation:fadeIn .2s ease
-}
-#detailOverlay.on{display:flex}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-#detailPanel{
-  background:var(--card-bg);border-radius:var(--radius-xl) var(--radius-xl) 0 0;
-  width:100%;max-width:680px;max-height:88dvh;
-  display:flex;flex-direction:column;
-  box-shadow:0 -8px 40px rgba(0,0,0,.2);
-  animation:slideUp .25s ease
-}
-@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.dp-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0}
-.dp-head{padding:14px 18px 12px;border-bottom:1px solid var(--border)}
-.dp-close{float:right;background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;margin-top:-2px}
-.dp-pname{font-size:16px;font-weight:700;color:var(--text);margin-right:32px;line-height:1.4}
-.dp-seller{font-size:12px;color:var(--muted);margin-top:3px}
-.dp-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 14px;gap:2px}
-.dp-tab{padding:10px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;
-  border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none}
-.dp-tab.on{color:var(--navy);border-bottom-color:var(--gold)}
-body.dark .dp-tab.on{color:var(--gold)}
-.dp-body{flex:1;overflow-y:auto;padding:14px}
-.dp-section{margin-bottom:16px}
-.dp-sec-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;
-  text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-/* Customer rows */
-.cust-row{
-  display:flex;align-items:center;gap:10px;padding:10px 12px;
-  background:var(--row-alt);border-radius:var(--radius-sm);
-  border:1px solid var(--border);margin-bottom:6px;transition:background .15s
-}
-.cust-row.bought-this-month{border-left:3px solid var(--success)}
-.cust-row.not-bought{border-left:3px solid var(--danger)}
-.cust-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:14px;flex-shrink:0}
-.cust-icon.ok{background:#e8f7ee;color:var(--success)}
-.cust-icon.no{background:#ffd5d0;color:var(--danger)}
-.cust-info{flex:1;min-width:0}
-.cust-name{font-size:13px;font-weight:600;color:var(--text);word-break:break-word}
-.cust-sub{font-size:11px;color:var(--muted);margin-top:2px}
-.cust-val{text-align:right;flex-shrink:0}
-.cust-cs{font-size:13px;font-weight:700;color:var(--navy)}
-.cust-baht{font-size:11px;color:var(--muted)}
-/* Loading in modal */
-.dp-loading{text-align:center;padding:32px;color:var(--muted)}
-.dp-spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);
-  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px}
-.dp-empty{text-align:center;padding:32px;color:var(--muted);font-size:14px}
-/* Summary chips */
-.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.chip{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:600}
-.chip-green{background:#e8f7ee;color:#1e8449}
-.chip-red{background:#ffd5d0;color:#c0392b}
-.chip-gold{background:rgba(201,168,76,.15);color:var(--navy);border:1px solid rgba(201,168,76,.4)}
-body.dark .chip-gold{color:var(--gold)}
-/* Make product cards clickable */
-.pcard{cursor:pointer}
-.pcard:hover .pname{color:var(--gold)}
-@media(min-width:680px){
-  #detailOverlay{align-items:center}
-  #detailPanel{border-radius:var(--radius-xl);max-height:85dvh}
-}
 </style>
 </head>
 <body>
-
-<!-- Spinner -->
 <div id="sp"><div class="sr"></div><div class="st" id="st">กำลังโหลด…</div></div>
-<!-- Toast -->
 <div id="toast"></div>
 
-<!-- ══════════ LOGIN SCREEN ══════════ -->
+<!-- LOGIN -->
 <div id="loginScreen">
   <div style="position:relative;width:100%;max-width:400px">
     <div id="loginCard">
       <span class="logo-emoji">📦</span>
       <div class="brand">Rattana Sales Tracker</div>
       <h2>สินค้ายังไม่ขายเดือนนี้</h2>
-      <div class="tagline">
-        ดูสินค้าที่คุณยังไม่ขายในเดือนนี้<br>
-        เปรียบเทียบกับเซลล์คนอื่น · จัดอันดับ ⭐<br>
-        ติดดาวสินค้าขายดีที่คุณพลาดไป
-      </div>
-
-      <!-- Google Sign-In Button -->
+      <div class="tagline">ดูสินค้าที่คุณยังไม่ขายในเดือนนี้<br>เปรียบเทียบกับเซลล์คนอื่น · จัดอันดับ ⭐<br>ติดดาวสินค้าขายดีที่คุณพลาดไป</div>
       <div id="g_id_onload"
            data-client_id="594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com"
            data-callback="handleGoogleLogin"
+           data-ux_mode="popup"
            data-auto_prompt="false">
       </div>
       <div class="g-wrap">
@@ -349,37 +139,32 @@ body.dark .chip-gold{color:var(--gold)}
              data-logo_alignment="left">
         </div>
       </div>
-
+      <!-- Mobile fallback button -->
+      <button id="mobileLoginBtn" onclick="mobileLogin()" style="display:none;width:100%;margin-top:12px;padding:13px;border-radius:25px;background:#4285f4;color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:inherit">
+        🔐 เข้าสู่ระบบด้วย Google
+      </button>
       <div id="loginSpinner"></div>
       <div id="loginStatus">กำลังตรวจสอบสิทธิ์...</div>
       <div id="loginError"></div>
-
       <div class="divider"></div>
-      <div class="foot">
-        เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>
-        มีปัญหาเข้าใช้งาน? ติดต่อผู้ดูแลระบบ
-      </div>
-      <div class="foot" style="margin-top:8px;font-size:10px;opacity:.5">
-        <span id="originText">—</span>
-      </div>
+      <div class="foot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>มีปัญหาเข้าใช้งาน? ติดต่อผู้ดูแลระบบ</div>
+      <div class="foot" style="margin-top:8px;font-size:10px;opacity:.5"><span id="originText">—</span></div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v1.6 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v2.2 · 2026-05-11</div>
   </div>
 </div>
 
-<!-- ══════════ MAIN APP ══════════ -->
+<!-- MAIN APP -->
 <div id="mainApp">
   <header>
     <span class="logo-txt">RATTANA <span>สินค้ายังไม่ขาย</span></span>
     <button class="icon-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
-    <button class="icon-btn" onclick="loadData()" title="รีเฟรช">🔄</button>
+    <button class="icon-btn" onclick="loadData()">🔄</button>
     <div class="user-badge" onclick="doLogout()" id="userBadge" style="display:none">
       <div class="avatar" id="userAvatar">?</div>
       <span class="uname" id="userName">-</span>
     </div>
   </header>
-
-  <!-- Hero -->
   <div class="hero">
     <div class="hero-hi" id="heroHi">สวัสดีคุณ 👋</div>
     <div class="hero-name" id="heroName">…</div>
@@ -390,16 +175,10 @@ body.dark .chip-gold{color:var(--gold)}
       <div class="sbox"><div class="sbox-n" id="stSold" style="color:#2ecc71">-</div><div class="sbox-l">ขายแล้ว</div></div>
     </div>
   </div>
-
-  <!-- Seller picker (manager) -->
   <div class="seller-bar" id="sellerBar" style="display:none">
     <label>👤 เลือกดูข้อมูลเซลล์</label>
-    <select id="selSel" onchange="onSelChange()">
-      <option value="">— เลือกเซลล์ที่ต้องการดู —</option>
-    </select>
+    <select id="selSel" onchange="onSelChange()"><option value="">— เลือกเซลล์ —</option></select>
   </div>
-
-  <!-- Filter bar -->
   <div class="fbar">
     <div class="sbox-wrap">
       <span class="si">🔍</span>
@@ -414,8 +193,6 @@ body.dark .chip-gold{color:var(--gold)}
     <span class="fcnt" id="fcnt">-</span>
   </div>
   <div class="hot-note" id="hotNote"></div>
-
-  <!-- Legend -->
   <div class="legend" id="legBox" style="display:none">
     <div class="legend-t">⭐ ความหมายของดาว</div>
     <div class="legend-items">
@@ -425,659 +202,229 @@ body.dark .chip-gold{color:var(--gold)}
       <div class="li"><div class="ld" style="background:var(--border)"></div><span>ยังไม่มีใครขายเลย</span></div>
     </div>
   </div>
-
-  <!-- Products grid -->
   <div class="pgrid" id="pgrid"></div>
 </div>
 
 <script>
-/* ══ CONFIG ══ */
-const SHEET_ID   = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
-const S_USER     = 'User';
-const S_PDDT     = 'PDDT';
-const S_UNSOLD   = 'สินค้ายังไม่ขาย';
-const SESSION_KEY = 'rattanaUnsoldUser';
-const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;  // 30 วัน
-const MANAGER_ROLE = 4; // role > 3 = ดูได้ทุกเซลล์
+const SHEET_ID='1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
+const S_USER='User',S_PDDT='PDDT',S_UNSOLD='สินค้ายังไม่ขาย';
+const SESSION_KEY='rattanaUnsoldUser',SESSION_TTL=30*24*60*60*1000,MANAGER_ROLE=4;
+const csvUrl=s=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;
+const CLIENT_ID='594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com';
 
-// CSV endpoint (requires sheet to be shared: anyone with link can view)
-const csvUrl = (sheet) =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;
+let currentUser=null,allProducts=[],soldMap={},salesAgg={},allSellers=[],selView=null;
 
-/* ══ STATE ══ */
-let currentUser = null;
-let allProducts = [], soldMap = {}, salesAgg = {}, allSellers = [], selView = null;
+const $=id=>document.getElementById(id);
+function sp(msg='โหลด…'){$('sp').classList.add('on');$('st').textContent=msg}
+function spOff(){$('sp').classList.remove('on')}
+function toast(msg,dur=3500){const e=$('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),dur)}
+function toggleDark(){document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');$('darkBtn').textContent=d?'☀️':'🌙';localStorage.setItem('rtn_dk',d?'1':'0')}
+if(localStorage.getItem('rtn_dk')==='1')toggleDark();
 
-/* ══ HELPERS ══ */
-const $ = id => document.getElementById(id);
-function sp(msg='โหลด…'){ $('sp').classList.add('on'); $('st').textContent = msg }
-function spOff(){ $('sp').classList.remove('on') }
-function toast(msg, dur=3500){
-  const e=$('toast'); e.textContent=msg; e.classList.add('show');
-  setTimeout(()=>e.classList.remove('show'), dur);
-}
-function toggleDark(){
-  document.body.classList.toggle('dark');
-  const d = document.body.classList.contains('dark');
-  $('darkBtn').textContent = d ? '☀️' : '🌙';
-  localStorage.setItem('rtn_dk', d ? '1' : '0');
-}
-if(localStorage.getItem('rtn_dk')==='1') toggleDark();
-
-/* RFC-4180 CSV with object headers */
-function parseCsvToObjects(text) {
-  const parseRow = (row) => {
-    const cells = []; let cur = '', q = false;
-    for(let i=0;i<row.length;i++){
-      const ch=row[i];
-      if(ch==='"'){ if(q&&row[i+1]==='"'){cur+='"';i++}else q=!q }
-      else if(ch===','&&!q){ cells.push(cur); cur='' }
-      else cur+=ch;
-    }
-    cells.push(cur);
-    return cells.map(c=>c.trim());
-  };
-  const rows = text.replace(/\r/g,'').split('\n').filter(r=>r.length);
-  if(!rows.length) return [];
-  const headers = parseRow(rows[0]);
-  return rows.slice(1).map(r=>{
-    const cells = parseRow(r);
-    const obj = {};
-    headers.forEach((h,i) => obj[h] = cells[i]||'');
-    return obj;
-  });
-}
-
-/* RFC-4180 CSV to 2D array */
 function parseCsvToArray(text){
-  const rows=[]; let row=[],field='',inQ=false;
+  const rows=[];let row=[],field='',inQ=false;
   for(let i=0;i<text.length;i++){
     const c=text[i];
-    if(inQ){ if(c==='"'&&text[i+1]==='"'){field+='"';i++}else if(c==='"'){inQ=false}else field+=c }
-    else if(c==='"') inQ=true;
+    if(inQ){if(c==='"'&&text[i+1]==='"'){field+='"';i++}else if(c==='"'){inQ=false}else field+=c}
+    else if(c==='"')inQ=true;
     else if(c===','){row.push(field.trim());field=''}
-    else if(c==='\n'||c==='\r'){
-      if(c==='\r'&&text[i+1]==='\n')i++;
-      row.push(field.trim()); if(row.some(f=>f!=''))rows.push(row);
-      row=[];field='';
-    } else field+=c;
+    else if(c==='
+'||c==='
+'){if(c==='
+'&&text[i+1]==='
+')i++;row.push(field.trim());if(row.some(f=>f!=''))rows.push(row);row=[];field=''}
+    else field+=c;
   }
   if(field||row.length){row.push(field.trim());if(row.some(f=>f!=''))rows.push(row)}
   return rows;
 }
-
 async function fetchCsv(sheet){
-  const resp = await fetch(csvUrl(sheet));
-  if(!resp.ok) throw new Error(`ไม่สามารถโหลด "${sheet}" (HTTP ${resp.status})`);
-  return await resp.text();
+  const r=await fetch(csvUrl(sheet));
+  if(!r.ok)throw new Error(`โหลด "${sheet}" ไม่สำเร็จ (${r.status})`);
+  return r.text();
 }
 
-/* ══ LOGIN (same as Route Optimizer) ══ */
-function showLoginError(msg){
-  $('loginError').innerHTML = msg;
-  $('loginError').style.display = 'block';
-  $('loginSpinner').style.display = 'none';
-  $('loginStatus').style.display = 'none';
-}
+/* ── LOGIN ── */
+function showLoginError(msg){$('loginError').innerHTML=msg;$('loginError').style.display='block';$('loginSpinner').style.display='none';$('loginStatus').style.display='none'}
+function setLoginLoading(on,msg){$('loginSpinner').style.display=on?'block':'none';const s=$('loginStatus');s.textContent=msg||'กำลังตรวจสอบ...';s.style.display=on?'block':'none';if(on)$('loginError').style.display='none'}
 
-function setLoginLoading(on, msg){
-  $('loginSpinner').style.display = on ? 'block' : 'none';
-  const s = $('loginStatus');
-  s.textContent = msg || 'กำลังตรวจสอบสิทธิ์...';
-  s.style.display = on ? 'block' : 'none';
-  if(on) $('loginError').style.display = 'none';
-}
-
-async function handleGoogleLogin(response) {
-  setLoginLoading(true, 'กำลังตรวจสอบสิทธิ์...');
-  try{
-    // Decode JWT payload (same as route optimizer)
-    const b64 = response.credential.split('.')[1];
-    const padded = b64.replace(/-/g,'+').replace(/_/g,'/')
-      .padEnd(b64.length + (4 - b64.length%4)%4, '=');
-    const payload = JSON.parse(decodeURIComponent(
-      Array.from(atob(padded)).map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')
-    ));
-    const email = (payload.email || '').toLowerCase().trim();
-    if(!email) throw new Error('ไม่พบ email ใน token');
-
-    setLoginLoading(true, 'กำลังโหลดข้อมูลผู้ใช้...');
-    const csvText = await fetchCsv(S_USER);
-    const userRows = parseCsvToArray(csvText);
-
-    // Column indices (0-based) ใน Sheet 'User'
-    const COL_EMAIL     = 8;   // I  = E-mail
-    const COL_ROLE      = 15;  // P  = User Role
-    const COL_NAME      = 31;  // AF = ชื่อ-สกุล (เปลี่ยนจาก E → AF)
-    const COL_NICKNAME  = 6;   // G  = ชื่อเล่น
-    const COL_WAREHOUSE = 1;   // B  = W (คลัง)
-
-    // Find user by email (skip header row 0)
-    let foundRow = null;
-    for(let i = 1; i < userRows.length; i++){
-      const rowEmail = (userRows[i][COL_EMAIL] || '').toLowerCase().trim();
-      if(rowEmail === email){ foundRow = userRows[i]; break; }
-    }
-
-    if(!foundRow){
-      showLoginError(`❌ ไม่พบ email นี้ในระบบ<br><span style="opacity:.7">${email}</span><br>กรุณาติดต่อผู้ดูแลระบบ`);
-      return;
-    }
-
-    // Check User Role is not null/empty
-    const roleVal = (foundRow[COL_ROLE] || '').trim();
-    if(!roleVal){
-      showLoginError(`❌ บัญชีนี้ยังไม่ได้รับ <b>User Role</b><br>กรุณาติดต่อผู้ดูแลระบบ`);
-      return;
-    }
-
-    const fullName = (foundRow[COL_NAME] || payload.name || email).trim();
-    const roleNum  = parseInt(roleVal) || 0;
-
-    currentUser = {
-      email,
-      name: fullName,
-      nickname: (foundRow[COL_NICKNAME] || '').trim(),
-      sellerName: 'คุณ ' + fullName,  // format used in สินค้ายังไม่ขาย sheet
-      role: roleNum,
-      warehouse: (foundRow[COL_WAREHOUSE] || '').trim(),
-      isManager: roleNum >= MANAGER_ROLE,
-      picture: payload.picture || '',
-      loginAt: Date.now()
-    };
-
-    // Session (30 days)
-    try{
-      localStorage.setItem(SESSION_KEY, JSON.stringify({
-        user: currentUser,
-        expiresAt: Date.now() + SESSION_TTL
-      }));
-    } catch(e){}
-
-    enterApp();
-  } catch(err){
-    console.error('Login error:', err);
-    showLoginError(`❌ เกิดข้อผิดพลาด: ${err.message||err}<br>กรุณาลองใหม่อีกครั้ง`);
+// Core verify — ใช้ได้ทั้ง JWT และ token flow
+async function verifyAndEnter(email, fallbackName){
+  const CI={email:8,role:15,name:31,nick:6,wh:1};
+  setLoginLoading(true,'กำลังโหลดข้อมูลผู้ใช้...');
+  const rows=parseCsvToArray(await fetchCsv(S_USER));
+  let found=null;
+  for(let i=1;i<rows.length;i++){
+    if((rows[i][CI.email]||'').toLowerCase().trim()===email){found=rows[i];break}
   }
+  if(!found){showLoginError(`❌ ไม่พบ email นี้ในระบบ<br><span style="opacity:.7">${email}</span><br>กรุณาติดต่อผู้ดูแลระบบ`);return}
+  const roleVal=(found[CI.role]||'').trim();
+  if(!roleVal){showLoginError('❌ บัญชีนี้ยังไม่ได้รับ <b>User Role</b><br>กรุณาติดต่อผู้ดูแลระบบ');return}
+  const fullName=(found[CI.name]||fallbackName||email).trim();
+  const roleNum=parseInt(roleVal)||0;
+  currentUser={email,name:fullName,nickname:(found[CI.nick]||'').trim(),sellerName:'คุณ '+fullName,role:roleNum,warehouse:(found[CI.wh]||'').trim(),isManager:roleNum>=MANAGER_ROLE,loginAt:Date.now()};
+  try{localStorage.setItem(SESSION_KEY,JSON.stringify({user:currentUser,expiresAt:Date.now()+SESSION_TTL}))}catch(e){}
+  enterApp();
+}
+
+// Google Sign-In button callback (JWT)
+async function handleGoogleLogin(resp){
+  setLoginLoading(true,'กำลังตรวจสอบสิทธิ์...');
+  try{
+    const b64=resp.credential.split('.')[1];
+    const pad=b64.replace(/-/g,'+').replace(/_/g,'/').padEnd(b64.length+(4-b64.length%4)%4,'=');
+    const p=JSON.parse(decodeURIComponent(Array.from(atob(pad)).map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+    await verifyAndEnter((p.email||'').toLowerCase().trim(), p.name||'');
+  }catch(e){console.error(e);showLoginError('❌ เกิดข้อผิดพลาด: '+e.message)}
+}
+window.handleGoogleLogin=handleGoogleLogin;
+
+// Mobile button — redirect flow (ไม่มี popup เลย ใช้ได้บน iOS Safari)
+function mobileLogin(){
+  const redirectUri = location.origin + location.pathname;
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'token',
+    scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+    prompt: 'select_account',
+    include_granted_scopes: 'true'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+// Handle redirect callback (access_token in URL hash)
+async function handleRedirectCallback(){
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const token = params.get('access_token');
+  if(!token) return false;
+  // Clean URL
+  history.replaceState(null,'',location.pathname);
+  setLoginLoading(true,'กำลังตรวจสอบสิทธิ์...');
+  try{
+    const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+      headers:{Authorization:'Bearer '+token}
+    }).then(r=>r.json());
+    await verifyAndEnter((info.email||'').toLowerCase().trim(), info.name||'');
+    return true;
+  }catch(e){ showLoginError('❌ '+e.message); return false }
 }
 
 function checkSession(){
   try{
-    const raw = localStorage.getItem(SESSION_KEY);
-    if(!raw) return false;
-    const data = JSON.parse(raw);
-    if(!data||!data.user||!data.expiresAt) return false;
-    if(Date.now() > data.expiresAt){ localStorage.removeItem(SESSION_KEY); return false; }
-    currentUser = data.user;
-    enterApp();
-    return true;
-  } catch(e){ return false; }
+    const raw=localStorage.getItem(SESSION_KEY);if(!raw)return false;
+    const d=JSON.parse(raw);if(!d?.user||!d?.expiresAt)return false;
+    if(Date.now()>d.expiresAt){localStorage.removeItem(SESSION_KEY);return false}
+    currentUser=d.user;enterApp();return true;
+  }catch(e){return false}
 }
 
 function enterApp(){
-  renderUserBadge();
-  $('loginScreen').style.display = 'none';
-  $('mainApp').style.display = 'block';
+  const dn=currentUser.nickname||currentUser.name||currentUser.email;
+  $('userAvatar').textContent=dn.trim().charAt(0).toUpperCase();
+  $('userName').textContent=dn.split(' ')[0]||dn;
+  $('userBadge').style.display='flex';
+  $('heroName').textContent=currentUser.name;
+  $('heroHi').textContent='สวัสดีคุณ 👋';
+  $('heroSub').textContent=currentUser.isManager?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`:`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:'แสดงสินค้าที่ยังไม่ขาย'}`;
+  $('loginScreen').style.display='none';$('mainApp').style.display='block';
   loadData();
 }
-
-function renderUserBadge(){
-  if(!currentUser) return;
-  const displayName = currentUser.nickname || currentUser.name || currentUser.email;
-  const firstLetter = displayName.trim().charAt(0).toUpperCase();
-  $('userAvatar').textContent = firstLetter;
-  $('userName').textContent = displayName.split(' ')[0] || displayName;
-  $('userBadge').style.display = 'flex';
-
-  $('heroName').textContent = currentUser.name;
-  $('heroHi').textContent = 'สวัสดีคุณ 👋';
-  $('heroSub').textContent = currentUser.isManager
-    ? `⚡ ผู้จัดการ · ${currentUser.warehouse ? 'คลัง '+currentUser.warehouse : ''}`
-    : `🏷️ เซลล์ขาย · ${currentUser.warehouse ? 'คลัง '+currentUser.warehouse : 'แสดงสินค้าที่ยังไม่ขาย'}`;
-}
-
 function doLogout(){
-  if(!confirm('ต้องการออกจากระบบใช่หรือไม่?')) return;
-  try{
-    localStorage.removeItem(SESSION_KEY);
-    if(window.google && google.accounts && google.accounts.id)
-      google.accounts.id.disableAutoSelect();
-  } catch(e){}
-  currentUser = null;
-  location.reload();
+  if(!confirm('ต้องการออกจากระบบใช่หรือไม่?'))return;
+  try{localStorage.removeItem(SESSION_KEY);if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.disableAutoSelect()}catch(e){}
+  currentUser=null;location.reload();
 }
 
-// Expose for GSI callback
-window.handleGoogleLogin = handleGoogleLogin;
-
-/* ══ DATA LOADING ══ */
+/* ── DATA ── */
 async function loadData(){
-  sp('โหลดรายชื่อสินค้า (PDDT)…');
+  sp('โหลดรายชื่อสินค้า...');
   try{
-    // PDDT sheet — col A = ชื่อสินค้า
-    const pddtText = await fetchCsv(S_PDDT);
-    const pddtRows = parseCsvToArray(pddtText);
-    allProducts = [];
-    for(let i=0; i<pddtRows.length; i++){
-      const name = (pddtRows[i][0]||'').trim();
-      if(i===0 && (name.toLowerCase().includes('ชื่อสินค้า')||name.toLowerCase().includes('product'))) continue;
-      if(name) allProducts.push(name);
+    const pddtRows=parseCsvToArray(await fetchCsv(S_PDDT));
+    allProducts=[];
+    for(let i=0;i<pddtRows.length;i++){
+      const name=(pddtRows[i][0]||'').trim();
+      if(i===0&&(name.toLowerCase().includes('ชื่อสินค้า')||name.toLowerCase().includes('product')))continue;
+      if(name)allProducts.push(name);
     }
-
-    sp('โหลดข้อมูลยอดขาย…');
-    const saleText = await fetchCsv(S_UNSOLD);
-    const saleRows = parseCsvToArray(saleText);
-    soldMap = {}; salesAgg = {}; const selSet = new Set();
-
-    for(let i=0; i<saleRows.length; i++){
-      const row = saleRows[i];
-      const seller  = (row[0]||'').trim();
-      const product = (row[1]||'').trim();
-      const cs   = parseFloat((row[2]||'').replace(/,/g,'')) || 0;
-      const baht = parseFloat((row[3]||'').replace(/,/g,'')) || 0;
-      if(!seller || !product) continue;
-      if(i===0 && seller.toLowerCase().includes('sale')) continue;
-
-      // soldMap: seller → products they've sold (present in this sheet)
-      if(!soldMap[seller]) soldMap[seller] = new Set();
-      soldMap[seller].add(product);
-      selSet.add(seller);
-
-      // Aggregate per product
-      if(!salesAgg[product]) salesAgg[product] = {cs:0, baht:0, sellers:new Set()};
-      salesAgg[product].cs   += cs;
-      salesAgg[product].baht += baht;
-      salesAgg[product].sellers.add(seller);
+    sp('โหลดข้อมูลยอดขาย...');
+    const saleRows=parseCsvToArray(await fetchCsv(S_UNSOLD));
+    soldMap={};salesAgg={};const selSet=new Set();
+    for(let i=0;i<saleRows.length;i++){
+      const row=saleRows[i];
+      const seller=(row[0]||'').trim(),product=(row[1]||'').trim();
+      const cs=parseFloat((row[2]||'').replace(/,/g,''))||0,baht=parseFloat((row[3]||'').replace(/,/g,''))||0;
+      if(!seller||!product)continue;
+      if(i===0&&seller.toLowerCase().includes('sale'))continue;
+      if(!soldMap[seller])soldMap[seller]=new Set();
+      soldMap[seller].add(product);selSet.add(seller);
+      if(!salesAgg[product])salesAgg[product]={cs:0,baht:0,sellers:new Set()};
+      salesAgg[product].cs+=cs;salesAgg[product].baht+=baht;salesAgg[product].sellers.add(seller);
     }
-    allSellers = [...selSet].sort((a,b) => a.localeCompare(b,'th'));
-
-    // Manager dropdown
-    if(currentUser && currentUser.isManager){
-      $('sellerBar').style.display = 'block';
-      const sel = $('selSel');
-      sel.innerHTML = '<option value="">— ดูทุกเซลล์ (ภาพรวม) —</option>';
-      allSellers.forEach(s=>{
-        const o = document.createElement('option');
-        o.value = s; o.textContent = s;
-        if(s === currentUser.sellerName) o.selected = true;
-        sel.appendChild(o);
-      });
-      selView = currentUser.sellerName;
-    } else {
-      selView = currentUser ? currentUser.sellerName : null;
-    }
-
-    render();
-    spOff();
-    toast(`✅ โหลดสำเร็จ ${allProducts.length} สินค้า`);
-  } catch(err){
-    spOff();
-    console.error(err);
-    $('pgrid').innerHTML = `<div class="errbox">
-      <strong>❌ โหลดข้อมูลไม่สำเร็จ</strong>
-      ${err.message}<br><br>
-      <b>สาเหตุที่พบบ่อย:</b><br>
-      • Google Sheet ยังไม่ได้แชร์เป็น "ทุกคนที่มีลิงก์" → View<br>
-      • ชื่อ Sheet ไม่ตรง ตรวจสอบ: <b>${S_PDDT}</b> · <b>${S_UNSOLD}</b> · <b>User</b><br><br>
-      <button onclick="loadData()">🔄 ลองใหม่</button>
-    </div>`;
+    allSellers=[...selSet].sort((a,b)=>a.localeCompare(b,'th'));
+    if(currentUser&&currentUser.isManager){
+      $('sellerBar').style.display='block';
+      const sel=$('selSel');
+      sel.innerHTML='<option value="">— ดูทุกเซลล์ —</option>';
+      allSellers.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;if(s===currentUser.sellerName)o.selected=true;sel.appendChild(o)});
+      selView=currentUser.sellerName;
+    }else{selView=currentUser?currentUser.sellerName:null}
+    render();spOff();toast(`✅ โหลดสำเร็จ ${allProducts.length} สินค้า`);
+  }catch(err){
+    spOff();console.error(err);
+    $('pgrid').innerHTML=`<div class="errbox"><strong>❌ โหลดไม่สำเร็จ</strong>${err.message}<br><br>• Sheet ต้องแชร์ "ทุกคนที่มีลิงก์ → ดูได้"<br><br><button onclick="loadData()">🔄 ลองใหม่</button></div>`;
   }
 }
+function onSelChange(){selView=$('selSel').value||null;render()}
 
-function onSelChange(){
-  selView = $('selSel').value || null;
-  render();
+/* ── RENDER ── */
+function getStars(p){
+  const agg=salesAgg[p];if(!agg||agg.cs<=0)return{stars:'',tier:0};
+  const score=agg.cs*Math.sqrt(agg.sellers.size);
+  const allS=Object.values(salesAgg).filter(a=>a.cs>0).map(a=>a.cs*Math.sqrt(a.sellers.size)).sort((a,b)=>b-a);
+  if(!allS.length)return{stars:'',tier:0};
+  const pct=allS.findIndex(s=>s<=score)/allS.length;
+  if(pct<0.20)return{stars:'🌟🌟🌟',tier:1};if(pct<0.40)return{stars:'🌟🌟',tier:2};if(pct<0.60)return{stars:'🌟',tier:3};
+  return{stars:'',tier:0};
 }
-
-/* ══ RENDER ══ */
-function getStars(product){
-  const agg = salesAgg[product];
-  if(!agg || agg.cs <= 0) return {stars:'', tier:0};
-  const score = agg.cs * Math.sqrt(agg.sellers.size);
-  const allS = Object.values(salesAgg).filter(a=>a.cs>0).map(a=>a.cs*Math.sqrt(a.sellers.size)).sort((a,b)=>b-a);
-  if(!allS.length) return {stars:'', tier:0};
-  const rank = allS.findIndex(s => s <= score);
-  const pct  = rank / allS.length;
-  if(pct < 0.20) return {stars:'🌟🌟🌟', tier:1};
-  if(pct < 0.40) return {stars:'🌟🌟',   tier:2};
-  if(pct < 0.60) return {stars:'🌟',     tier:3};
-  return {stars:'', tier:0};
-}
-
-function fmt(n, d=0){ return (n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:d}) }
+function fmt(n,d=0){return(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:d})}
 
 function render(){
-  if(!currentUser) return;
-  const q      = ($('srch').value||'').trim().toLowerCase();
-  const sortBy = $('fsort').value;
-  const seller = selView || currentUser.sellerName;
-  const soldSet = soldMap[seller] || new Set();
-
-  // Unsold = products in PDDT NOT in sold set
-  let unsold = allProducts.filter(p => !soldSet.has(p));
-  if(q) unsold = unsold.filter(p => p.toLowerCase().includes(q));
-
-  if(sortBy==='pop') unsold.sort((a,b)=>{
-    const A = salesAgg[a] ? salesAgg[a].cs*Math.sqrt(salesAgg[a].sellers.size) : -1;
-    const B = salesAgg[b] ? salesAgg[b].cs*Math.sqrt(salesAgg[b].sellers.size) : -1;
-    return B-A;
-  });
-  else if(sortBy==='sellers') unsold.sort((a,b)=>(salesAgg[b]?.sellers.size||0)-(salesAgg[a]?.sellers.size||0));
-  else if(sortBy==='name') unsold.sort((a,b)=>a.localeCompare(b,'th'));
-  else if(sortBy==='none') unsold = unsold.filter(p=>!salesAgg[p]||salesAgg[p].cs<=0);
-
-  const total = allProducts.length;
-  const sold  = soldSet.size;
-  $('stTotal').textContent  = total;
-  $('stUnsold').textContent = total - sold;
-  $('stSold').textContent   = sold;
-  $('fcnt').textContent     = `${unsold.length} สินค้า`;
-
-  // Hot note
-  const hotC = unsold.filter(p => salesAgg[p]?.sellers.size > 0).length;
-  $('hotNote').innerHTML = hotC > 0
-    ? `💡 มี <strong>${hotC}</strong> สินค้าที่เซลล์คนอื่นขายแล้ว — แต่ <strong>${seller}</strong> ยังไม่ขายเลย!`
-    : '';
-
-  $('legBox').style.display = unsold.some(p=>getStars(p).tier>0) ? '' : 'none';
-
-  // Hero update (manager view)
-  if(currentUser.isManager && selView && selView !== currentUser.sellerName){
-    $('heroHi').textContent   = 'กำลังดูข้อมูลของ:';
-    $('heroName').textContent = selView;
-    $('heroSub').textContent  = '⚡ มุมมองผู้จัดการ';
-  } else {
-    $('heroHi').textContent   = 'สวัสดีคุณ 👋';
-    $('heroName').textContent = currentUser.name;
-    $('heroSub').textContent  = currentUser.isManager
-      ? `⚡ ผู้จัดการ · ${currentUser.warehouse ? 'คลัง '+currentUser.warehouse : ''}`
-      : `🏷️ เซลล์ขาย · ${currentUser.warehouse ? 'คลัง '+currentUser.warehouse : ''}`;
-  }
-
-  const grid = $('pgrid');
-  if(allProducts.length === 0){
-    grid.innerHTML = '<div class="empty"><div class="ic">📭</div><div class="em">ยังไม่มีข้อมูลสินค้า</div><div class="es">กด 🔄 เพื่อโหลด</div></div>';
-    return;
-  }
-  if(unsold.length === 0){
-    grid.innerHTML = '<div class="empty"><div class="ic">🎉🏆🎊</div><div class="em">ยอดเยี่ยม! ขายครบทุกสินค้าแล้ว!</div><div class="es">ไม่มีสินค้าค้างขายเดือนนี้</div></div>';
-    return;
-  }
-
-  grid.innerHTML = '';
-  unsold.forEach((prod, idx)=>{
-    const agg = salesAgg[prod];
-    const {stars, tier} = getStars(prod);
-    const rank = idx + 1;
-    const rankStr = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`<span style="font-size:14px">${rank}</span>`;
-    const selCnt = agg ? agg.sellers.size : 0;
-    const hotTag = selCnt > 0 ? `<span class="phot">🔥 ${selCnt} เซลล์ขายแล้ว!</span>` : '';
-
-    const card = document.createElement('div');
-    card.className = `pcard t${tier}`;
-    card.onclick = () => openDetail(prod);
-    card.innerHTML = `<div class="pbody">
-      <div class="prank">${rankStr}</div>
-      <div class="pinfo">
-        <div class="pname">${prod}${hotTag}</div>
-        ${stars ? `<div class="pstars">${stars} <span style="font-size:11px;color:var(--muted)">เซลล์คนอื่นขายดีมาก!</span></div>` : ''}
-        ${agg && agg.cs > 0
-          ? `<div class="pdetail">💰 ฿${fmt(agg.baht)} · 📦 ${fmt(agg.cs,2)} ลัง รวมทุกเซลล์</div>`
-          : `<div class="pdetail" style="color:var(--border)">ยังไม่มียอดขายจากเซลล์คนอื่น</div>`}
-      </div>
-      <div class="pmeta">
-        ${selCnt > 0
-          ? `<div class="pvol">${selCnt} คน</div><div class="psl">ขายแล้ว</div>`
-          : `<div class="pno">ยังไม่มี<br>ใครขาย</div>`}
-      </div>
-    </div>`;
+  if(!currentUser)return;
+  const q=($('srch').value||'').trim().toLowerCase(),sortBy=$('fsort').value;
+  const seller=selView||currentUser.sellerName,soldSet=soldMap[seller]||new Set();
+  let unsold=allProducts.filter(p=>!soldSet.has(p));
+  if(q)unsold=unsold.filter(p=>p.toLowerCase().includes(q));
+  if(sortBy==='pop')unsold.sort((a,b)=>{const A=salesAgg[a]?salesAgg[a].cs*Math.sqrt(salesAgg[a].sellers.size):-1,B=salesAgg[b]?salesAgg[b].cs*Math.sqrt(salesAgg[b].sellers.size):-1;return B-A});
+  else if(sortBy==='sellers')unsold.sort((a,b)=>(salesAgg[b]?.sellers.size||0)-(salesAgg[a]?.sellers.size||0));
+  else if(sortBy==='name')unsold.sort((a,b)=>a.localeCompare(b,'th'));
+  else if(sortBy==='none')unsold=unsold.filter(p=>!salesAgg[p]||salesAgg[p].cs<=0);
+  const total=allProducts.length,sold=soldSet.size;
+  $('stTotal').textContent=total;$('stUnsold').textContent=total-sold;$('stSold').textContent=sold;
+  $('fcnt').textContent=`${unsold.length} สินค้า`;
+  const hotC=unsold.filter(p=>salesAgg[p]?.sellers.size>0).length;
+  $('hotNote').innerHTML=hotC>0?`💡 มี <strong>${hotC}</strong> สินค้าที่เซลล์คนอื่นขายแล้ว — แต่ <strong>${seller}</strong> ยังไม่ขายเลย!`:'';
+  $('legBox').style.display=unsold.some(p=>getStars(p).tier>0)?'':'none';
+  if(currentUser.isManager&&selView&&selView!==currentUser.sellerName){$('heroHi').textContent='กำลังดูข้อมูลของ:';$('heroName').textContent=selView;$('heroSub').textContent='⚡ มุมมองผู้จัดการ'}
+  else{$('heroHi').textContent='สวัสดีคุณ 👋';$('heroName').textContent=currentUser.name;$('heroSub').textContent=currentUser.isManager?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`:`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`}
+  const grid=$('pgrid');
+  if(allProducts.length===0){grid.innerHTML='<div class="empty"><div class="ic">📭</div><div class="em">ยังไม่มีข้อมูลสินค้า</div><div class="es">กด 🔄 เพื่อโหลด</div></div>';return}
+  if(unsold.length===0){grid.innerHTML='<div class="empty"><div class="ic">🎉🏆🎊</div><div class="em">ยอดเยี่ยม! ขายครบแล้ว!</div><div class="es">ไม่มีสินค้าค้างขายเดือนนี้</div></div>';return}
+  grid.innerHTML='';
+  unsold.forEach((prod,idx)=>{
+    const agg=salesAgg[prod],{stars,tier}=getStars(prod),rank=idx+1;
+    const rankStr=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`<span style="font-size:14px">${rank}</span>`;
+    const selCnt=agg?agg.sellers.size:0,hotTag=selCnt>0?`<span class="phot">🔥 ${selCnt} เซลล์ขายแล้ว!</span>`:'';
+    const card=document.createElement('div');card.className=`pcard t${tier}`;
+    card.innerHTML=`<div class="pbody"><div class="prank">${rankStr}</div><div class="pinfo"><div class="pname">${prod}${hotTag}</div>${stars?`<div class="pstars">${stars} <span style="font-size:11px;color:var(--muted)">เซลล์คนอื่นขายดีมาก!</span></div>`:''}${agg&&agg.cs>0?`<div class="pdetail">💰 ฿${fmt(agg.baht)} · 📦 ${fmt(agg.cs,2)} ลัง</div>`:`<div class="pdetail" style="color:var(--border)">ยังไม่มียอดขายจากเซลล์คนอื่น</div>`}</div><div class="pmeta">${selCnt>0?`<div class="pvol">${selCnt} คน</div><div class="psl">ขายแล้ว</div>`:`<div class="pno">ยังไม่มี<br>ใครขาย</div>`}</div></div>`;
     grid.appendChild(card);
   });
 }
 
-
-/* ═══ BQ DATA ═══ */
-const S_BQ = 'BQ_2024_2025';
-let bqData = null;       // cached BQ rows
-let bqLoading = false;
-let currentProduct = null;
-let currentDpTab = 'customers';
-
-async function loadBQ(){
-  if(bqData) return bqData;
-  if(bqLoading) return null;
-  bqLoading = true;
-  try{
-    const text = await fetchCsv(S_BQ);
-    const rows = parseCsvToArray(text);
-    // rows[0] might be "Table name: ..." info, rows[1] = headers, rows[2+] = data
-    // Find header row (has 'Product_Name')
-    let hIdx = 0;
-    for(let i=0;i<Math.min(5,rows.length);i++){
-      if(rows[i].some(c=>c==='Product_Name')){hIdx=i;break;}
-    }
-    const headers = rows[hIdx];
-    const getIdx = (name) => headers.findIndex(h=>h===name);
-    const IDX = {
-      month:    getIdx('Month_Year'),
-      custCode: getIdx('Customer_Code'),
-      custName: getIdx('Customer_Name'),
-      prodName: getIdx('Product_Name'),
-      seller:   getIdx('Sale No ROO'),
-      cs:       getIdx('Sales_CS'),
-      baht:     getIdx('TotalBaht'),
-      shopType: getIdx('Shop_Type'),
-      province: getIdx('Province'),
-    };
-    bqData = {rows: rows.slice(hIdx+1), IDX};
-    bqLoading = false;
-    return bqData;
-  } catch(e){
-    bqLoading = false;
-    throw e;
-  }
-}
-
-function openDetail(productName){
-  currentProduct = productName;
-  currentDpTab = 'customers';
-  $('dpPname').textContent = productName;
-  const seller = selView || (currentUser ? currentUser.sellerName : '');
-  $('dpSeller').textContent = '📦 ' + (seller || 'ทุกเซลล์');
-  $('dpBody').innerHTML = '<div class="dp-loading"><div class="dp-spin"></div>กำลังโหลด BQ...</div>';
-  // Reset tabs
-  document.querySelectorAll('.dp-tab').forEach(t=>t.classList.remove('on'));
-  document.querySelector('.dp-tab[data-tab="customers"]').classList.add('on');
-  $('detailOverlay').classList.add('on');
-  document.body.style.overflow = 'hidden';
-  renderDetailTab();
-}
-
-function closeDetail(e){
-  if(e.target === $('detailOverlay')) closeDetailBtn();
-}
-function closeDetailBtn(){
-  $('detailOverlay').classList.remove('on');
-  document.body.style.overflow = '';
-}
-
-function switchDpTab(btn){
-  document.querySelectorAll('.dp-tab').forEach(t=>t.classList.remove('on'));
-  btn.classList.add('on');
-  currentDpTab = btn.dataset.tab;
-  renderDetailTab();
-}
-
-async function renderDetailTab(){
-  const body = $('dpBody');
-  body.innerHTML = '<div class="dp-loading"><div class="dp-spin"></div>กำลังโหลด...</div>';
-  try{
-    const bq = await loadBQ();
-    if(!bq){ body.innerHTML='<div class="dp-empty">❌ โหลด BQ ไม่สำเร็จ</div>'; return; }
-    const {rows, IDX} = bq;
-    const seller = (selView || (currentUser ? currentUser.sellerName : '')).trim();
-    const prod   = (currentProduct||'').trim().toLowerCase();
-
-    // Filter BQ rows for this product+seller
-    const matching = rows.filter(r=>{
-      const p = (r[IDX.prodName]||'').trim().toLowerCase();
-      const s = (r[IDX.seller]||'').trim();
-      const prodMatch = p === prod || p.includes(prod) || prod.includes(p);
-      const sellMatch = !seller || s === seller;
-      return prodMatch && sellMatch;
-    });
-
-    if(currentDpTab === 'customers'){
-      renderCustomersTab(body, matching, IDX);
-    } else {
-      renderHistoryTab(body, matching, IDX);
-    }
-  } catch(e){
-    body.innerHTML = `<div class="dp-empty">❌ ${e.message}</div>`;
-  }
-}
-
-function renderCustomersTab(body, rows, IDX){
-  if(!rows.length){
-    body.innerHTML = '<div class="dp-empty">🔍 ไม่พบข้อมูลลูกค้าที่เคยซื้อสินค้านี้ใน BQ</div>';
-    return;
-  }
-  // Group by customer
-  const custMap = {};
-  rows.forEach(r=>{
-    const name = (r[IDX.custName]||'').trim();
-    const month = (r[IDX.month]||'').trim();
-    const cs   = parseFloat(r[IDX.cs]||0)||0;
-    const baht = parseFloat(r[IDX.baht]||0)||0;
-    const shop = (r[IDX.shopType]||'').trim();
-    const prov = (r[IDX.province]||'').trim();
-    if(!custMap[name]) custMap[name] = {months:[], totalCs:0, totalBaht:0, shop, prov};
-    custMap[name].months.push(month);
-    custMap[name].totalCs   += cs;
-    custMap[name].totalBaht += baht;
-  });
-
-  // Get current month (latest month in this seller's current data)
-  const currentMonth = '2026/05'; // May 2026
-  const custList = Object.entries(custMap).sort((a,b)=>b[1].totalCs - a[1].totalCs);
-  
-  // Check which are in current month sales (from บQ)
-  const boughtThisMonth = new Set(rows.filter(r=>(r[IDX.month]||'')=== currentMonth).map(r=>(r[IDX.custName]||'').trim()));
-  const notBought = custList.filter(([n])=>!boughtThisMonth.has(n));
-  const bought    = custList.filter(([n])=> boughtThisMonth.has(n));
-
-  let html = '';
-  // Summary chips
-  html += `<div class="chip-row">
-    <span class="chip chip-red">❌ ยังไม่ซื้อเดือนนี้: ${notBought.length} ร้าน</span>
-    <span class="chip chip-green">✅ ซื้อแล้วเดือนนี้: ${bought.length} ร้าน</span>
-    <span class="chip chip-gold">📅 ข้อมูล BQ: ${[...new Set(rows.map(r=>r[IDX.month]))].sort().join(', ')}</span>
-  </div>`;
-
-  if(notBought.length){
-    html += `<div class="dp-sec-title">❌ ลูกค้าที่เคยซื้อ — แต่เดือนนี้ยังไม่ซื้อ (${notBought.length} ร้าน)</div>`;
-    notBought.forEach(([name, d])=>{
-      const lastMonth = [...d.months].sort().pop();
-      html += `<div class="cust-row not-bought">
-        <div class="cust-icon no">🏪</div>
-        <div class="cust-info">
-          <div class="cust-name">${name}</div>
-          <div class="cust-sub">📅 ซื้อล่าสุด: ${lastMonth} · ${d.shop||'-'} · ${d.prov||'-'}</div>
-        </div>
-        <div class="cust-val">
-          <div class="cust-cs">${fmt(d.totalCs,2)} CS</div>
-          <div class="cust-baht">฿${fmt(d.totalBaht)}</div>
-        </div>
-      </div>`;
-    });
-  }
-
-  if(bought.length){
-    html += `<div class="dp-sec-title" style="margin-top:14px">✅ ซื้อแล้วเดือนนี้ (${bought.length} ร้าน)</div>`;
-    bought.forEach(([name, d])=>{
-      html += `<div class="cust-row bought-this-month">
-        <div class="cust-icon ok">✅</div>
-        <div class="cust-info">
-          <div class="cust-name">${name}</div>
-          <div class="cust-sub">${d.shop||'-'} · ${d.prov||'-'}</div>
-        </div>
-        <div class="cust-val">
-          <div class="cust-cs">${fmt(d.totalCs,2)} CS</div>
-          <div class="cust-baht">฿${fmt(d.totalBaht)}</div>
-        </div>
-      </div>`;
-    });
-  }
-
-  body.innerHTML = html || '<div class="dp-empty">ไม่มีข้อมูล</div>';
-}
-
-function renderHistoryTab(body, rows, IDX){
-  if(!rows.length){
-    body.innerHTML = '<div class="dp-empty">🔍 ไม่พบข้อมูลประวัติใน BQ</div>';
-    return;
-  }
-  // Group by month
-  const monthMap = {};
-  rows.forEach(r=>{
-    const month = (r[IDX.month]||'').trim();
-    const cs    = parseFloat(r[IDX.cs]||0)||0;
-    const baht  = parseFloat(r[IDX.baht]||0)||0;
-    const cust  = (r[IDX.custName]||'').trim();
-    if(!monthMap[month]) monthMap[month]={cs:0,baht:0,custs:new Set()};
-    monthMap[month].cs   += cs;
-    monthMap[month].baht += baht;
-    monthMap[month].custs.add(cust);
-  });
-
-  let html = `<div class="dp-sec-title">📊 ยอดขายรายเดือน</div>`;
-  Object.entries(monthMap).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([month,d])=>{
-    html += `<div class="cust-row">
-      <div class="cust-icon" style="background:rgba(201,168,76,.15);color:var(--gold)">📅</div>
-      <div class="cust-info">
-        <div class="cust-name">${month}</div>
-        <div class="cust-sub">${d.custs.size} ร้านค้า</div>
-      </div>
-      <div class="cust-val">
-        <div class="cust-cs">${fmt(d.cs,2)} CS</div>
-        <div class="cust-baht">฿${fmt(d.baht)}</div>
-      </div>
-    </div>`;
-  });
-  body.innerHTML = html;
-}
-
-/* ══ INIT ══ */
-(function(){
-  const el = $('originText');
-  if(!el) return;
-  const isFile = location.protocol === 'file:';
-  el.textContent = 'Origin: ' + (isFile ? 'file:// (ใช้กับ OAuth ไม่ได้)' : location.origin);
-  if(isFile){
-    $('loginError').innerHTML = '⚠️ <b>เปิดจาก file:// ไม่ได้</b><br>ต้องเปิดผ่าน HTTPS เช่น GitHub Pages';
-    $('loginError').style.display = 'block';
-  }
-})();
-checkSession();
+/* ── INIT — ไม่มี login ── */
+currentUser={email:'preview@rattana.com',name:'ทดสอบระบบ',nickname:'Preview',sellerName:'คุณ จารุพัฒน์ หอมวิเชียร',role:7,warehouse:'W1',isManager:true,loginAt:Date.now()};
+enterApp();
 </script>
-
-<!-- ═══ PRODUCT DETAIL MODAL ═══ -->
-<div id="detailOverlay" onclick="closeDetail(event)">
-  <div id="detailPanel">
-    <div class="dp-handle"></div>
-    <div class="dp-head">
-      <button class="dp-close" onclick="closeDetailBtn()">×</button>
-      <div class="dp-pname" id="dpPname">สินค้า</div>
-      <div class="dp-seller" id="dpSeller"></div>
-    </div>
-    <div class="dp-tabs">
-      <button class="dp-tab on" data-tab="customers" onclick="switchDpTab(this)">🏪 ลูกค้าเก่ายังไม่ซื้อ</button>
-      <button class="dp-tab" data-tab="history" onclick="switchDpTab(this)">📊 ประวัติการซื้อ</button>
-    </div>
-    <div class="dp-body" id="dpBody">
-      <div class="dp-loading"><div class="dp-spin"></div>กำลังโหลด BQ...</div>
-    </div>
-  </div>
-</div>
 </body>
 </html>
