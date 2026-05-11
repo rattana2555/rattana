@@ -3,18 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v1.4</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Rattana สินค้ายังไม่ขาย v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#0d1b3e;--navy-mid:#1a2f5e;--gold:#c9a84c;--gold-light:#e8c86a;--info:#3498db;--bg:#f4f6fb;--text:#0d1b3e;--card-bg:#fff;--border:#dde3f0;--muted:#6b7896;--radius-sm:6px;--radius-md:12px;--shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);--shadow-lg:0 8px 24px rgba(13,27,62,.12)}
+:root{--navy:#0d1b3e;--navy-mid:#1a2f5e;--gold:#c9a84c;--gold-light:#e8c86a;--info:#3498db;--success:#2ecc71;--danger:#e74c3c;--bg:#f4f6fb;--text:#0d1b3e;--card-bg:#fff;--border:#dde3f0;--muted:#6b7896;--radius-sm:6px;--radius-md:12px;--radius-xl:20px;--shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);--shadow-lg:0 8px 24px rgba(13,27,62,.12)}
 body.dark{--bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;--border:#243b73;--muted:#8a98b8}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;transition:background .25s,color .25s}
-button{font-family:inherit;cursor:pointer;border:none}
+button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
 input,select{font-family:inherit;font-size:16px}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;z-index:100000;background:linear-gradient(135deg,#0a0e1a 0%,#1a2f5e 60%,#243b73 100%);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+#loginScreen::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 20%,rgba(245,158,11,0.15),transparent 40%),radial-gradient(circle at 80% 80%,rgba(59,130,246,0.12),transparent 40%)}
+#loginCard{position:relative;background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(245,158,11,0.25);border-radius:20px;padding:36px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.llogo{font-size:52px;margin-bottom:10px;display:block}
+.lbrand{color:#f59e0b;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;font-family:'Outfit',sans-serif;margin-bottom:6px}
+.ltitle{color:#fff;font-size:22px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif}
+.lsub{color:rgba(255,255,255,.6);font-size:13px;margin-bottom:28px;line-height:1.7}
+.linput-wrap{position:relative;margin-bottom:12px}
+.linput-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+#empIdInput{width:100%;height:52px;padding:0 16px 0 46px;border-radius:12px;border:2px solid rgba(245,158,11,0.3);background:rgba(255,255,255,0.08);color:#fff;font-size:18px;font-weight:600;font-family:'Sarabun',sans-serif;outline:none;transition:border-color .2s;letter-spacing:1px;text-align:center}
+#empIdInput::placeholder{color:rgba(255,255,255,.35);font-weight:400;font-size:14px;letter-spacing:0}
+#empIdInput:focus{border-color:#f59e0b}
+#loginBtn{width:100%;height:52px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#e8c86a);color:#0d1b3e;font-size:16px;font-weight:700;font-family:'Sarabun',sans-serif;cursor:pointer;border:none;margin-top:4px;transition:opacity .2s,transform .1s}
+#loginBtn:hover{opacity:.9}
+#loginBtn:active{transform:scale(.97)}
+#loginBtn:disabled{opacity:.5;cursor:not-allowed}
+.ldivider{height:1px;background:rgba(245,158,11,0.2);margin:20px 0 14px}
+.lfoot{color:rgba(255,255,255,.4);font-size:11px;line-height:1.7}
+.lfoot b{color:#f59e0b}
+#loginSpinner{display:none;margin:14px auto 0;width:32px;height:32px;border:3px solid rgba(245,158,11,0.2);border-top-color:#f59e0b;border-radius:50%;animation:lspin .8s linear infinite}
+@keyframes lspin{to{transform:rotate(360deg)}}
+#loginError{display:none;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#fca5a5;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px;line-height:1.6}
+.lver{margin-top:24px;font-size:10px;color:rgba(255,255,255,.25);letter-spacing:.8px;position:relative}
+
+/* MAIN APP */
+#mainApp{display:none}
 header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--gold);padding-top:max(12px,env(safe-area-inset-top))}
 .logo-txt{font-weight:700;font-size:16px;color:#fff;flex:1}.logo-txt span{color:var(--gold)}
-.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:background .15s}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+.user-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 10px 3px 3px;cursor:pointer}
+.user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#ff6b35);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.user-nm{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hero{background:linear-gradient(135deg,var(--navy),var(--navy-mid));color:#fff;padding:18px 16px 16px;border-bottom:3px solid var(--gold)}
 .hero-hi{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:2px}
 .hero-name{font-size:20px;font-weight:700;margin-bottom:2px}
@@ -46,8 +78,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 .t1 .prank{color:#ff6b35}.t2 .prank{color:var(--gold)}.t3 .prank{color:var(--info)}
 .pinfo{flex:1;min-width:0}
 .pname{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;word-break:break-word}
-.pstars{font-size:14px;margin-top:1px;letter-spacing:.5px}
-.phot{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:7px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;margin-left:5px;vertical-align:middle}
+.pstars{font-size:14px;margin-top:1px}.phot{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:7px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;margin-left:5px;vertical-align:middle}
 .pdetail{font-size:11px;color:var(--muted);margin-top:2px}
 .pmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
 .pvol{font-size:13px;font-weight:700;color:var(--navy)}.psl{font-size:11px;color:var(--muted)}.pno{font-size:11px;color:var(--muted);font-style:italic;text-align:right}
@@ -69,59 +100,99 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 <body>
 <div id="sp"><div class="sr"></div><div class="st" id="st">กำลังโหลด…</div></div>
 <div id="toast"></div>
-<header>
-  <span class="logo-txt">RATTANA <span>สินค้ายังไม่ขาย</span></span>
-  <button class="icon-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
-  <button class="icon-btn" onclick="loadData()">🔄</button>
-</header>
-<div class="hero">
-  <div class="hero-hi">สวัสดีคุณ 👋</div>
-  <div class="hero-name" id="heroName">ทดสอบระบบ</div>
-  <div class="hero-sub">⚡ ผู้จัดการ · คลัง W1</div>
-  <div class="stats">
-    <div class="sbox"><div class="sbox-n" id="stTotal">-</div><div class="sbox-l">สินค้าทั้งหมด</div></div>
-    <div class="sbox"><div class="sbox-n" id="stUnsold" style="color:#ff6b6b">-</div><div class="sbox-l">ยังไม่ขาย</div></div>
-    <div class="sbox"><div class="sbox-n" id="stSold" style="color:#2ecc71">-</div><div class="sbox-l">ขายแล้ว</div></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div style="position:relative;width:100%;max-width:380px">
+    <div id="loginCard">
+      <span class="llogo">📦</span>
+      <div class="lbrand">Rattana Sales Tracker</div>
+      <div class="ltitle">สินค้ายังไม่ขายเดือนนี้</div>
+      <div class="lsub">ใส่รหัสพนักงานเพื่อเข้าใช้งาน<br>ดูสินค้าที่ยังไม่ขาย · จัดอันดับ ⭐</div>
+      <div class="linput-wrap">
+        <span class="linput-icon">🪪</span>
+        <input type="text" id="empIdInput" placeholder="รหัสพนักงาน เช่น 14038" autocomplete="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button id="loginBtn" onclick="doLogin()">🔓 เข้าสู่ระบบ</button>
+      <div id="loginSpinner"></div>
+      <div id="loginError"></div>
+      <div class="ldivider"></div>
+      <div class="lfoot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>มีปัญหา? ติดต่อผู้ดูแลระบบ</div>
+    </div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v3.0 · 2026-05-11</div>
   </div>
 </div>
-<div class="seller-bar" id="sellerBar" style="display:none">
-  <label>👤 เลือกดูข้อมูลเซลล์</label>
-  <select id="selSel" onchange="onSelChange()"><option value="">— เลือกเซลล์ —</option></select>
-</div>
-<div class="fbar">
-  <div class="sbox-wrap"><span class="si">🔍</span><input type="text" id="srch" placeholder="ค้นหาชื่อสินค้า…" oninput="render()"></div>
-  <select class="fsort" id="fsort" onchange="render()">
-    <option value="pop">🏆 ยอดขายรวมสูงสุด</option>
-    <option value="sellers">👥 จำนวนเซลล์ที่ขาย</option>
-    <option value="name">🔤 ชื่อ ก-ฮ</option>
-    <option value="none">📦 ยังไม่มีใครขาย</option>
-  </select>
-  <span class="fcnt" id="fcnt">-</span>
-</div>
-<div class="hot-note" id="hotNote"></div>
-<div class="legend" id="legBox" style="display:none">
-  <div class="legend-t">⭐ ความหมายของดาว</div>
-  <div class="legend-items">
-    <div class="li"><div class="ld" style="background:#ff6b35"></div><span>🌟🌟🌟 ขายดีสุด Top 20%</span></div>
-    <div class="li"><div class="ld" style="background:var(--gold)"></div><span>🌟🌟 ขายดี Top 40%</span></div>
-    <div class="li"><div class="ld" style="background:var(--info)"></div><span>🌟 ขายได้ Top 60%</span></div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <header>
+    <span class="logo-txt">RATTANA <span>สินค้ายังไม่ขาย</span></span>
+    <button class="icon-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
+    <button class="icon-btn" onclick="loadData()">🔄</button>
+    <div class="user-chip" onclick="doLogout()" title="ออกจากระบบ">
+      <div class="user-av" id="uAv">?</div>
+      <span class="user-nm" id="uNm">-</span>
+    </div>
+  </header>
+  <div class="hero">
+    <div class="hero-hi" id="heroHi">สวัสดีคุณ 👋</div>
+    <div class="hero-name" id="heroName">…</div>
+    <div class="hero-sub" id="heroSub"></div>
+    <div class="stats">
+      <div class="sbox"><div class="sbox-n" id="stTotal">-</div><div class="sbox-l">สินค้าทั้งหมด</div></div>
+      <div class="sbox"><div class="sbox-n" id="stUnsold" style="color:#ff6b6b">-</div><div class="sbox-l">ยังไม่ขาย</div></div>
+      <div class="sbox"><div class="sbox-n" id="stSold" style="color:#2ecc71">-</div><div class="sbox-l">ขายแล้ว</div></div>
+    </div>
   </div>
+  <div class="seller-bar" id="sellerBar" style="display:none">
+    <label>👤 เลือกดูข้อมูลเซลล์</label>
+    <select id="selSel" onchange="onSelChange()"><option value="">— เลือกเซลล์ —</option></select>
+  </div>
+  <div class="fbar">
+    <div class="sbox-wrap"><span class="si">🔍</span><input type="text" id="srch" placeholder="ค้นหาชื่อสินค้า…" oninput="render()"></div>
+    <select class="fsort" id="fsort" onchange="render()">
+      <option value="pop">🏆 ยอดขายรวมสูงสุด</option>
+      <option value="sellers">👥 จำนวนเซลล์ที่ขาย</option>
+      <option value="name">🔤 ชื่อ ก-ฮ</option>
+      <option value="none">📦 ยังไม่มีใครขาย</option>
+    </select>
+    <span class="fcnt" id="fcnt">-</span>
+  </div>
+  <div class="hot-note" id="hotNote"></div>
+  <div class="legend" id="legBox" style="display:none">
+    <div class="legend-t">⭐ ความหมายของดาว</div>
+    <div class="legend-items">
+      <div class="li"><div class="ld" style="background:#ff6b35"></div><span>🌟🌟🌟 ขายดีสุด Top 20%</span></div>
+      <div class="li"><div class="ld" style="background:var(--gold)"></div><span>🌟🌟 ขายดี Top 40%</span></div>
+      <div class="li"><div class="ld" style="background:var(--info)"></div><span>🌟 ขายได้ Top 60%</span></div>
+    </div>
+  </div>
+  <div class="pgrid" id="pgrid"></div>
 </div>
-<div class="pgrid" id="pgrid"></div>
 
 <script>
-const SHEET_ID='1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
-const S_PDDT='PDDT', S_UNSOLD='สินค้ายังไม่ขาย';
-const SELLER='คุณ จารุพัฒน์ หอมวิเชียร'; // ← เปลี่ยนชื่อเซลล์ตรงนี้
+const SHEET_ID    = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
+const S_USER      = 'User';
+const S_PDDT      = 'PDDT';
+const S_UNSOLD    = 'สินค้ายังไม่ขาย';
+const SESSION_KEY = 'rtn_emp_session';
+const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 วัน
+const MANAGER_ROLE = 4; // role > 3 = ดูทุกเซลล์
 
-const csvUrl=s=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;
-let allProducts=[],soldMap={},salesAgg={},allSellers=[],selView=SELLER;
-const $=id=>document.getElementById(id);
+// column index (0-based) ใน sheet User
+const CI = { empId:2, name:31, nick:6, wh:1, role:15 };
+
+const csvUrl = s => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;
+
+let currentUser = null;
+let allProducts = [], soldMap = {}, salesAgg = {}, allSellers = [], selView = null;
+
+const $ = id => document.getElementById(id);
 function sp(m){$('sp').classList.add('on');$('st').textContent=m||'โหลด…'}
 function spOff(){$('sp').classList.remove('on')}
 function toast(m,d=3000){const e=$('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),d)}
-function toggleDark(){document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');$('darkBtn').textContent=d?'☀️':'🌙';localStorage.setItem('dk',d?'1':'0')}
-if(localStorage.getItem('dk')==='1')toggleDark();
+function toggleDark(){document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');$('darkBtn').textContent=d?'☀️':'🌙';localStorage.setItem('rtn_dk',d?'1':'0')}
+if(localStorage.getItem('rtn_dk')==='1')toggleDark();
 
 function parseCsv(text){
   const rows=[];let row=[],f='',q=false;
@@ -136,15 +207,80 @@ function parseCsv(text){
   if(f||row.length){row.push(f.trim());if(row.some(x=>x))rows.push(row)}
   return rows;
 }
+async function fetchCsv(s){const r=await fetch(csvUrl(s));if(!r.ok)throw new Error(`โหลด "${s}" ไม่สำเร็จ`);return r.text()}
 
+/* ── LOGIN ── */
+async function doLogin(){
+  const empId = ($('empIdInput').value||'').trim();
+  if(!empId){ showErr('กรุณาใส่รหัสพนักงาน'); return }
+  $('loginBtn').disabled = true;
+  $('loginSpinner').style.display = 'block';
+  $('loginError').style.display = 'none';
+  try{
+    const rows = parseCsv(await fetchCsv(S_USER));
+    let found = null;
+    for(let i=1;i<rows.length;i++){
+      if((rows[i][CI.empId]||'').trim() === empId){ found=rows[i]; break }
+    }
+    if(!found){ showErr('❌ ไม่พบรหัสพนักงานนี้ในระบบ'); return }
+    const roleVal = (found[CI.role]||'').trim();
+    if(!roleVal){ showErr('❌ บัญชีนี้ยังไม่ได้รับ User Role'); return }
+    const fullName = (found[CI.name]||'').trim();
+    const roleNum  = parseInt(roleVal)||0;
+    currentUser = {
+      empId, name: fullName,
+      nickname: (found[CI.nick]||'').trim(),
+      sellerName: 'คุณ ' + fullName,
+      role: roleNum,
+      warehouse: (found[CI.wh]||'').trim(),
+      isManager: roleNum >= MANAGER_ROLE
+    };
+    try{ localStorage.setItem(SESSION_KEY, JSON.stringify({user:currentUser,expiresAt:Date.now()+SESSION_TTL})) }catch(e){}
+    enterApp();
+  }catch(e){ showErr('❌ '+e.message) }
+  finally{ $('loginBtn').disabled=false; $('loginSpinner').style.display='none' }
+}
+
+function showErr(msg){ $('loginError').textContent=msg; $('loginError').style.display='block' }
+
+function checkSession(){
+  try{
+    const raw=localStorage.getItem(SESSION_KEY); if(!raw)return false;
+    const d=JSON.parse(raw); if(!d?.user||!d?.expiresAt)return false;
+    if(Date.now()>d.expiresAt){localStorage.removeItem(SESSION_KEY);return false}
+    currentUser=d.user; enterApp(); return true;
+  }catch(e){return false}
+}
+
+function enterApp(){
+  const dn = currentUser.nickname||currentUser.name||currentUser.empId;
+  $('uAv').textContent = dn.trim().charAt(0).toUpperCase();
+  $('uNm').textContent = dn.split(' ')[0]||dn;
+  $('heroName').textContent = currentUser.name||currentUser.empId;
+  $('heroHi').textContent   = 'สวัสดีคุณ 👋';
+  $('heroSub').textContent  = currentUser.isManager
+    ? `⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`
+    : `🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`;
+  $('loginScreen').style.display = 'none';
+  $('mainApp').style.display     = 'block';
+  loadData();
+}
+
+function doLogout(){
+  if(!confirm('ออกจากระบบ?'))return;
+  localStorage.removeItem(SESSION_KEY);
+  currentUser=null; location.reload();
+}
+
+/* ── DATA ── */
 async function loadData(){
   sp('โหลดสินค้า...');
   try{
-    const p=parseCsv(await(await fetch(csvUrl(S_PDDT))).text());
+    const p=parseCsv(await fetchCsv(S_PDDT));
     allProducts=[];
     for(let i=0;i<p.length;i++){const n=(p[i][0]||'').trim();if(i===0&&n.toLowerCase().includes('ชื่อสินค้า'))continue;if(n)allProducts.push(n)}
     sp('โหลดยอดขาย...');
-    const s=parseCsv(await(await fetch(csvUrl(S_UNSOLD))).text());
+    const s=parseCsv(await fetchCsv(S_UNSOLD));
     soldMap={};salesAgg={};const ss=new Set();
     for(let i=0;i<s.length;i++){
       const r=s[i],seller=(r[0]||'').trim(),prod=(r[1]||'').trim();
@@ -155,15 +291,24 @@ async function loadData(){
       salesAgg[prod].cs+=cs;salesAgg[prod].baht+=bt;salesAgg[prod].sellers.add(seller);
     }
     allSellers=[...ss].sort((a,b)=>a.localeCompare(b,'th'));
-    $('sellerBar').style.display='block';
-    const sel=$('selSel');
-    sel.innerHTML='<option value="">— ดูทุกเซลล์ —</option>';
-    allSellers.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;if(s===SELLER)o.selected=true;sel.appendChild(o)});
-    render();spOff();toast(`✅ ${allProducts.length} สินค้า`);
-  }catch(e){spOff();$('pgrid').innerHTML=`<div class="errbox">❌ ${e.message}<br><br>• ต้องแชร์ Sheet เป็น "ทุกคนที่มีลิงก์ → ดูได้"<br><br><button onclick="loadData()">🔄 ลองใหม่</button></div>`}
+    if(currentUser?.isManager){
+      $('sellerBar').style.display='block';
+      const sel=$('selSel');
+      sel.innerHTML='<option value="">— ดูทุกเซลล์ —</option>';
+      allSellers.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;if(s===currentUser.sellerName)o.selected=true;sel.appendChild(o)});
+      selView=currentUser.sellerName;
+    } else {
+      selView = currentUser?.sellerName||null;
+    }
+    render();spOff();toast(`✅ โหลดสำเร็จ ${allProducts.length} สินค้า`);
+  }catch(e){
+    spOff();
+    $('pgrid').innerHTML=`<div class="errbox">❌ ${e.message}<br><br>• ต้องแชร์ Sheet เป็น "ทุกคนที่มีลิงก์ → ดูได้"<br><br><button onclick="loadData()">🔄 ลองใหม่</button></div>`;
+  }
 }
 function onSelChange(){selView=$('selSel').value||null;render()}
 
+/* ── RENDER ── */
 function getStars(p){
   const a=salesAgg[p];if(!a||a.cs<=0)return{stars:'',tier:0};
   const sc=a.cs*Math.sqrt(a.sellers.size);
@@ -176,8 +321,9 @@ function getStars(p){
 function fmt(n,d=0){return(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:d})}
 
 function render(){
+  if(!currentUser)return;
   const q=($('srch').value||'').trim().toLowerCase(),sb=$('fsort').value;
-  const seller=selView||SELLER,sold=soldMap[seller]||new Set();
+  const seller=selView||currentUser.sellerName,sold=soldMap[seller]||new Set();
   let u=allProducts.filter(p=>!sold.has(p));
   if(q)u=u.filter(p=>p.toLowerCase().includes(q));
   if(sb==='pop')u.sort((a,b)=>{const A=salesAgg[a]?salesAgg[a].cs*Math.sqrt(salesAgg[a].sellers.size):-1,B=salesAgg[b]?salesAgg[b].cs*Math.sqrt(salesAgg[b].sellers.size):-1;return B-A});
@@ -189,7 +335,12 @@ function render(){
   const hc=u.filter(p=>salesAgg[p]?.sellers.size>0).length;
   $('hotNote').innerHTML=hc>0?`💡 มี <strong>${hc}</strong> สินค้าที่เซลล์คนอื่นขายแล้ว แต่ <strong>${seller}</strong> ยังไม่ขายเลย!`:'';
   $('legBox').style.display=u.some(p=>getStars(p).tier>0)?'':'none';
-  $('heroName').textContent=seller;
+  if(currentUser.isManager&&selView&&selView!==currentUser.sellerName){
+    $('heroHi').textContent='กำลังดูข้อมูลของ:';$('heroName').textContent=selView;$('heroSub').textContent='⚡ มุมมองผู้จัดการ';
+  } else {
+    $('heroHi').textContent='สวัสดีคุณ 👋';$('heroName').textContent=currentUser.name;
+    $('heroSub').textContent=currentUser.isManager?`⚡ ผู้จัดการ · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`:`🏷️ เซลล์ขาย · ${currentUser.warehouse?'คลัง '+currentUser.warehouse:''}`;
+  }
   const g=$('pgrid');
   if(!allProducts.length){g.innerHTML='<div class="empty"><div class="ic">📭</div><div class="em">ยังไม่มีข้อมูล</div><div class="es">กด 🔄</div></div>';return}
   if(!u.length){g.innerHTML='<div class="empty"><div class="ic">🎉🏆🎊</div><div class="em">ขายครบทุกสินค้าแล้ว!</div></div>';return}
@@ -203,7 +354,12 @@ function render(){
     g.appendChild(c);
   });
 }
-loadData();
+
+/* ── INIT ── */
+if(!checkSession()){
+  $('loginScreen').style.display='flex';
+  setTimeout(()=>$('empIdInput').focus(),300);
+}
 </script>
 </body>
 </html>
