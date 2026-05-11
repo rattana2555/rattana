@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v1.8</title>
+<title>Rattana สินค้ายังไม่ขาย v1.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -123,10 +123,26 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
       <div class="brand">Rattana Sales Tracker</div>
       <h2>สินค้ายังไม่ขายเดือนนี้</h2>
       <div class="tagline">ดูสินค้าที่คุณยังไม่ขายในเดือนนี้<br>เปรียบเทียบกับเซลล์คนอื่น · จัดอันดับ ⭐<br>ติดดาวสินค้าขายดีที่คุณพลาดไป</div>
-      <div id="g_id_onload" data-client_id="594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
-      <div class="g-wrap">
-        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="sign_in_with" data-shape="pill" data-logo_alignment="left"></div>
+      <div id="g_id_onload"
+           data-client_id="594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com"
+           data-callback="handleGoogleLogin"
+           data-ux_mode="popup"
+           data-auto_prompt="false">
       </div>
+      <div class="g-wrap">
+        <div class="g_id_signin"
+             data-type="standard"
+             data-size="large"
+             data-theme="filled_blue"
+             data-text="sign_in_with"
+             data-shape="pill"
+             data-logo_alignment="left">
+        </div>
+      </div>
+      <!-- Mobile fallback button -->
+      <button id="mobileLoginBtn" onclick="mobileLogin()" style="display:none;width:100%;margin-top:12px;padding:13px;border-radius:25px;background:#4285f4;color:#fff;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:inherit">
+        🔐 เข้าสู่ระบบด้วย Google
+      </button>
       <div id="loginSpinner"></div>
       <div id="loginStatus">กำลังตรวจสอบสิทธิ์...</div>
       <div id="loginError"></div>
@@ -134,7 +150,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
       <div class="foot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>มีปัญหาเข้าใช้งาน? ติดต่อผู้ดูแลระบบ</div>
       <div class="foot" style="margin-top:8px;font-size:10px;opacity:.5"><span id="originText">—</span></div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v1.8 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v1.9 · 2026-05-11</div>
   </div>
 </div>
 
@@ -310,6 +326,31 @@ function doLogout(){
 }
 window.handleGoogleLogin=handleGoogleLogin;
 
+/* Mobile login fallback */
+function mobileLogin(){
+  if(!window.google) return;
+  google.accounts.id.initialize({
+    client_id:'594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com',
+    callback: handleGoogleLogin,
+    ux_mode: 'popup'
+  });
+  google.accounts.id.prompt((n)=>{
+    if(n.isNotDisplayed()||n.isSkippedMoment()){
+      // Final fallback: use token client
+      const tc = google.accounts.oauth2.initTokenClient({
+        client_id:'594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com',
+        scope:'https://www.googleapis.com/auth/userinfo.email',
+        callback: async(resp)=>{
+          if(resp.error){ showLoginError('❌ '+resp.error); return }
+          const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+resp.access_token}}).then(r=>r.json());
+          await handleGoogleLogin({credential: btoa(JSON.stringify({alg:'RS256'})) + '.' + btoa(JSON.stringify({email:info.email,name:info.name})) + '.sig'});
+        }
+      });
+      tc.requestAccessToken({prompt:'select_account'});
+    }
+  });
+}
+
 /* DATA */
 async function loadData(){
   sp('โหลดรายชื่อสินค้า (PDDT)…');
@@ -426,6 +467,9 @@ function render(){
   const isFile=location.protocol==='file:';
   el.textContent='Origin: '+(isFile?'file:// (ใช้กับ OAuth ไม่ได้)':location.origin);
   if(isFile){ $('loginError').innerHTML='⚠️ <b>เปิดจาก file:// ไม่ได้</b><br>ต้องเปิดผ่าน HTTPS เช่น GitHub Pages';$('loginError').style.display='block' }
+  // Show mobile button on mobile devices
+  const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if(isMobile) $('mobileLoginBtn').style.display='block';
 })();
 checkSession();
 </script>
