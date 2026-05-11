@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v1.3</title>
+<title>Rattana สินค้ายังไม่ขาย v1.4-preview</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -295,7 +295,7 @@ header{
         <span id="originText">—</span>
       </div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v1.3 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v1.4 Preview · 2026-05-11</div>
   </div>
 </div>
 
@@ -766,20 +766,22 @@ function render(){
   });
 }
 
-/* ══ INIT ══ */
-// Show file:// warning
-(function(){
-  const el = $('originText');
-  if(!el) return;
-  const isFile = location.protocol === 'file:';
-  el.textContent = 'Origin: ' + (isFile ? 'file:// (ใช้กับ OAuth ไม่ได้ ต้องเปิดผ่าน HTTPS)' : location.origin);
-  if(isFile){
-    $('loginError').innerHTML = '⚠️ <b>เปิดไฟล์จาก file:// ไม่ได้</b><br>Google OAuth ต้องเข้าผ่าน HTTPS เช่น GitHub Pages';
-    $('loginError').style.display = 'block';
-  }
-})();
-
-checkSession();
+/* ══ INIT — PREVIEW MODE (ข้าม login) ══ */
+currentUser = {
+  email: 'preview@rattana.com',
+  name: 'ทดสอบระบบ',
+  nickname: 'Preview',
+  sellerName: 'คุณ จารุพัฒน์ หอมวิเชียร',
+  role: 7,
+  warehouse: 'W1',
+  isManager: true,
+  picture: '',
+  loginAt: Date.now()
+};
+renderUserBadge();
+$('loginScreen').style.display = 'none';
+$('mainApp').style.display = 'block';
+loadData();
 </script>
 </body>
 </html>
