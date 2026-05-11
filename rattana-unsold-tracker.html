@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v2.1</title>
+<title>Rattana สินค้ายังไม่ขาย v2.2-nologin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -150,7 +150,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
       <div class="foot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>มีปัญหาเข้าใช้งาน? ติดต่อผู้ดูแลระบบ</div>
       <div class="foot" style="margin-top:8px;font-size:10px;opacity:.5"><span id="originText">—</span></div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v2.1 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v2.2 · 2026-05-11</div>
   </div>
 </div>
 
@@ -422,23 +422,9 @@ function render(){
   });
 }
 
-/* ── INIT ── */
-(async function(){
-  const el=$('originText');if(!el)return;
-  const isFile=location.protocol==='file:';
-  el.textContent='Origin: '+(isFile?'file:// (OAuth ไม่ได้)':location.origin);
-  if(isFile){$('loginError').innerHTML='⚠️ ต้องเปิดผ่าน HTTPS';$('loginError').style.display='block';return}
-  // 1. Check redirect callback first
-  if(location.hash.includes('access_token')){
-    const ok = await handleRedirectCallback();
-    if(ok) return;
-  }
-  // 2. Check saved session
-  if(checkSession()) return;
-  // 3. Show login — mobile gets extra button
-  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
-    $('mobileLoginBtn').style.display='block';
-})();
+/* ── INIT — ไม่มี login ── */
+currentUser={email:'preview@rattana.com',name:'ทดสอบระบบ',nickname:'Preview',sellerName:'คุณ จารุพัฒน์ หอมวิเชียร',role:7,warehouse:'W1',isManager:true,loginAt:Date.now()};
+enterApp();
 </script>
 </body>
 </html>
