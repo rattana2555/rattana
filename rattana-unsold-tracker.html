@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v2.0</title>
+<title>Rattana สินค้ายังไม่ขาย v2.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -150,7 +150,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
       <div class="foot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b> เท่านั้น<br>มีปัญหาเข้าใช้งาน? ติดต่อผู้ดูแลระบบ</div>
       <div class="foot" style="margin-top:8px;font-size:10px;opacity:.5"><span id="originText">—</span></div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v2.0 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v2.1 · 2026-05-11</div>
   </div>
 </div>
 
@@ -279,25 +279,36 @@ async function handleGoogleLogin(resp){
 }
 window.handleGoogleLogin=handleGoogleLogin;
 
-// Mobile button — ใช้ token client ตรงๆ ไม่ผ่าน popup
+// Mobile button — redirect flow (ไม่มี popup เลย ใช้ได้บน iOS Safari)
 function mobileLogin(){
-  setLoginLoading(true,'กำลังเปิด Google...');
-  const wait=()=>{
-    if(!window.google){setTimeout(wait,300);return}
-    const tc=google.accounts.oauth2.initTokenClient({
-      client_id:CLIENT_ID,
-      scope:'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-      callback:async(r)=>{
-        if(r.error){showLoginError('❌ '+r.error);return}
-        try{
-          const info=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+r.access_token}}).then(x=>x.json());
-          await verifyAndEnter((info.email||'').toLowerCase().trim(), info.name||'');
-        }catch(e){showLoginError('❌ '+e.message)}
-      }
-    });
-    tc.requestAccessToken({prompt:'select_account'});
-  };
-  wait();
+  const redirectUri = location.origin + location.pathname;
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'token',
+    scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+    prompt: 'select_account',
+    include_granted_scopes: 'true'
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params.toString();
+}
+
+// Handle redirect callback (access_token in URL hash)
+async function handleRedirectCallback(){
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const token = params.get('access_token');
+  if(!token) return false;
+  // Clean URL
+  history.replaceState(null,'',location.pathname);
+  setLoginLoading(true,'กำลังตรวจสอบสิทธิ์...');
+  try{
+    const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{
+      headers:{Authorization:'Bearer '+token}
+    }).then(r=>r.json());
+    await verifyAndEnter((info.email||'').toLowerCase().trim(), info.name||'');
+    return true;
+  }catch(e){ showLoginError('❌ '+e.message); return false }
 }
 
 function checkSession(){
@@ -412,14 +423,22 @@ function render(){
 }
 
 /* ── INIT ── */
-(function(){
+(async function(){
   const el=$('originText');if(!el)return;
   const isFile=location.protocol==='file:';
   el.textContent='Origin: '+(isFile?'file:// (OAuth ไม่ได้)':location.origin);
-  if(isFile){$('loginError').innerHTML='⚠️ ต้องเปิดผ่าน HTTPS';$('loginError').style.display='block'}
-  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))$('mobileLoginBtn').style.display='block';
+  if(isFile){$('loginError').innerHTML='⚠️ ต้องเปิดผ่าน HTTPS';$('loginError').style.display='block';return}
+  // 1. Check redirect callback first
+  if(location.hash.includes('access_token')){
+    const ok = await handleRedirectCallback();
+    if(ok) return;
+  }
+  // 2. Check saved session
+  if(checkSession()) return;
+  // 3. Show login — mobile gets extra button
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent))
+    $('mobileLoginBtn').style.display='block';
 })();
-checkSession();
 </script>
 </body>
 </html>
