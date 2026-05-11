@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rattana สินค้ายังไม่ขาย v1.4</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0d1b3e;--navy-mid:#1a2f5e;--gold:#c9a84c;--gold-light:#e8c86a;--info:#3498db;--bg:#f4f6fb;--text:#0d1b3e;--card-bg:#fff;--border:#dde3f0;--muted:#6b7896;--radius-sm:6px;--radius-md:12px;--shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);--shadow-lg:0 8px 24px rgba(13,27,62,.12)}
+body.dark{--bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;--border:#243b73;--muted:#8a98b8}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;transition:background .25s,color .25s}
+button{font-family:inherit;cursor:pointer;border:none}
+input,select{font-family:inherit;font-size:16px}
+header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--gold);padding-top:max(12px,env(safe-area-inset-top))}
+.logo-txt{font-weight:700;font-size:16px;color:#fff;flex:1}.logo-txt span{color:var(--gold)}
+.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.hero{background:linear-gradient(135deg,var(--navy),var(--navy-mid));color:#fff;padding:18px 16px 16px;border-bottom:3px solid var(--gold)}
+.hero-hi{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:2px}
+.hero-name{font-size:20px;font-weight:700;margin-bottom:2px}
+.hero-sub{font-size:12px;color:var(--gold-light)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.sbox{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-md);padding:10px;text-align:center}
+.sbox-n{font-size:22px;font-weight:700;color:var(--gold)}.sbox-l{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px}
+.seller-bar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:10px 14px}
+.seller-bar label{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
+.seller-bar select{width:100%;height:44px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:16px;font-family:inherit;outline:none}
+.fbar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:sticky;top:67px;z-index:50}
+.sbox-wrap{position:relative;flex:1;min-width:160px}
+.sbox-wrap input{width:100%;height:40px;padding:0 12px 0 36px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.sbox-wrap .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+.fsort{height:40px;padding:0 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;min-width:150px}
+.fcnt{font-size:12px;color:var(--muted);white-space:nowrap}
+.hot-note{padding:5px 14px;font-size:12px;color:var(--muted);line-height:1.5}
+.legend{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 14px;margin:0 14px 10px}
+.legend-t{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
+.legend-items{display:flex;flex-wrap:wrap;gap:10px}
+.li{display:flex;align-items:center;gap:5px;font-size:12px}
+.ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pgrid{padding:10px 14px;display:flex;flex-direction:column;gap:8px;padding-bottom:40px}
+.pcard{background:var(--card-bg);border-radius:var(--radius-md);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;transition:box-shadow .2s,transform .15s;border-left:4px solid transparent}
+.pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.pcard.t1{border-left-color:#ff6b35}.pcard.t2{border-left-color:var(--gold)}.pcard.t3{border-left-color:var(--info)}.pcard.t0{border-left-color:var(--border)}
+.pbody{display:flex;align-items:center;gap:10px;padding:11px 14px}
+.prank{font-size:18px;font-weight:800;width:28px;text-align:center;flex-shrink:0;color:var(--muted)}
+.t1 .prank{color:#ff6b35}.t2 .prank{color:var(--gold)}.t3 .prank{color:var(--info)}
+.pinfo{flex:1;min-width:0}
+.pname{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;word-break:break-word}
+.pstars{font-size:14px;margin-top:1px;letter-spacing:.5px}
+.phot{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:7px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;margin-left:5px;vertical-align:middle}
+.pdetail{font-size:11px;color:var(--muted);margin-top:2px}
+.pmeta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.pvol{font-size:13px;font-weight:700;color:var(--navy)}.psl{font-size:11px;color:var(--muted)}.pno{font-size:11px;color:var(--muted);font-style:italic;text-align:right}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);grid-column:1/-1}
+.empty .ic{font-size:52px;margin-bottom:10px}.empty .em{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}.empty .es{font-size:13px;line-height:1.7}
+.errbox{background:#ffd5d0;border:1px solid #e74c3c;border-radius:var(--radius-md);padding:14px 16px;font-size:13px;color:#c0392b;margin:14px;line-height:1.7;grid-column:1/-1}
+.errbox button{margin-top:8px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;padding:11px 18px;border-radius:var(--radius-md);font-size:13px;z-index:9999;transition:transform .3s;box-shadow:var(--shadow-lg);white-space:nowrap;max-width:90vw}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#sp{position:fixed;inset:0;background:rgba(13,27,62,.8);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:9000;gap:14px}
+#sp.on{display:flex}
+.sr{width:44px;height:44px;border:4px solid rgba(201,168,76,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+.st{color:#fff;font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(min-width:600px){.pgrid{display:grid;grid-template-columns:repeat(2,1fr)}}
+@media(min-width:960px){.pgrid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="sp"><div class="sr"></div><div class="st" id="st">กำลังโหลด…</div></div>
+<div id="toast"></div>
+<header>
+  <span class="logo-txt">RATTANA <span>สินค้ายังไม่ขาย</span></span>
+  <button class="icon-btn" id="darkBtn" onclick="toggleDark()">🌙</button>
+  <button class="icon-btn" onclick="loadData()">🔄</button>
+</header>
+<div class="hero">
+  <div class="hero-hi">สวัสดีคุณ 👋</div>
+  <div class="hero-name" id="heroName">ทดสอบระบบ</div>
+  <div class="hero-sub">⚡ ผู้จัดการ · คลัง W1</div>
+  <div class="stats">
+    <div class="sbox"><div class="sbox-n" id="stTotal">-</div><div class="sbox-l">สินค้าทั้งหมด</div></div>
+    <div class="sbox"><div class="sbox-n" id="stUnsold" style="color:#ff6b6b">-</div><div class="sbox-l">ยังไม่ขาย</div></div>
+    <div class="sbox"><div class="sbox-n" id="stSold" style="color:#2ecc71">-</div><div class="sbox-l">ขายแล้ว</div></div>
+  </div>
+</div>
+<div class="seller-bar" id="sellerBar" style="display:none">
+  <label>👤 เลือกดูข้อมูลเซลล์</label>
+  <select id="selSel" onchange="onSelChange()"><option value="">— เลือกเซลล์ —</option></select>
+</div>
+<div class="fbar">
+  <div class="sbox-wrap"><span class="si">🔍</span><input type="text" id="srch" placeholder="ค้นหาชื่อสินค้า…" oninput="render()"></div>
+  <select class="fsort" id="fsort" onchange="render()">
+    <option value="pop">🏆 ยอดขายรวมสูงสุด</option>
+    <option value="sellers">👥 จำนวนเซลล์ที่ขาย</option>
+    <option value="name">🔤 ชื่อ ก-ฮ</option>
+    <option value="none">📦 ยังไม่มีใครขาย</option>
+  </select>
+  <span class="fcnt" id="fcnt">-</span>
+</div>
+<div class="hot-note" id="hotNote"></div>
+<div class="legend" id="legBox" style="display:none">
+  <div class="legend-t">⭐ ความหมายของดาว</div>
+  <div class="legend-items">
+    <div class="li"><div class="ld" style="background:#ff6b35"></div><span>🌟🌟🌟 ขายดีสุด Top 20%</span></div>
+    <div class="li"><div class="ld" style="background:var(--gold)"></div><span>🌟🌟 ขายดี Top 40%</span></div>
+    <div class="li"><div class="ld" style="background:var(--info)"></div><span>🌟 ขายได้ Top 60%</span></div>
+  </div>
+</div>
+<div class="pgrid" id="pgrid"></div>
+
+<script>
+const SHEET_ID='1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
+const S_PDDT='PDDT', S_UNSOLD='สินค้ายังไม่ขาย';
+const SELLER='คุณ จารุพัฒน์ หอมวิเชียร'; // ← เปลี่ยนชื่อเซลล์ตรงนี้
+
+const csvUrl=s=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;
+let allProducts=[],soldMap={},salesAgg={},allSellers=[],selView=SELLER;
+const $=id=>document.getElementById(id);
+function sp(m){$('sp').classList.add('on');$('st').textContent=m||'โหลด…'}
+function spOff(){$('sp').classList.remove('on')}
+function toast(m,d=3000){const e=$('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),d)}
+function toggleDark(){document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');$('darkBtn').textContent=d?'☀️':'🌙';localStorage.setItem('dk',d?'1':'0')}
+if(localStorage.getItem('dk')==='1')toggleDark();
+
+function parseCsv(text){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){if(c==='"'&&text[i+1]==='"'){f+='"';i++}else if(c==='"'){q=false}else f+=c}
+    else if(c==='"')q=true;
+    else if(c===','){row.push(f.trim());f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f.trim());if(row.some(x=>x))rows.push(row);row=[];f=''}
+    else f+=c;
+  }
+  if(f||row.length){row.push(f.trim());if(row.some(x=>x))rows.push(row)}
+  return rows;
+}
+
+async function loadData(){
+  sp('โหลดสินค้า...');
+  try{
+    const p=parseCsv(await(await fetch(csvUrl(S_PDDT))).text());
+    allProducts=[];
+    for(let i=0;i<p.length;i++){const n=(p[i][0]||'').trim();if(i===0&&n.toLowerCase().includes('ชื่อสินค้า'))continue;if(n)allProducts.push(n)}
+    sp('โหลดยอดขาย...');
+    const s=parseCsv(await(await fetch(csvUrl(S_UNSOLD))).text());
+    soldMap={};salesAgg={};const ss=new Set();
+    for(let i=0;i<s.length;i++){
+      const r=s[i],seller=(r[0]||'').trim(),prod=(r[1]||'').trim();
+      const cs=parseFloat((r[2]||'').replace(/,/g,''))||0,bt=parseFloat((r[3]||'').replace(/,/g,''))||0;
+      if(!seller||!prod)continue;if(i===0&&seller.toLowerCase().includes('sale'))continue;
+      if(!soldMap[seller])soldMap[seller]=new Set();soldMap[seller].add(prod);ss.add(seller);
+      if(!salesAgg[prod])salesAgg[prod]={cs:0,baht:0,sellers:new Set()};
+      salesAgg[prod].cs+=cs;salesAgg[prod].baht+=bt;salesAgg[prod].sellers.add(seller);
+    }
+    allSellers=[...ss].sort((a,b)=>a.localeCompare(b,'th'));
+    $('sellerBar').style.display='block';
+    const sel=$('selSel');
+    sel.innerHTML='<option value="">— ดูทุกเซลล์ —</option>';
+    allSellers.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;if(s===SELLER)o.selected=true;sel.appendChild(o)});
+    render();spOff();toast(`✅ ${allProducts.length} สินค้า`);
+  }catch(e){spOff();$('pgrid').innerHTML=`<div class="errbox">❌ ${e.message}<br><br>• ต้องแชร์ Sheet เป็น "ทุกคนที่มีลิงก์ → ดูได้"<br><br><button onclick="loadData()">🔄 ลองใหม่</button></div>`}
+}
+function onSelChange(){selView=$('selSel').value||null;render()}
+
+function getStars(p){
+  const a=salesAgg[p];if(!a||a.cs<=0)return{stars:'',tier:0};
+  const sc=a.cs*Math.sqrt(a.sellers.size);
+  const all=Object.values(salesAgg).filter(x=>x.cs>0).map(x=>x.cs*Math.sqrt(x.sellers.size)).sort((a,b)=>b-a);
+  if(!all.length)return{stars:'',tier:0};
+  const pct=all.findIndex(s=>s<=sc)/all.length;
+  if(pct<0.2)return{stars:'🌟🌟🌟',tier:1};if(pct<0.4)return{stars:'🌟🌟',tier:2};if(pct<0.6)return{stars:'🌟',tier:3};
+  return{stars:'',tier:0};
+}
+function fmt(n,d=0){return(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:d})}
+
+function render(){
+  const q=($('srch').value||'').trim().toLowerCase(),sb=$('fsort').value;
+  const seller=selView||SELLER,sold=soldMap[seller]||new Set();
+  let u=allProducts.filter(p=>!sold.has(p));
+  if(q)u=u.filter(p=>p.toLowerCase().includes(q));
+  if(sb==='pop')u.sort((a,b)=>{const A=salesAgg[a]?salesAgg[a].cs*Math.sqrt(salesAgg[a].sellers.size):-1,B=salesAgg[b]?salesAgg[b].cs*Math.sqrt(salesAgg[b].sellers.size):-1;return B-A});
+  else if(sb==='sellers')u.sort((a,b)=>(salesAgg[b]?.sellers.size||0)-(salesAgg[a]?.sellers.size||0));
+  else if(sb==='name')u.sort((a,b)=>a.localeCompare(b,'th'));
+  else if(sb==='none')u=u.filter(p=>!salesAgg[p]||salesAgg[p].cs<=0);
+  const tot=allProducts.length,sc=sold.size;
+  $('stTotal').textContent=tot;$('stUnsold').textContent=tot-sc;$('stSold').textContent=sc;$('fcnt').textContent=`${u.length} สินค้า`;
+  const hc=u.filter(p=>salesAgg[p]?.sellers.size>0).length;
+  $('hotNote').innerHTML=hc>0?`💡 มี <strong>${hc}</strong> สินค้าที่เซลล์คนอื่นขายแล้ว แต่ <strong>${seller}</strong> ยังไม่ขายเลย!`:'';
+  $('legBox').style.display=u.some(p=>getStars(p).tier>0)?'':'none';
+  $('heroName').textContent=seller;
+  const g=$('pgrid');
+  if(!allProducts.length){g.innerHTML='<div class="empty"><div class="ic">📭</div><div class="em">ยังไม่มีข้อมูล</div><div class="es">กด 🔄</div></div>';return}
+  if(!u.length){g.innerHTML='<div class="empty"><div class="ic">🎉🏆🎊</div><div class="em">ขายครบทุกสินค้าแล้ว!</div></div>';return}
+  g.innerHTML='';
+  u.forEach((p,i)=>{
+    const a=salesAgg[p],{stars,tier}=getStars(p),r=i+1;
+    const rs=r===1?'🥇':r===2?'🥈':r===3?'🥉':`<span style="font-size:14px">${r}</span>`;
+    const sc=a?a.sellers.size:0,ht=sc>0?`<span class="phot">🔥 ${sc} เซลล์ขายแล้ว!</span>`:'';
+    const c=document.createElement('div');c.className=`pcard t${tier}`;
+    c.innerHTML=`<div class="pbody"><div class="prank">${rs}</div><div class="pinfo"><div class="pname">${p}${ht}</div>${stars?`<div class="pstars">${stars}</div>`:''}<div class="pdetail">${a&&a.cs>0?`💰 ฿${fmt(a.baht)} · 📦 ${fmt(a.cs,2)} ลัง`:'ยังไม่มียอดจากเซลล์อื่น'}</div></div><div class="pmeta">${sc>0?`<div class="pvol">${sc} คน</div><div class="psl">ขายแล้ว</div>`:`<div class="pno">ยังไม่มี<br>ใครขาย</div>`}</div></div>`;
+    g.appendChild(c);
+  });
+}
+loadData();
+</script>
+</body>
+</html>
