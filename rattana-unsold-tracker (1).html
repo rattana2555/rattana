@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rattana สินค้ายังไม่ขาย v1.5</title>
+<title>Rattana สินค้ายังไม่ขาย v1.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -335,7 +335,7 @@ body.dark .chip-gold{color:var(--gold)}
 
       <!-- Google Sign-In Button -->
       <div id="g_id_onload"
-           data-client_id="615875645128-gasjjvkt6lu8g449cbnhl40k1pu25r0b.apps.googleusercontent.com"
+           data-client_id="594919126970-ncoghe6j6n8o1ql22pd858d8a9bkdnir.apps.googleusercontent.com"
            data-callback="handleGoogleLogin"
            data-auto_prompt="false">
       </div>
@@ -363,7 +363,7 @@ body.dark .chip-gold{color:var(--gold)}
         <span id="originText">—</span>
       </div>
     </div>
-    <div class="lver">Rattana สินค้ายังไม่ขาย v1.5 · 2026-05-11</div>
+    <div class="lver">Rattana สินค้ายังไม่ขาย v1.6 · 2026-05-11</div>
   </div>
 </div>
 
@@ -438,7 +438,7 @@ const S_PDDT     = 'PDDT';
 const S_UNSOLD   = 'สินค้ายังไม่ขาย';
 const SESSION_KEY = 'rattanaUnsoldUser';
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;  // 30 วัน
-const MANAGER_ROLE = 5;
+const MANAGER_ROLE = 4; // role > 3 = ดูได้ทุกเซลล์
 
 // CSV endpoint (requires sheet to be shared: anyone with link can view)
 const csvUrl = (sheet) =>
@@ -1047,22 +1047,18 @@ function renderHistoryTab(body, rows, IDX){
   body.innerHTML = html;
 }
 
-/* ══ INIT — PREVIEW MODE (ข้าม login) ══ */
-currentUser = {
-  email: 'preview@rattana.com',
-  name: 'ทดสอบระบบ',
-  nickname: 'Preview',
-  sellerName: 'คุณ จารุพัฒน์ หอมวิเชียร',
-  role: 7,
-  warehouse: 'W1',
-  isManager: true,
-  picture: '',
-  loginAt: Date.now()
-};
-renderUserBadge();
-$('loginScreen').style.display = 'none';
-$('mainApp').style.display = 'block';
-loadData();
+/* ══ INIT ══ */
+(function(){
+  const el = $('originText');
+  if(!el) return;
+  const isFile = location.protocol === 'file:';
+  el.textContent = 'Origin: ' + (isFile ? 'file:// (ใช้กับ OAuth ไม่ได้)' : location.origin);
+  if(isFile){
+    $('loginError').innerHTML = '⚠️ <b>เปิดจาก file:// ไม่ได้</b><br>ต้องเปิดผ่าน HTTPS เช่น GitHub Pages';
+    $('loginError').style.display = 'block';
+  }
+})();
+checkSession();
 </script>
 
 <!-- ═══ PRODUCT DETAIL MODAL ═══ -->
