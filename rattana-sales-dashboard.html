@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rattana Sales Dashboard v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0d1b3e;--navy-mid:#1a2f5e;--navy-light:#243b73;
+  --gold:#c9a84c;--gold-light:#e8c86a;--gold-pale:rgba(201,168,76,.1);
+  --success:#2ecc71;--danger:#e74c3c;--warning:#f39c12;--info:#3498db;
+  --bg:#f0f3fa;--text:#0d1b3e;--card:#fff;--border:#dde3f0;--muted:#6b7896;--alt:#f7f9fd;
+  --r-sm:6px;--r-md:12px;--r-lg:16px;
+  --sh-sm:0 1px 4px rgba(0,0,0,.06);--sh-md:0 2px 12px rgba(0,0,0,.08);--sh-lg:0 8px 28px rgba(13,27,62,.13);
+  --wh-w1:#3498db;--wh-w2:#2ecc71;--wh-w3:#e67e22;--wh-w4:#9b59b6;--wh-c4:#e74c3c;
+}
+body.dark{--bg:#080f20;--text:#e4e8f2;--card:#101c38;--border:#1e3060;--muted:#7a8ab0;--alt:#0c1530}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;font-size:14px;line-height:1.5;min-height:100dvh;background:var(--bg);color:var(--text);transition:background .25s,color .25s;overflow-x:hidden}
+button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
+input,select{font-family:inherit;font-size:16px}
+
+header{background:var(--navy);color:#fff;padding:10px 16px;position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--gold);box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.logo-svg{flex-shrink:0;width:38px;height:38px}
+.hdr-titles{flex:1;min-width:0}
+.hdr-name{font-size:16px;font-weight:700;color:#fff;letter-spacing:.3px}
+.hdr-name span{color:var(--gold)}
+.hdr-ver{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
+.hdr-btns{display:flex;gap:6px}
+.icon-btn{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s;flex-shrink:0}
+.icon-btn:hover{background:rgba(255,255,255,.2)}
+
+.filter-bar{background:var(--card);border-bottom:1px solid var(--border);padding:10px 16px;position:sticky;top:61px;z-index:100;box-shadow:var(--sh-sm)}
+.filter-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.input{height:40px;padding:0 12px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);outline:none;transition:border-color .15s;width:100%}
+.input:focus{border-color:var(--gold)}
+select.input{padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7896' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:10px;-webkit-appearance:none}
+.vendor-field{flex:1;min-width:240px}
+
+.mpk-wrap{position:relative}
+.mpk-trigger{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;min-width:220px;font-size:13px;transition:border-color .15s;white-space:nowrap;overflow:hidden}
+.mpk-trigger:hover,.mpk-trigger.open{border-color:var(--gold)}
+.mpk-trigger .chev{margin-left:auto;flex-shrink:0;color:var(--muted);transition:transform .2s}
+.mpk-trigger.open .chev{transform:rotate(180deg)}
+.mpk-drop{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:280px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-lg);z-index:400;max-height:340px;overflow-y:auto}
+.mpk-drop.open{display:block}
+.mpk-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .12s;font-size:13px;border-bottom:1px solid var(--border)}
+.mpk-item:hover{background:var(--gold-pale)}
+.mpk-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
+.mpk-item.latest{color:var(--warning);font-weight:600}
+.mpk-actions{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--alt);border-radius:0 0 var(--r-md) var(--r-md)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;min-height:38px;transition:opacity .15s,transform .1s}
+.btn:hover{opacity:.88}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-gold{background:var(--gold);color:var(--navy)}
+.btn-sm{padding:5px 10px;font-size:12px;min-height:30px}
+.btn-outline{background:transparent;color:var(--text);border-color:var(--border)}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+
+.content{padding:12px;max-width:1400px;margin:0 auto}
+@media(min-width:640px){.content{padding:16px}}
+
+.si-banner{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);border-radius:var(--r-lg);padding:16px 20px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1px 1fr;border:1px solid var(--navy-light);box-shadow:var(--sh-md)}
+.si-divider{background:rgba(255,255,255,.15);margin:0 16px}
+.si-block{padding:0 4px}
+.si-lbl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:4px}
+.si-val{font-size:24px;font-weight:700;color:var(--gold);line-height:1.1}
+.si-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}
+@media(max-width:500px){.si-banner{grid-template-columns:1fr}.si-divider{display:none}}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:640px){.kpi-grid{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--card);border-radius:var(--r-md);padding:14px 16px;border:1px solid var(--border);border-top:3px solid var(--gold);box-shadow:var(--sh-sm)}
+.kpi.k-success{border-top-color:var(--success)}.kpi.k-info{border-top-color:var(--info)}.kpi.k-warn{border-top-color:var(--warning)}
+.kpi-lbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.kpi-val{font-size:20px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:3px}
+@media(min-width:640px){.kpi-val{font-size:24px}}
+
+.card{background:var(--card);border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--sh-sm);margin-bottom:14px;overflow:hidden}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:linear-gradient(to right,var(--gold-pale),transparent);flex-wrap:wrap;gap:8px}
+.card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+
+.breadcrumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.bc-item{font-size:12px;color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:20px;transition:all .15s;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bc-item:hover{color:var(--gold);background:var(--gold-pale)}
+.bc-item.cur{color:var(--text);font-weight:700;cursor:default;background:var(--alt)}
+.bc-sep{color:var(--muted);font-size:12px}
+
+.lbadge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700}
+.lb-brand{background:rgba(52,152,219,.12);color:#1a6fb8}
+.lb-pack{background:rgba(201,168,76,.15);color:#8a6000}
+.lb-product{background:rgba(46,204,113,.12);color:#1e8449}
+
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;min-width:500px}
+.tbl thead{background:var(--navy);color:#fff}
+.tbl thead th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap;border-bottom:2px solid var(--gold);cursor:pointer;user-select:none;text-transform:uppercase}
+.tbl thead th:hover{background:var(--navy-mid)}
+.tbl thead th .si{font-size:10px;color:var(--gold);margin-left:3px}
+.tbl tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+.tbl tbody tr:nth-child(even){background:var(--alt)}
+.tbl tbody tr:hover{background:var(--gold-pale)}
+.tbl tbody tr.drill{cursor:pointer}
+.tbl tbody tr.drill:hover{background:rgba(201,168,76,.14)}
+.tbl td{padding:9px 12px;font-size:13px;vertical-align:middle}
+.tbl td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.tbl .empty td{text-align:center;padding:40px;color:var(--muted);cursor:default}
+
+.bar-wrap{display:flex;align-items:center;gap:6px}
+.bar-bg{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;min-width:50px}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.b-cs{background:linear-gradient(90deg,#3498db,#74b9ff)}
+.b-baht{background:linear-gradient(90deg,var(--gold),var(--gold-light))}
+.bar-num{font-size:11px;font-weight:700;white-space:nowrap;min-width:55px;text-align:right;color:var(--muted)}
+.drill-arrow{color:var(--gold);font-size:16px;flex-shrink:0;transition:transform .15s}
+tr.drill:hover .drill-arrow{transform:translateX(3px)}
+
+.tab-nav{display:flex;background:var(--card);border-bottom:2px solid var(--border);padding:0 14px;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{background:transparent;color:var(--muted);padding:10px 16px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;transition:all .18s;margin-bottom:-2px}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+.wh-row{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--alt);align-items:center}
+.wh-chip{display:inline-flex;flex-direction:column;align-items:center;padding:6px 12px;border-radius:var(--r-md);font-size:11px;font-weight:700;border:1.5px solid;gap:2px}
+.wh-chip span{font-size:16px;font-weight:700}
+.c-w1{color:var(--wh-w1);border-color:var(--wh-w1);background:rgba(52,152,219,.08)}
+.c-w2{color:var(--wh-w2);border-color:var(--wh-w2);background:rgba(46,204,113,.08)}
+.c-w3{color:var(--wh-w3);border-color:var(--wh-w3);background:rgba(230,126,34,.08)}
+.c-w4{color:var(--wh-w4);border-color:var(--wh-w4);background:rgba(155,89,182,.08)}
+.c-c4{color:var(--wh-c4);border-color:var(--wh-c4);background:rgba(231,76,60,.08)}
+
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-ok{background:#e8f7ee;color:#1e8449}.b-warn{background:#fef3d7;color:#a87800}.b-danger{background:#ffd5d0;color:#c0392b}.b-info{background:#e3f0fd;color:#1a6fb8}.b-muted{background:var(--alt);color:var(--muted);border:1px solid var(--border)}.b-gold{background:rgba(201,168,76,.15);color:#8a6000}
+body.dark .b-ok{background:#1a3a25;color:#7be0a3}body.dark .b-warn{background:#3a2e15;color:#e8c86a}body.dark .b-danger{background:#3a1a17;color:#ff8a7e}body.dark .b-info{background:#122040;color:#74b9ff}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);gap:12px;text-align:center}
+.empty-state .ei{font-size:52px;opacity:.35;margin-bottom:4px}
+.empty-state .et{font-size:15px;font-weight:600;color:var(--text)}
+.empty-state .es{font-size:13px}
+
+.sp-overlay{display:none;position:fixed;inset:0;background:rgba(8,15,32,.6);align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)}
+.sp-overlay.on{display:flex}
+.sp-box{background:var(--card);border-radius:var(--r-lg);padding:28px 36px;text-align:center;border-top:4px solid var(--gold);min-width:220px;box-shadow:var(--sh-lg)}
+.sp-ring{width:44px;height:44px;border:5px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+.sp-msg{font-size:13px;color:var(--muted);line-height:1.5}
+.sp-step{font-size:11px;color:var(--muted);margin-top:6px;opacity:.7}
+
+.toast{position:fixed;bottom:max(20px,env(safe-area-inset-bottom));right:16px;padding:10px 18px;border-radius:var(--r-md);color:#fff;z-index:9990;animation:slideIn .3s ease;font-size:13px;font-weight:500;box-shadow:var(--sh-lg);max-width:min(90vw,380px);pointer-events:none}
+.t-error{background:var(--danger)}.t-info{background:var(--navy-mid);border-left:3px solid var(--gold)}.t-success{background:#1e8449}.t-warn{background:var(--warning);color:var(--navy)}.toast.hidden{display:none}
+
+.fade-in{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+.hidden{display:none!important}
+.drill-hint{font-size:11px;color:var(--muted)}
+#backTop{display:none;position:fixed;bottom:20px;right:20px;width:44px;height:44px;background:var(--gold);color:var(--navy);border-radius:50%;font-size:20px;box-shadow:0 4px 16px rgba(201,168,76,.3);z-index:200;border:none;cursor:pointer;align-items:center;justify-content:center;font-weight:700}
+@media(max-width:640px){.filter-row{flex-direction:column}.vendor-field,.mpk-trigger{min-width:100%!important;width:100%}.si-val{font-size:20px}}
+</style>
+</head>
+<body>
+
+<div class="sp-overlay" id="SP">
+  <div class="sp-box">
+    <div class="sp-ring"></div>
+    <div class="sp-msg" id="spMsg">กำลังโหลดข้อมูล...</div>
+    <div class="sp-step" id="spStep"></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<header>
+  <svg class="logo-svg" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="19" cy="19" r="18" fill="none" stroke="#c9a84c" stroke-width="1.8"/>
+    <circle cx="19" cy="19" r="14" fill="none" stroke="rgba(201,168,76,.3)" stroke-width="1"/>
+    <text x="19" y="15" text-anchor="middle" fill="#c9a84c" font-size="7.5" font-weight="700" font-family="Sarabun">รัตน</text>
+    <text x="19" y="22.5" text-anchor="middle" fill="#fff" font-size="5.5" font-family="Sarabun">ไพบูลย์</text>
+    <text x="19" y="29" text-anchor="middle" fill="rgba(255,255,255,.35)" font-size="3.5" font-family="Sarabun">RATTANAPHAIBOON</text>
+  </svg>
+  <div class="hdr-titles">
+    <div class="hdr-name">Rattana <span>Sales</span> Dashboard</div>
+    <div class="hdr-ver">v1.0 · 2026-05-16 · BQ: project-test-471907 · Testimport.BQ_2024_2025</div>
+  </div>
+  <div class="hdr-btns">
+    <button class="icon-btn" id="refreshBtn" title="รีเฟรช">🔄</button>
+    <button class="icon-btn" id="darkBtn" title="Dark Mode">🌙</button>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <div class="filter-row">
+    <div class="field vendor-field">
+      <label>🏢 Vendor (Cat_Vendor จาก BQ)</label>
+      <select class="input" id="vendorSel">
+        <option value="">— กำลังโหลด Vendor... —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>📅 เดือน (เลือกหลายเดือนได้)</label>
+      <div class="mpk-wrap" id="mpkWrap">
+        <div class="mpk-trigger" id="mpkTrigger" onclick="toggleMpk()">
+          <span id="mpkLabel">กำลังโหลดเดือน...</span>
+          <svg class="chev" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+        </div>
+        <div class="mpk-drop" id="mpkDrop">
+          <div style="padding:12px 14px;color:var(--muted);font-size:13px">กำลังโหลด...</div>
+          <div class="mpk-actions">
+            <button class="btn btn-sm btn-gold" onclick="sel6()">6 เดือนล่าสุด</button>
+            <button class="btn btn-sm btn-outline" onclick="clrMonths()">ล้างทั้งหมด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="btn btn-gold" onclick="applyFilters()">🔍 ดูยอดขาย</button>
+    </div>
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="empty-state fade-in" id="emptyState">
+    <div class="ei">📊</div>
+    <div class="et">เลือก Vendor และเดือน เพื่อดูยอดขาย</div>
+    <div class="es">ข้อมูลจาก BigQuery · project-test-471907 · Testimport.BQ_2024_2025</div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted)">เดือนล่าสุดใน BQ: เม.ย. 2569 (2026/04) | รองรับ Cat Brand → Cat Pack → สินค้า drill-down</div>
+  </div>
+
+  <div id="dash" class="hidden">
+
+    <div class="si-banner fade-in">
+      <div class="si-block">
+        <div class="si-lbl">💰 Sell In เดือนปัจจุบัน</div>
+        <div class="si-val" id="siVal">—</div>
+        <div class="si-sub" id="siSub">กด Tab "Sell In" ด้านล่าง → โหลดข้อมูล</div>
+      </div>
+      <div class="si-divider"></div>
+      <div class="si-block">
+        <div class="si-lbl">📈 ยอดขายล่าสุดใน BQ (<span id="currMoLbl">เม.ย. 69</span>)</div>
+        <div class="si-val" id="currVal">—</div>
+        <div class="si-sub" id="currSub">CS: — | กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid fade-in">
+      <div class="kpi">
+        <div class="kpi-lbl">📦 ยอดขายรวม CS</div>
+        <div class="kpi-val" id="kCS">—</div>
+        <div class="kpi-sub">ลัง (รวมทุกเดือนที่เลือก)</div>
+      </div>
+      <div class="kpi k-success">
+        <div class="kpi-lbl">💵 ยอดเงินรวม (บาท)</div>
+        <div class="kpi-val" id="kBaht">—</div>
+        <div class="kpi-sub" id="kBahtSub">บาท</div>
+      </div>
+      <div class="kpi k-info">
+        <div class="kpi-lbl">🏷️ จำนวน Cat Brand</div>
+        <div class="kpi-val" id="kBrand">—</div>
+        <div class="kpi-sub" id="kBrandSub">แบรนด์</div>
+      </div>
+      <div class="kpi k-warn">
+        <div class="kpi-lbl">📅 ช่วงเวลาที่เลือก</div>
+        <div class="kpi-val" id="kPeriod" style="font-size:13px;line-height:1.4">—</div>
+        <div class="kpi-sub" id="kPeriodSub"></div>
+      </div>
+    </div>
+
+    <div class="card fade-in">
+      <div class="card-head">
+        <div>
+          <div class="card-title">
+            <span class="lbadge lb-brand" id="lvlBadge">🏷️ Cat Brand</span>
+            <span id="tblTitle">ยอดขายตาม Cat Brand</span>
+          </div>
+          <div class="breadcrumb" id="bcNav"></div>
+        </div>
+        <div class="drill-hint" id="drillHint">👆 คลิกแถวเพื่อเจาะลึก Cat Pack →</div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="mainTbl">
+          <thead>
+            <tr id="mainTblHead">
+              <th data-key="name" data-type="str">ชื่อ <span class="si"></span></th>
+              <th data-key="cs" data-type="num" style="text-align:right">CS (ลัง) <span class="si"></span></th>
+              <th data-key="baht" data-type="num" style="text-align:right">ยอดเงิน (บาท) <span class="si"></span></th>
+              <th style="min-width:130px">แท่ง CS</th>
+              <th style="min-width:130px">แท่ง บาท</th>
+            </tr>
+          </thead>
+          <tbody id="mainTblBody">
+            <tr class="empty"><td colspan="5">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card fade-in">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('stockPane',this)">📦 Stock คงเหลือ (PDDT)</button>
+        <button class="tab-btn" onclick="switchTab('noSalePane',this)">⚠️ สินค้ายังไม่ขาย</button>
+        <button class="tab-btn" onclick="switchTab('sellInPane',this)">💰 Sell In</button>
+      </div>
+
+      <div class="tab-pane active" id="stockPane">
+        <div class="card-head" style="background:none">
+          <div class="card-title">📦 PDDT Stock คงเหลือ — แยก 5 คลัง (W1/W2/W3/W4/C4)</div>
+          <button class="btn btn-sm btn-outline" onclick="loadPDDT()">🔄 โหลดข้อมูล PDDT</button>
+        </div>
+        <div id="stockBody">
+          <div class="empty-state" style="padding:40px">
+            <div class="ei" style="font-size:36px">📦</div>
+            <div class="et">กด "โหลดข้อมูล PDDT" เพื่อดู Stock</div>
+            <div class="es">ข้อมูลจาก Google Sheets · sheet PDDT · คอลัมน์ BN:BR (STOCK W1–C4)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="noSalePane">
+        <div class="card-head" style="background:none">
+          <div class="card-title">⚠️ สินค้ายังไม่ขาย — เทียบกับเดือนล่าสุดใน BQ</div>
+          <button class="btn btn-sm btn-outline" onclick="loadNoSale()">🔄 โหลดข้อมูล</button>
+        </div>
+        <div id="noSaleBody">
+          <div class="empty-state" style="padding:40px">
+            <div class="ei" style="font-size:36px">⚠️</div>
+            <div class="et">กด "โหลดข้อมูล" เพื่อเปรียบเทียบ</div>
+            <div class="es">จับชื่อสินค้าจาก sheet "สินค้ายังไม่ขาย" → PDDT → Cat → BQ</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="sellInPane">
+        <div class="card-head" style="background:none">
+          <div class="card-title">💰 Sell In (PO IB RP) เดือนปัจจุบัน</div>
+          <button class="btn btn-sm btn-outline" onclick="loadSellIn()">🔄 โหลดข้อมูล Sell In</button>
+        </div>
+        <div id="sellInBody">
+          <div class="empty-state" style="padding:40px">
+            <div class="ei" style="font-size:36px">💰</div>
+            <div class="et">กด "โหลดข้อมูล Sell In"</div>
+            <div class="es">sheet: PO IB RP 05-69 - วางข้อมูล</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<button id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+const C={
+  proj:'project-test-471907',ds:'Testimport',view:'BQ_2024_2025',
+  shId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',
+  pddtSheet:'PDDT',noSaleSheet:'สินค้ายังไม่ขาย',sellInSheet:'PO IB RP 05-69 - วางข้อมูล',
+  latestBQ:'2026/04',model:'claude-sonnet-4-20250514',
+  bqMCP:'https://bigquery.googleapis.com/mcp',
+  driveMCP:'https://drivemcp.googleapis.com/mcp/v1',
+};
+const S={vendors:[],months:[],vendor:'',selMonths:[],level:0,bc:[],data:[],sortKey:'baht',sortDir:'desc'};
+const $=id=>document.getElementById(id);
+const n0=n=>Number(n||0).toLocaleString('th-TH',{maximumFractionDigits:0});
+const n1=n=>Number(n||0).toLocaleString('th-TH',{maximumFractionDigits:1});
+function thMo(my){if(!my)return'';const[y,m]=my.split('/');const mn=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return`${mn[parseInt(m)-1]} ${parseInt(y)+543}`;}
+function showSP(m,s=''){$('spMsg').textContent=m;$('spStep').textContent=s;$('SP').classList.add('on')}
+function hideSP(){$('SP').classList.remove('on')}
+let _tt;
+function toast(m,t='info',d=4000){const e=$('toast');e.textContent=m;e.className=`toast t-${t}`;clearTimeout(_tt);_tt=setTimeout(()=>e.className='toast hidden',d);}
+function esc(s){return String(s||'').replace(/'/g,"''")}
+
+let dark=false;
+$('darkBtn').onclick=()=>{dark=!dark;document.body.classList.toggle('dark',dark);$('darkBtn').textContent=dark?'☀️':'🌙'};
+window.addEventListener('scroll',()=>{$('backTop').style.display=scrollY>300?'flex':'none'});
+document.addEventListener('click',e=>{if(!$('mpkWrap').contains(e.target)){$('mpkDrop').classList.remove('open');$('mpkTrigger').classList.remove('open')}});
+function toggleMpk(){$('mpkDrop').classList.toggle('open');$('mpkTrigger').classList.toggle('open')}
+
+async function bqQ(sql,msg){
+  if(msg)showSP(msg,'กำลังเชื่อมต่อ BigQuery...');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:C.model,max_tokens:8000,
+        system:`You are a BigQuery executor. Run the SQL using BigQuery MCP tool for project '${C.proj}'. Return ONLY a valid JSON array where each row is an object. No markdown, no explanation. Just the raw JSON array.`,
+        messages:[{role:'user',content:`Execute this SQL:\n\n${sql}`}],
+        mcp_servers:[{type:'url',url:C.bqMCP,name:'bq'}]
+      })
+    });
+    const d=await r.json();
+    if(msg)hideSP();
+    return parseBQ(d);
+  }catch(e){if(msg)hideSP();console.error('BQ err',e);toast('BQ Error: '+e.message,'error');return[];}
+}
+
+function parseBQ(d){
+  const blocks=d.content||[];
+  for(const b of blocks){
+    if(b.type==='mcp_tool_result'){
+      const txt=b.content?.[0]?.text||'';
+      try{const raw=JSON.parse(txt);if(raw.schema&&Array.isArray(raw.rows)){const cols=raw.schema.fields.map(f=>f.name);return raw.rows.map(row=>Object.fromEntries(cols.map((c,i)=>[c,row.f?.[i]?.v??null])));} if(Array.isArray(raw))return raw;}catch{}
+      const m=txt.match(/\[[\s\S]*\]/);if(m){try{return JSON.parse(m[0]);}catch{}}
+    }
+  }
+  const txt=blocks.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+  if(txt.startsWith('['))try{return JSON.parse(txt);}catch{}
+  const m=txt.match(/\[[\s\S]*\]/);if(m)try{return JSON.parse(m[0]);}catch{}
+  console.warn('parseBQ: no data',d);return[];
+}
+
+function parseCsv(text){
+  if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  const rows=[];let row=[],cell='',inQ=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];if(inQ){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else inQ=false;}else cell+=ch;}else{if(ch==='"')inQ=true;else if(ch===','){row.push(cell);cell='';}else if(ch==='\r'){}else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell='';}else cell+=ch;}}
+  if(cell||row.length){row.push(cell);rows.push(row);}
+  if(!rows.length)return[];
+  const clean=s=>String(s||'').replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim();
+  const hdr=rows[0].map(clean);
+  return rows.slice(1).filter(r=>r.some(c=>clean(c))).map(r=>Object.fromEntries(hdr.map((k,i)=>[k,clean(r[i]||'')])));
+}
+
+async function loadGSheet(sheetName,msg){
+  // ใช้ Drive MCP โดยตรง (ไม่ใช้ gviz เพราะ origin_mismatch)
+  return await loadSheetMCP(sheetName,msg);
+}
+
+async function loadSheetMCP(sheetName,msg){
+  if(msg)showSP(msg,'กำลังอ่านผ่าน Drive MCP...');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:C.model,max_tokens:8000,
+        system:'Read Google Sheets and return ONLY a JSON array. Each row as object. No markdown.',
+        messages:[{role:'user',content:`Read Google Sheets file ID: ${C.shId}, sheet: "${sheetName}". Return all rows as JSON array.`}],
+        mcp_servers:[{type:'url',url:C.driveMCP,name:'gdrive'}]
+      })
+    });
+    const d=await r.json();
+    if(msg)hideSP();
+    const blocks=d.content||[];
+    const allTxt=[...blocks.filter(b=>b.type==='mcp_tool_result').map(b=>b.content?.[0]?.text||''),...blocks.filter(b=>b.type==='text').map(b=>b.text)].join('\n');
+    const m=allTxt.match(/\[[\s\S]*\]/);if(m)try{return JSON.parse(m[0]);}catch{}
+    const t=allTxt.trim();if(t.startsWith('['))try{return JSON.parse(t);}catch{}
+    return[];
+  }catch(e){if(msg)hideSP();console.error('Drive MCP err',e);return[];}
+}
+
+async function init(){
+  showSP('กำลังโหลด Vendor และเดือน...','เชื่อมต่อ BigQuery');
+  try{
+    const[vendors,months]=await Promise.all([
+      bqQ(`SELECT DISTINCT Cat_Vendor FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Cat_Vendor IS NOT NULL AND TRIM(Cat_Vendor)!='' ORDER BY Cat_Vendor`),
+      bqQ(`SELECT DISTINCT Month_Year FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Month_Year IS NOT NULL ORDER BY Month_Year DESC`)
+    ]);
+    hideSP();
+    S.vendors=vendors.map(r=>r.Cat_Vendor).filter(Boolean);
+    S.months=months.map(r=>r.Month_Year).filter(Boolean);
+    const vs=$('vendorSel');
+    vs.innerHTML='<option value="">— เลือก Vendor —</option>';
+    S.vendors.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;vs.appendChild(o);});
+    buildMpk();sel6();
+    toast(`โหลดสำเร็จ: ${S.vendors.length} Vendor, ${S.months.length} เดือน`,'success',3000);
+  }catch(e){hideSP();toast('ไม่สามารถโหลดได้: '+e.message,'error');}
+}
+
+function buildMpk(){
+  const dd=$('mpkDrop');
+  let html='';
+  S.months.forEach((m,i)=>{html+=`<label class="mpk-item${i===0?' latest':''}"><input type="checkbox" name="moCb" value="${m}" onchange="updMpk()"><span>${thMo(m)}${i===0?' 🔴':''}</span></label>`;});
+  dd.innerHTML=html+`<div class="mpk-actions"><button class="btn btn-sm btn-gold" onclick="sel6()">6 เดือนล่าสุด</button><button class="btn btn-sm btn-outline" onclick="clrMonths()">ล้างทั้งหมด</button></div>`;
+}
+function sel6(){document.querySelectorAll('[name=moCb]').forEach((c,i)=>c.checked=i<6);updMpk();}
+function clrMonths(){document.querySelectorAll('[name=moCb]').forEach(c=>c.checked=false);updMpk();}
+function updMpk(){
+  const ch=[...document.querySelectorAll('[name=moCb]:checked')].map(c=>c.value);
+  S.selMonths=ch;
+  const l=$('mpkLabel');
+  if(!ch.length)l.textContent='ยังไม่ได้เลือกเดือน';
+  else if(ch.length===1)l.textContent=thMo(ch[0]);
+  else l.textContent=`${ch.length} เดือน · ${thMo(ch[ch.length-1])} → ${thMo(ch[0])}`;
+}
+
+async function applyFilters(){
+  const v=$('vendorSel').value;
+  if(!v){toast('กรุณาเลือก Vendor ก่อน','error');return;}
+  if(!S.selMonths.length){toast('กรุณาเลือกอย่างน้อย 1 เดือน','error');return;}
+  S.vendor=v;S.level=0;S.bc=[];
+  $('emptyState').classList.add('hidden');
+  $('dash').classList.remove('hidden');
+  $('mpkDrop').classList.remove('open');
+  $('mpkTrigger').classList.remove('open');
+  await loadBrandData();
+  loadCurrentKPI();
+}
+
+async function loadBrandData(){
+  const moList=S.selMonths.map(m=>`'${m}'`).join(',');
+  const sql=`SELECT Cat_Brand,ROUND(SUM(COALESCE(Sales_CS,0)),1) AS total_cs,ROUND(SUM(COALESCE(TotalBaht,0)),2) AS total_baht FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Cat_Vendor='${esc(S.vendor)}' AND Month_Year IN (${moList}) AND Cat_Brand IS NOT NULL GROUP BY Cat_Brand ORDER BY total_baht DESC`;
+  const rows=await bqQ(sql,`กำลังโหลดยอดขาย ${S.vendor.slice(0,30)}...`);
+  S.data=rows.map(r=>({name:r.Cat_Brand||'ไม่ระบุ',cs:parseFloat(r.total_cs)||0,baht:parseFloat(r.total_baht)||0}));
+  renderTbl(0);renderKPI();
+}
+
+async function loadCurrentKPI(){
+  const rows=await bqQ(`SELECT ROUND(SUM(COALESCE(Sales_CS,0)),1) AS cs,ROUND(SUM(COALESCE(TotalBaht,0)),2) AS baht FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Cat_Vendor='${esc(S.vendor)}' AND Month_Year='${C.latestBQ}'`);
+  $('currMoLbl').textContent=thMo(C.latestBQ);
+  if(rows.length&&(rows[0].cs||rows[0].baht)){$('currVal').textContent='฿'+n0(rows[0].baht);$('currSub').textContent=`CS: ${n1(rows[0].cs)} ลัง | ${thMo(C.latestBQ)}`;}
+  else{$('currVal').textContent='ไม่มีข้อมูล';$('currSub').textContent=thMo(C.latestBQ);}
+}
+
+function renderTbl(lvl){
+  S.level=lvl;
+  const data=[...S.data].sort((a,b)=>{const m=S.sortDir==='asc'?1:-1;if(S.sortKey==='cs')return(a.cs-b.cs)*m;if(S.sortKey==='baht')return(a.baht-b.baht)*m;return a.name.localeCompare(b.name,'th')*m;});
+  const maxCS=Math.max(...data.map(d=>d.cs),1);const maxBaht=Math.max(...data.map(d=>d.baht),1);
+  const lc=[{badge:'lb-brand',icon:'🏷️',name:'Cat Brand',hint:'👆 คลิกแถวเพื่อดู Cat Pack →'},{badge:'lb-pack',icon:'📦',name:'Cat Pack',hint:'👆 คลิกแถวเพื่อดูชื่อสินค้า →'},{badge:'lb-product',icon:'🛍️',name:'สินค้า',hint:''}][lvl]||{badge:'lb-brand',icon:'🏷️',name:'Cat Brand',hint:''};
+  $('lvlBadge').className=`lbadge ${lc.badge}`;$('lvlBadge').textContent=`${lc.icon} ${lc.name}`;$('tblTitle').textContent=`ยอดขายตาม ${lc.name}`;$('drillHint').textContent=lc.hint;
+  renderBC();
+  if(!data.length){$('mainTblBody').innerHTML='<tr class="empty"><td colspan="5">ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>';return;}
+  $('mainTblBody').innerHTML=data.map(r=>{
+    const csW=Math.round(r.cs/maxCS*100);const bhW=Math.round(r.baht/maxBaht*100);const isDrill=lvl<2;
+    return`<tr class="${isDrill?'drill':''}" ${isDrill?`onclick="drill('${r.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}')"`:''}>
+      <td><div style="display:flex;align-items:center;gap:8px">${isDrill?'<span class="drill-arrow">›</span>':''}<span style="font-weight:${lvl===0?700:500}">${r.name}</span></div></td>
+      <td class="num">${n1(r.cs)}</td>
+      <td class="num"><span style="color:var(--gold);font-weight:700">฿${n0(r.baht)}</span></td>
+      <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill b-cs" style="width:${csW}%"></div></div><span class="bar-num">${n1(r.cs)}</span></div></td>
+      <td><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill b-baht" style="width:${bhW}%"></div></div><span class="bar-num">${n0(r.baht)}</span></div></td>
+    </tr>`;
+  }).join('');
+  bindSort();
+}
+
+function renderBC(){
+  const v=S.vendor.length>28?S.vendor.slice(0,26)+'…':S.vendor;
+  let h=`<span class="bc-item ${S.bc.length===0?'cur':''}" onclick="goBC(0)">🏢 ${v}</span>`;
+  S.bc.forEach((it,i)=>{h+=`<span class="bc-sep">›</span><span class="bc-item ${i===S.bc.length-1?'cur':''}" onclick="goBC(${i+1})">${it.label}</span>`;});
+  $('bcNav').innerHTML=h;
+}
+
+function renderKPI(){
+  const tot={cs:S.data.reduce((s,r)=>s+r.cs,0),baht:S.data.reduce((s,r)=>s+r.baht,0)};
+  $('kCS').textContent=n1(tot.cs);$('kBaht').textContent='฿'+n0(tot.baht);$('kBrand').textContent=S.data.length;$('kBrandSub').textContent=`แบรนด์ใน ${S.selMonths.length} เดือน`;
+  const sorted=[...S.selMonths].sort();
+  if(sorted.length){$('kPeriod').textContent=sorted.length===1?thMo(sorted[0]):`${thMo(sorted[sorted.length-1])} – ${thMo(sorted[0])}`;$('kPeriodSub').textContent=`${sorted.length} เดือน`;}
+}
+
+async function drill(name){
+  if(S.level>=2)return;
+  S.bc.push({label:name,value:name});
+  const newLvl=S.level+1;
+  const moList=S.selMonths.map(m=>`'${m}'`).join(',');
+  let sql,nameKey;
+  if(newLvl===1){
+    sql=`SELECT Cat_Pack,ROUND(SUM(COALESCE(Sales_CS,0)),1) AS total_cs,ROUND(SUM(COALESCE(TotalBaht,0)),2) AS total_baht FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Cat_Vendor='${esc(S.vendor)}' AND Cat_Brand='${esc(name)}' AND Month_Year IN (${moList}) AND Cat_Pack IS NOT NULL GROUP BY Cat_Pack ORDER BY total_baht DESC`;
+    nameKey='Cat_Pack';
+  }else{
+    const brand=S.bc[0].value;
+    sql=`SELECT Product_Name,ROUND(SUM(COALESCE(Sales_CS,0)),1) AS total_cs,ROUND(SUM(COALESCE(TotalBaht,0)),2) AS total_baht FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Cat_Vendor='${esc(S.vendor)}' AND Cat_Brand='${esc(brand)}' AND Cat_Pack='${esc(name)}' AND Month_Year IN (${moList}) GROUP BY Product_Name ORDER BY total_baht DESC`;
+    nameKey='Product_Name';
+  }
+  const rows=await bqQ(sql,`กำลังโหลด ${newLvl===1?'Cat Pack':'สินค้า'}...`);
+  S.data=rows.map(r=>({name:r[nameKey]||'ไม่ระบุ',cs:parseFloat(r.total_cs)||0,baht:parseFloat(r.total_baht)||0}));
+  renderTbl(newLvl);
+  window.scrollTo({top:document.querySelector('.card').offsetTop-120,behavior:'smooth'});
+}
+
+async function goBC(lvl){
+  if(lvl===S.level)return;
+  S.bc=S.bc.slice(0,lvl);
+  if(lvl===0){await loadBrandData();return;}
+  if(lvl===1&&S.bc[0]){const brand=S.bc[0].value;S.bc=[];await drill(brand);}
+}
+
+function bindSort(){
+  document.querySelectorAll('#mainTblHead th[data-key]').forEach(th=>{
+    th.onclick=()=>{const k=th.dataset.key;if(S.sortKey===k)S.sortDir=S.sortDir==='asc'?'desc':'asc';else{S.sortKey=k;S.sortDir=k==='name'?'asc':'desc';}renderTbl(S.level);document.querySelectorAll('#mainTblHead .si').forEach(si=>{si.textContent=si.closest('th').dataset.key===S.sortKey?(S.sortDir==='asc'?'▲':'▼'):'';});};
+  });
+}
+
+async function loadPDDT(){
+  $('stockBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="sp-ring" style="margin:0 auto 10px"></div><div class="et">กำลังโหลด PDDT Stock...</div></div>`;
+  try{
+    const rows=await loadGSheet(C.pddtSheet,'กำลังโหลด PDDT Stock...');
+    if(!rows.length){$('stockBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">📦</div><div class="et">ไม่พบข้อมูล PDDT</div></div>`;return;}
+    const vParts=S.vendor.split(' ').filter(p=>p.length>3).map(p=>p.toLowerCase());
+    const filtered=rows.filter(r=>{const vn=(r['VENDOR NAME']||r['CAT VENDOR']||r['Vendor_Name']||'').toLowerCase();return vParts.some(p=>vn.includes(p))||vn.includes(S.vendor.toLowerCase().slice(0,15));});
+    if(!filtered.length){$('stockBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">🔍</div><div class="et">ไม่พบ Stock สำหรับ Vendor นี้</div><div class="es">พบข้อมูล ${rows.length} รายการ แต่ไม่ตรงกับ "${S.vendor.slice(0,30)}"</div></div>`;return;}
+    const tot={W1:0,W2:0,W3:0,W4:0,C4:0};
+    const W=r=>({w1:parseFloat(r['STOCK W1']||r['Stock W1']||0),w2:parseFloat(r['STOCK W2']||r['Stock W2']||0),w3:parseFloat(r['STOCK W3']||r['Stock W3']||0),w4:parseFloat(r['STOCK W4']||r['Stock W4']||0),c4:parseFloat(r['STOCK C4']||r['Stock C4']||0)});
+    filtered.forEach(r=>{const w=W(r);tot.W1+=w.w1;tot.W2+=w.w2;tot.W3+=w.w3;tot.W4+=w.w4;tot.C4+=w.c4;});
+    const totAll=tot.W1+tot.W2+tot.W3+tot.W4+tot.C4;
+    let html=`<div class="wh-row">
+      <div class="wh-chip c-w1">W1<span>${n1(tot.W1)}</span></div>
+      <div class="wh-chip c-w2">W2<span>${n1(tot.W2)}</span></div>
+      <div class="wh-chip c-w3">W3<span>${n1(tot.W3)}</span></div>
+      <div class="wh-chip c-w4">W4<span>${n1(tot.W4)}</span></div>
+      <div class="wh-chip c-c4">C4<span>${n1(tot.C4)}</span></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;font-weight:700;color:var(--gold)">รวม: ${n1(totAll)} CS</span>
+        <span class="badge ${totAll===0?'b-danger':totAll<20?'b-warn':'b-ok'}">${totAll===0?'🔴 Out':totAll<20?'🟡 Low':'🟢 OK'}</span>
+        <span class="badge b-muted">${filtered.length} SKU</span>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>ชื่อสินค้า</th><th>CAT BRAND</th>
+      <th class="num" style="color:var(--wh-w1)">W1</th><th class="num" style="color:var(--wh-w2)">W2</th>
+      <th class="num" style="color:var(--wh-w3)">W3</th><th class="num" style="color:var(--wh-w4)">W4</th>
+      <th class="num" style="color:var(--wh-c4)">C4</th><th class="num">รวม</th><th>สถานะ</th>
+    </tr></thead><tbody>`;
+    filtered.forEach(r=>{const w=W(r);const t2=w.w1+w.w2+w.w3+w.w4+w.c4;const nm=r['PRODUCT NAME']||r['Product_Name']||'';const br=r['CAT BRAND']||r['Cat_Brand']||'';
+    html+=`<tr><td style="font-size:12px;max-width:280px">${nm}</td><td><span class="badge b-info">${br}</span></td>
+      <td class="num" style="color:var(--wh-w1)">${w.w1?n1(w.w1):'—'}</td><td class="num" style="color:var(--wh-w2)">${w.w2?n1(w.w2):'—'}</td>
+      <td class="num" style="color:var(--wh-w3)">${w.w3?n1(w.w3):'—'}</td><td class="num" style="color:var(--wh-w4)">${w.w4?n1(w.w4):'—'}</td>
+      <td class="num" style="color:var(--wh-c4)">${w.c4?n1(w.c4):'—'}</td><td class="num" style="font-weight:700">${n1(t2)}</td>
+      <td><span class="badge ${t2===0?'b-danger':t2<5?'b-warn':'b-ok'}">${t2===0?'🔴 หมด':t2<5?'🟡 น้อย':'🟢 มี'}</span></td></tr>`;});
+    html+=`</tbody></table></div>`;
+    $('stockBody').innerHTML=html;
+    toast(`PDDT Stock: ${filtered.length} SKU | รวม ${n1(totAll)} CS`,'success',3000);
+  }catch(e){$('stockBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">❌</div><div class="et">โหลดไม่ได้: ${e.message}</div></div>`;console.error(e);}
+}
+
+async function loadNoSale(){
+  $('noSaleBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="sp-ring" style="margin:0 auto 10px"></div><div class="et">กำลังโหลด...</div><div class="es">Sheet สินค้ายังไม่ขาย → PDDT → BQ</div></div>`;
+  try{
+    showSP('โหลด สินค้ายังไม่ขาย...','1/3: อ่าน sheet');
+    const noSaleRows=await loadGSheet(C.noSaleSheet);
+    $('spStep').textContent='2/3: โหลด PDDT';
+    const pddtRows=await loadGSheet(C.pddtSheet);
+    hideSP();
+    const pMap={};
+    pddtRows.forEach(r=>{const nm=(r['PRODUCT NAME']||r['Product_Name']||'').trim().toLowerCase();if(nm)pMap[nm]=r;});
+    const firstRow=noSaleRows[0]||{};
+    const nameCols=['ชื่อสินค้า','Product_Name','PRODUCT NAME','สินค้า','ชื่อ'];
+    let nameCol=nameCols.find(k=>k in firstRow)||Object.keys(firstRow)[0]||'';
+    const vParts=S.vendor.split(' ').filter(p=>p.length>3).map(p=>p.toLowerCase());
+    const matched=[];
+    noSaleRows.forEach(r=>{
+      const pname=(r[nameCol]||'').trim();if(!pname)return;
+      const pddt=pMap[pname.toLowerCase()];if(!pddt)return;
+      const vn=(pddt['VENDOR NAME']||pddt['CAT VENDOR']||'').toLowerCase();
+      if(!vParts.some(p=>vn.includes(p)))return;
+      matched.push({name:pname,brand:pddt['CAT BRAND']||'',pack:pddt['CAT PACK']||'',
+        w1:parseFloat(pddt['STOCK W1']||0),w2:parseFloat(pddt['STOCK W2']||0),
+        w3:parseFloat(pddt['STOCK W3']||0),w4:parseFloat(pddt['STOCK W4']||0),c4:parseFloat(pddt['STOCK C4']||0)});
+    });
+    if(!matched.length){$('noSaleBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">✅</div><div class="et">ไม่พบสินค้ายังไม่ขายสำหรับ Vendor นี้</div></div>`;return;}
+    showSP('เปรียบเทียบ BQ...','3/3');
+    const nameList=matched.map(m=>`'${esc(m.name)}'`).join(',');
+    const bqSales=await bqQ(`SELECT Product_Name,ROUND(SUM(COALESCE(Sales_CS,0)),1) AS cs,ROUND(SUM(COALESCE(TotalBaht,0)),2) AS baht FROM \`${C.proj}.${C.ds}.${C.view}\` WHERE Product_Name IN (${nameList}) AND Cat_Vendor='${esc(S.vendor)}' AND Month_Year='${C.latestBQ}' GROUP BY Product_Name`);
+    hideSP();
+    const sMap={};bqSales.forEach(r=>{sMap[(r.Product_Name||'').toLowerCase()]=r;});
+    const sold=matched.filter(m=>sMap[m.name.toLowerCase()]);
+    const notSold=matched.filter(m=>!sMap[m.name.toLowerCase()]);
+    let html=`<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--alt);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span class="badge b-danger">⚠️ ยังไม่มียอด: ${notSold.length} รายการ</span>
+      <span class="badge b-ok">✅ มียอด: ${sold.length} รายการ</span>
+      <span class="badge b-muted">เทียบกับ ${thMo(C.latestBQ)}</span>
+    </div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>สถานะ</th><th>ชื่อสินค้า</th><th>CAT BRAND</th><th>CAT PACK</th>
+      <th class="num">Stock รวม</th><th class="num">CS (${thMo(C.latestBQ)})</th><th class="num">บาท (${thMo(C.latestBQ)})</th>
+    </tr></thead><tbody>`;
+    [...notSold,...sold].forEach(r=>{
+      const s=sMap[r.name.toLowerCase()];const totS=r.w1+r.w2+r.w3+r.w4+r.c4;
+      html+=`<tr><td>${s?'<span class="badge b-ok">✅ มียอด</span>':'<span class="badge b-danger">⚠️ ยังไม่ขาย</span>'}</td>
+        <td style="font-size:12px;max-width:260px">${r.name}</td>
+        <td><span class="badge b-info" style="font-size:11px">${r.brand}</span></td>
+        <td style="font-size:12px">${r.pack}</td>
+        <td class="num">${n1(totS)}</td>
+        <td class="num" style="color:${s?'var(--success)':'var(--danger)'}">${s?n1(s.cs):'0'}</td>
+        <td class="num" style="color:${s?'var(--success)':'var(--danger)'}">${s?'฿'+n0(s.baht):'—'}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+    $('noSaleBody').innerHTML=html;
+    toast(`สินค้ายังไม่ขาย: ${notSold.length} | มียอด: ${sold.length}`,'info',4000);
+  }catch(e){hideSP();$('noSaleBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">❌</div><div class="et">โหลดไม่ได้: ${e.message}</div></div>`;console.error(e);}
+}
+
+async function loadSellIn(){
+  $('sellInBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="sp-ring" style="margin:0 auto 10px"></div><div class="et">กำลังโหลด Sell In...</div></div>`;
+  try{
+    const rows=await loadGSheet(C.sellInSheet,'กำลังโหลด Sell In...');
+    if(!rows.length){$('sellInBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">💰</div><div class="et">ไม่พบข้อมูลใน sheet "${C.sellInSheet}"</div><div class="es">กรุณาตรวจสอบชื่อ sheet</div></div>`;return;}
+    const cols=Object.keys(rows[0]||{});
+    const vParts=S.vendor.split(' ').filter(p=>p.length>3).map(p=>p.toLowerCase());
+    const vCols=cols.filter(c=>c.toLowerCase().includes('vendor')||c.toLowerCase().includes('supplier')||c.includes('ผู้ขาย'));
+    const filtered=vCols.length?rows.filter(r=>vParts.some(p=>(r[vCols[0]]||'').toLowerCase().includes(p))):rows;
+    const csCol=cols.find(c=>c.toLowerCase().includes('cs')||c.toLowerCase().includes('จำนวน'));
+    const bahtCol=cols.find(c=>c.toLowerCase().includes('baht')||c.toLowerCase().includes('บาท')||c.toLowerCase().includes('มูลค่า'));
+    let totalCS=0,totalBaht=0;
+    filtered.forEach(r=>{if(csCol)totalCS+=parseFloat((r[csCol]||'').replace(/,/g,'')||0);if(bahtCol)totalBaht+=parseFloat((r[bahtCol]||'').replace(/,/g,'')||0);});
+    $('siVal').textContent='฿'+n0(totalBaht);$('siSub').textContent=`CS: ${n1(totalCS)} ลัง | ${filtered.length} รายการ`;
+    let html=`<div style="padding:10px 16px;background:var(--alt);border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap">
+      <span class="badge b-gold">💰 Sell In รวม: ฿${n0(totalBaht)}</span>
+      <span class="badge b-info">CS: ${n1(totalCS)} ลัง</span><span class="badge b-muted">${filtered.length} รายการ</span>
+    </div><div class="tbl-wrap"><table class="tbl"><thead><tr>`;
+    cols.slice(0,8).forEach(c=>{html+=`<th>${c}</th>`;});
+    html+=`</tr></thead><tbody>`;
+    filtered.slice(0,60).forEach(r=>{html+=`<tr>`;cols.slice(0,8).forEach(c=>{html+=`<td style="font-size:12px">${r[c]||''}</td>`;});html+=`</tr>`;});
+    if(filtered.length>60)html+=`<tr class="empty"><td colspan="8">... และอีก ${filtered.length-60} รายการ</td></tr>`;
+    html+=`</tbody></table></div>`;
+    $('sellInBody').innerHTML=html;
+    toast(`Sell In: ฿${n0(totalBaht)} | CS: ${n1(totalCS)}`,'success',3000);
+  }catch(e){$('sellInBody').innerHTML=`<div class="empty-state" style="padding:40px"><div class="ei">❌</div><div class="et">โหลดไม่ได้: ${e.message}</div></div>`;console.error(e);}
+}
+
+function switchTab(paneId,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  $(paneId).classList.add('active');btn.classList.add('active');
+}
+
+$('refreshBtn').onclick=()=>{if(S.vendor)applyFilters();else init();};
+
+init();
+</script>
+</body>
+</html>
