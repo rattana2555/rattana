@@ -606,9 +606,9 @@ function renderDrill(){
     <th class="num th-avg">AVG<br>CS</th>
     <th class="num th-cur">เดือนนี้<br>CS</th>
     <th class="num">CS%</th>
-    <th class="num th-avg">AVG<br>฿</th>
+    <th class="num th-avg">AVG<br>EXVat</th>
     <th class="num th-cur">เดือนนี้<br>EXVat ฿</th>
-    <th class="num">฿%</th>
+    <th class="num">EXVat%</th>
   `;
 
   if(!allRows.length){$('drillTbody').innerHTML=`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;$('drillTfoot').innerHTML='';renderDrillPager(0,0,0);return;}
