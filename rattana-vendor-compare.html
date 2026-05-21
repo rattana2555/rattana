@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.1</title>
+<title>Rattana Vendor Compare v2.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -192,7 +192,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.1</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.3</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -277,7 +277,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.1 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v2.3 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -308,9 +308,10 @@ body.dark .spinner-box{background:var(--card-bg)}
 <script>
 /* ══ CONFIG ══ */
 const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
-const DEFAULT_CFG={bqProxyUrl:'',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'1XBoIAk5_4C18k5Iln1Pn0qPHi-Os4T5dauu03Fs0UjI',stockTab:'Product_Detail',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
+const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'1XBoIAk5_4C18k5Iln1Pn0qPHi-Os4T5dauu03Fs0UjI',stockTab:'Product_Detail',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
 const CFG_KEY='rattanaVendorCfg_v2';
-function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);return r?{...DEFAULT_CFG,...JSON.parse(r)}:{...DEFAULT_CFG};}catch{return{...DEFAULT_CFG};}}
+function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
+if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
 function saveCfgObj(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
 let CFG=loadCfg();
 
@@ -601,8 +602,14 @@ function renderSellIn(){
   `;
 }
 
-/* ══ STOCK — improved matching ══ */
+/* ══ STOCK — improved matching + manual pick ══ */
+let STOCK_VENDOR_OVERRIDE = {}; // { bqVendor: stockVendor }
+
 function matchStock(sel){
+  // 0. Manual override
+  if(STOCK_VENDOR_OVERRIDE[sel]){
+    return STOCK_ALL_ROWS.filter(r=>r.cat_vendor===STOCK_VENDOR_OVERRIDE[sel]);
+  }
   const sk=normKey(sel);
   // 1. Exact
   let rows=STOCK_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk);
@@ -610,27 +617,95 @@ function matchStock(sel){
   // 2. Contains either way
   rows=STOCK_ALL_ROWS.filter(r=>{const vk=normKey(r.cat_vendor);return vk&&(sk.includes(vk)||vk.includes(sk));});
   if(rows.length)return rows;
-  // 3. Partial token match — split by word
+  // 3. Token match (words > 2 chars)
   const tokens=sel.toLowerCase().split(/\s+/).filter(t=>t.length>2);
   rows=STOCK_ALL_ROWS.filter(r=>{const vl=r.cat_vendor.toLowerCase();return tokens.some(t=>vl.includes(t));});
   return rows;
 }
 
+function getUniqueStockVendors(){
+  const map={};
+  STOCK_ALL_ROWS.forEach(r=>{
+    if(!r.cat_vendor)return;
+    if(!map[r.cat_vendor])map[r.cat_vendor]=0;
+    map[r.cat_vendor]++;
+  });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([v,c])=>({vendor:v,count:c}));
+}
+
+function pickStockVendor(stockVendor){
+  STOCK_VENDOR_OVERRIDE[SELECTED_VENDOR]=stockVendor;
+  renderStock();
+}
+
 function renderStock(){
   const sel=SELECTED_VENDOR;
   let rows=matchStock(sel);
-  if(!rows.length){$('stContent').innerHTML=`<div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>สต๊อกสินค้า</h3></div><div class="card-body"><div class="empty-state" style="padding:30px 20px"><div class="icon">🔍</div><div class="ttl">ไม่พบสต๊อกสินค้าของ vendor นี้</div><div class="sub">${escHtml(sel)}</div></div></div></div>`;return;}
+  const usedOverride=!!STOCK_VENDOR_OVERRIDE[sel];
+
+  if(!rows.length){
+    // Show all unique cat_vendor from stock sheet so user can pick
+    const allVendors=getUniqueStockVendors();
+    const vendorChips=allVendors.map(v=>`
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--row-alt);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;margin:4px;cursor:pointer;font-size:12px"
+           onclick="pickStockVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')">
+        <span style="color:var(--text)">${escHtml(v.vendor)}</span>
+        <span style="color:var(--muted);font-size:10px">${v.count} รายการ</span>
+      </div>
+    `).join('');
+    $('stContent').innerHTML=`
+      <div class="card card-gold">
+        <div class="card-head">
+          <h3><span class="gold-bar"></span>ไม่พบชื่อ Vendor ตรงกัน</h3>
+          <span class="badge badge-warn">เลือกชื่อที่ถูกต้องจากรายการด้านล่าง</span>
+        </div>
+        <div class="card-body">
+          <div style="background:rgba(201,168,76,.07);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;font-size:13px">
+            <span style="font-weight:600;color:var(--danger)">ชื่อใน BQ:</span>
+            <span style="margin-left:8px;font-family:monospace;background:var(--border);padding:2px 8px;border-radius:4px">${escHtml(sel)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">ชื่อ CAT VENDOR ในชีท Stock — คลิกเพื่อเลือก:</div>
+          <div style="max-height:400px;overflow-y:auto">${vendorChips}</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   rows.forEach(r=>r._tot=r.stock_w1+r.stock_w2+r.stock_w3+r.stock_w4+r.stock_c4);
   rows.sort((a,b)=>b._tot-a._tot);
   const tot=rows.reduce((s,r)=>({w1:s.w1+r.stock_w1,w2:s.w2+r.stock_w2,w3:s.w3+r.stock_w3,w4:s.w4+r.stock_w4,c4:s.c4+r.stock_c4,t:s.t+r._tot}),{w1:0,w2:0,w3:0,w4:0,c4:0,t:0});
+  const matchedName=STOCK_VENDOR_OVERRIDE[sel]||rows[0]?.cat_vendor||sel;
+  const overrideBadge=usedOverride?`<button class="btn btn-outline btn-sm" onclick="delete STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}'];renderStock()">✕ ล้างการ map</button>`:'';
   $('stContent').innerHTML=`
+    ${usedOverride?`<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span>🔗 Map: <b>${escHtml(sel)}</b> → <b>${escHtml(matchedName)}</b></span>
+      ${overrideBadge}
+    </div>`:''}
     <div class="stat-grid">
       <div class="stat-card"><div class="s-label">W1 สมุทรสงคราม</div><div class="s-value">${fmt(tot.w1)}</div></div>
       <div class="stat-card"><div class="s-label">W2 สุพรรณบุรี</div><div class="s-value">${fmt(tot.w2)}</div></div>
       <div class="stat-card"><div class="s-label">W3 ราชบุรี</div><div class="s-value">${fmt(tot.w3)}</div></div>
       <div class="stat-card"><div class="s-label">W4 นครปฐม + C4</div><div class="s-value">${fmt(tot.w4+tot.c4)}</div></div>
     </div>
-    <div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>สต๊อกราย Product — ${escHtml(sel)}</h3><span class="badge badge-gold">${rows.length} รายการ</span></div><div class="card-body"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>สินค้า</th><th class="num">W1</th><th class="num">W2</th><th class="num">W3</th><th class="num">W4</th><th class="num">C4</th><th class="num">รวม</th><th>หน่วย</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td><td class="num">${fmt(r.stock_w1)}</td><td class="num">${fmt(r.stock_w2)}</td><td class="num">${fmt(r.stock_w3)}</td><td class="num">${fmt(r.stock_w4)}</td><td class="num">${fmt(r.stock_c4)}</td><td class="num" style="color:var(--gold);font-weight:700">${fmt(r._tot)}</td><td style="font-size:11px;color:var(--muted)">${escHtml(r.unit_cs)}</td></tr>`).join('')}</tbody><tfoot><tr><td>รวม (${rows.length})</td><td class="num">${fmt(tot.w1)}</td><td class="num">${fmt(tot.w2)}</td><td class="num">${fmt(tot.w3)}</td><td class="num">${fmt(tot.w4)}</td><td class="num">${fmt(tot.c4)}</td><td class="num">${fmt(tot.t)}</td><td></td></tr></tfoot></table></div></div></div>
+    <div class="card card-gold">
+      <div class="card-head">
+        <h3><span class="gold-bar"></span>สต๊อกราย Product — ${escHtml(matchedName)}</h3>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge badge-gold">${rows.length} รายการ</span>
+          <button class="btn btn-outline btn-sm" onclick="STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}']='';renderStock()" title="เลือก vendor อื่น">🔄 เปลี่ยน vendor</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead><tr><th>สินค้า</th><th class="num">W1</th><th class="num">W2</th><th class="num">W3</th><th class="num">W4</th><th class="num">C4</th><th class="num">รวม</th><th>หน่วย</th></tr></thead>
+            <tbody>${rows.map(r=>`<tr><td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td><td class="num">${fmt(r.stock_w1)}</td><td class="num">${fmt(r.stock_w2)}</td><td class="num">${fmt(r.stock_w3)}</td><td class="num">${fmt(r.stock_w4)}</td><td class="num">${fmt(r.stock_c4)}</td><td class="num" style="color:var(--gold);font-weight:700">${fmt(r._tot)}</td><td style="font-size:11px;color:var(--muted)">${escHtml(r.unit_cs)}</td></tr>`).join('')}</tbody>
+            <tfoot><tr><td>รวม (${rows.length})</td><td class="num">${fmt(tot.w1)}</td><td class="num">${fmt(tot.w2)}</td><td class="num">${fmt(tot.w3)}</td><td class="num">${fmt(tot.w4)}</td><td class="num">${fmt(tot.c4)}</td><td class="num">${fmt(tot.t)}</td><td></td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -645,7 +720,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;
 window.onload=checkSession;
 </script>
 </body>
