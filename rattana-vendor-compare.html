@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.8</title>
+<title>Rattana Vendor Compare v2.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -210,7 +210,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.8</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.9</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -295,7 +295,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.8 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v2.9 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -604,10 +604,10 @@ function renderDrill(){
     <th>${headerLabel}</th>
     ${monCols}
     <th class="num th-avg">AVG<br>CS</th>
-    <th class="num th-avg">AVG<br>฿</th>
     <th class="num th-cur">เดือนนี้<br>CS</th>
-    <th class="num th-cur">เดือนนี้<br>EXVat ฿</th>
     <th class="num">CS%</th>
+    <th class="num th-avg">AVG<br>฿</th>
+    <th class="num th-cur">เดือนนี้<br>EXVat ฿</th>
     <th class="num">฿%</th>
   `;
 
@@ -633,10 +633,10 @@ function renderDrill(){
     const nameHtml=nextLevel?`<span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span> <span class="badge badge-gold" style="font-size:9px">▶</span>`:`<span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span>`;
     return`<tr class="${clickable?'clickable':''}" ${click}><td>${nameHtml}</td>${mCols}
       <td class="num" style="background:rgba(52,152,219,.05)">${fmtInt(avgCS)}</td>
-      <td class="num" style="background:rgba(52,152,219,.05)">${fmtInt(avgEX)}</td>
       <td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td>
-      <td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td>
       <td class="num"><span class="cmp-arr ${rcCS}">${ratioCS.toFixed(0)}%</span></td>
+      <td class="num" style="background:rgba(201,168,76,.05)">${fmtInt(avgEX)}</td>
+      <td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td>
       <td class="num"><span class="cmp-arr ${rcEX}">${ratioEX.toFixed(0)}%</span></td>
     </tr>`;
   }).join('');
@@ -650,10 +650,10 @@ function renderDrill(){
   $('drillTfoot').innerHTML=`<tr>
     <td>รวมทั้งหมด (${allRows.length})</td>${totMCols}
     <td class="num">${fmtInt(totAvgCS)}</td>
-    <td class="num">${fmtInt(totAvgEX)}</td>
     <td class="num">${fmtInt(tot.bpCS)}</td>
-    <td class="num">${fmtInt(tot.bpEX)}</td>
     <td class="num"><span class="cmp-arr ${totCCS}">${totRCS.toFixed(0)}%</span></td>
+    <td class="num">${fmtInt(totAvgEX)}</td>
+    <td class="num">${fmtInt(tot.bpEX)}</td>
     <td class="num"><span class="cmp-arr ${totCEX}">${totREX.toFixed(0)}%</span></td>
   </tr>`;
 
