@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rattana Vendor Compare v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --navy:#0d1b3e;--navy-mid:#1a2f5e;--navy-light:#243b73;
+  --gold:#c9a84c;--gold-light:#e8c86a;
+  --success:#2ecc71;--danger:#e74c3c;--warning:#f39c12;--info:#3498db;
+  --bg:#f4f6fb;--text:#0d1b3e;--card-bg:#ffffff;--border:#dde3f0;--muted:#6b7896;--row-alt:#fafbfd;
+  --space-xs:4px;--space-sm:8px;--space-md:16px;--space-lg:24px;--space-xl:32px;
+  --radius-sm:6px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 24px rgba(13,27,62,.12);--shadow-gold:0 4px 12px rgba(201,168,76,.35);
+}
+body.dark{
+  --bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;--border:#243b73;--muted:#8a98b8;--row-alt:#0f1830;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;min-height:100dvh;overflow-x:hidden;background:var(--bg);color:var(--text);transition:background .25s,color .25s;font-size:14px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,select,textarea{font-family:inherit;font-size:16px}
+
+/* Header */
+header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--gold);padding-top:max(12px,env(safe-area-inset-top))}
+.logo-text{font-weight:700;letter-spacing:1.5px;font-size:17px;color:#fff;flex:1}
+.logo-text span{color:var(--gold)}
+.ver-tag{font-size:10px;color:rgba(255,255,255,.55);font-weight:500;margin-left:6px;letter-spacing:.3px}
+.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+.user-chip{background:rgba(201,168,76,.18);color:#fff;border:1px solid rgba(201,168,76,.4);padding:6px 12px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;display:none}
+@media(min-width:640px){.user-chip{display:inline-flex;align-items:center;gap:6px}}
+
+/* Tabs */
+.tab-nav{display:flex;background:var(--navy);border-bottom:3px solid var(--gold);padding:0 8px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:62px;z-index:99}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{background:transparent;border:none;color:rgba(255,255,255,.6);padding:12px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;flex-shrink:0;transition:all .18s;margin-bottom:-3px;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.tab-btn:hover{color:#fff;background:rgba(255,255,255,.06)}
+.tab-btn.active{color:var(--navy);background:var(--gold);border-bottom-color:var(--gold);font-weight:700;box-shadow:0 -2px 8px rgba(201,168,76,.3)}
+
+/* Filter bar */
+.filter-bar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:12px 16px;position:sticky;top:108px;z-index:90;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
+.filter-bar .vendor-area{flex:1;min-width:240px}
+.filter-bar .lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px;display:block}
+
+/* Page layout */
+.page{min-height:100dvh;display:flex;flex-direction:column}
+.content{flex:1;padding:12px;max-width:1280px;margin:0 auto;width:100%}
+@media(min-width:640px){.content{padding:16px}}
+.tab-pane{display:none;animation:fadeIn .25s ease}
+.tab-pane.active{display:block}
+
+/* Cards */
+.card{background:var(--card-bg);border-radius:var(--radius-md);border:1px solid var(--border);box-shadow:var(--shadow-md);margin-bottom:14px}
+.card-gold{border-top:3px solid var(--gold)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);background:linear-gradient(to right,rgba(201,168,76,.07),transparent);flex-wrap:wrap;gap:8px}
+.card-head h3{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-head h3 .gold-bar{width:3px;height:16px;background:var(--gold);border-radius:2px}
+.card-body{padding:16px}
+
+/* Stat grid */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
+.stat-card{background:var(--card-bg);border-radius:var(--radius-md);padding:14px;border:1px solid var(--border);border-top:3px solid var(--gold);position:relative;overflow:hidden}
+.stat-card .s-label{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.stat-card .s-value{font-size:20px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat-card .s-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-card.danger{border-top-color:var(--danger)}.stat-card.danger .s-value{color:var(--danger)}
+.stat-card.success{border-top-color:var(--success)}.stat-card.success .s-value{color:var(--success)}
+.stat-card.warning{border-top-color:var(--warning)}.stat-card.warning .s-value{color:var(--warning)}
+.stat-card.info{border-top-color:var(--info)}
+@media(min-width:640px){.stat-card .s-value{font-size:24px}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;min-height:40px;transition:opacity .15s,transform .1s}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-gold:hover{background:var(--gold-light)}
+.btn-outline{background:transparent;color:var(--text);border-color:var(--border)}
+.btn-sm{padding:5px 10px;font-size:12px;min-height:30px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-ok{background:#e8f7ee;color:#1e8449}
+.badge-warn{background:#fef3d7;color:#a87800}
+.badge-danger{background:#ffd5d0;color:#c0392b}
+.badge-info{background:#e3f0fd;color:#1a6fb8}
+.badge-gold{background:rgba(201,168,76,.18);color:var(--navy);border:1px solid rgba(201,168,76,.4)}
+body.dark .badge-ok{background:#1a3a25;color:#7be0a3}
+body.dark .badge-warn{background:#3a2e15;color:#e8c86a}
+body.dark .badge-danger{background:#3a1a17;color:#ff8a7e}
+body.dark .badge-info{background:#10355c;color:#9bc8f0}
+body.dark .badge-gold{color:var(--gold-light)}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;min-width:560px}
+.tbl thead{background:var(--navy);color:#fff;position:sticky;top:0;z-index:5}
+.tbl thead th{padding:10px;text-align:left;font-size:12px;font-weight:600;letter-spacing:.3px;white-space:nowrap;border-bottom:2px solid var(--gold);cursor:pointer;user-select:none}
+.tbl thead th:hover{background:var(--navy-mid)}
+.tbl thead th .sort-ind{font-size:10px;color:var(--gold);margin-left:4px;font-weight:700}
+.tbl tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+.tbl tbody tr:nth-child(even){background:var(--row-alt)}
+.tbl tbody tr:hover{background:rgba(201,168,76,.07)}
+.tbl tbody tr.clickable{cursor:pointer}
+.tbl tbody tr.clickable:hover{background:rgba(201,168,76,.15)}
+.tbl td{padding:9px 10px;font-size:13px;vertical-align:middle}
+.tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
+.tbl td.code{font-family:'Courier New',monospace;font-size:12px;font-weight:600}
+.tbl .empty-row td{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+.tbl tfoot td{background:linear-gradient(to right,rgba(201,168,76,.18),rgba(201,168,76,.08));font-weight:700;padding:11px 10px;border-top:2px solid var(--gold)}
+
+/* Drill breadcrumb */
+.breadcrumb{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(201,168,76,.08);border-radius:var(--radius-sm);margin-bottom:10px;flex-wrap:wrap;font-size:12px}
+.breadcrumb .crumb{cursor:pointer;color:var(--navy);font-weight:600;padding:3px 8px;border-radius:4px;transition:background .15s}
+.breadcrumb .crumb:hover{background:rgba(201,168,76,.2)}
+.breadcrumb .crumb.current{color:var(--gold);cursor:default}
+.breadcrumb .crumb.current:hover{background:transparent}
+.breadcrumb .sep{color:var(--muted);font-size:11px}
+body.dark .breadcrumb .crumb{color:var(--gold-light)}
+
+/* Mini bar chart */
+.month-bars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:4px 0}
+.mb-cell{text-align:center;background:var(--row-alt);border-radius:var(--radius-sm);padding:8px 4px;border:1px solid var(--border)}
+.mb-cell .mb-month{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.3px;margin-bottom:4px}
+.mb-cell .mb-bar{height:60px;display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-bottom:4px}
+.mb-cell .mb-bar div{width:14px;border-radius:3px 3px 0 0;min-height:2px;transition:height .6s ease}
+.mb-cell .mb-bar .bar-cs{background:linear-gradient(to top,var(--navy),var(--navy-mid))}
+.mb-cell .mb-bar .bar-ex{background:linear-gradient(to top,var(--gold),var(--gold-light))}
+.mb-cell .mb-val{font-size:10px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.mb-cell.current{border-color:var(--gold);background:rgba(201,168,76,.1)}
+.mb-cell.current .mb-month{color:var(--gold)}
+.chart-legend{display:flex;gap:14px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted)}
+.chart-legend .lg-dot{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px}
+
+/* Live-search dropdown */
+.dd-wrap{position:relative;width:100%}
+.dd-trigger{width:100%;min-height:44px;padding:10px 14px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:14px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dd-trigger:hover{border-color:var(--gold)}
+.dd-trigger .dd-arr{color:var(--muted);font-size:10px}
+.dd-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);z-index:500;box-shadow:var(--shadow-lg);max-height:320px;display:none;flex-direction:column}
+.dd-panel.open{display:flex}
+.dd-search{padding:10px 14px;font-size:15px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);outline:none;font-family:inherit}
+.dd-list{overflow-y:auto;flex:1;list-style:none;padding:4px 0;margin:0}
+.dd-list li{padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)}
+.dd-list li:last-child{border-bottom:none}
+.dd-list li:hover{background:var(--navy-light);color:#fff}
+.dd-list li.no-result{color:var(--muted);cursor:default;font-style:italic;text-align:center}
+.dd-list li.no-result:hover{background:transparent;color:var(--muted)}
+.dd-list li .vrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dd-list li .vrow .vname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd-list li .vrow .vamt{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0}
+.dd-list li:hover .vrow .vamt{color:rgba(255,255,255,.85)}
+
+/* Empty / placeholder */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.empty-state .ttl{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty-state .sub{font-size:13px}
+
+/* Login */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 50%,#0a1530 100%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:8000}
+#loginScreen::before{content:'';position:absolute;top:-50%;right:-30%;width:80%;height:120%;background:radial-gradient(circle,rgba(201,168,76,.12) 0%,transparent 60%);pointer-events:none}
+.login-box{background:var(--card-bg);padding:40px 32px;border-radius:var(--radius-lg);border-top:4px solid var(--gold);box-shadow:var(--shadow-lg);max-width:380px;width:100%;text-align:center;position:relative;z-index:1}
+.login-box h1{font-size:22px;letter-spacing:2px;color:var(--navy);margin-bottom:6px;font-weight:700}
+.login-box h1 span{color:var(--gold)}
+.login-box .subtitle{font-size:13px;color:var(--muted);margin-bottom:28px}
+.login-box .err{background:rgba(231,76,60,.1);color:var(--danger);padding:10px 14px;border-radius:var(--radius-sm);font-size:12px;margin-top:14px;display:none;border-left:3px solid var(--danger);text-align:left}
+.login-box .err.show{display:block}
+
+/* Spinner */
+.spinner-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.55);align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)}
+.spinner-overlay.show{display:flex}
+.spinner-box{background:#fff;border-radius:var(--radius-lg);padding:28px 36px;text-align:center;border-top:4px solid var(--gold);min-width:220px;box-shadow:var(--shadow-lg)}
+body.dark .spinner-box{background:var(--card-bg)}
+.spinner-ring{width:42px;height:42px;border:4px solid #dde3f0;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+
+/* Toast */
+.toast{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:16px;padding:11px 18px;border-radius:var(--radius-md);color:#fff;z-index:9998;animation:slideIn .3s ease;font-weight:500;box-shadow:var(--shadow-lg);max-width:90vw;font-size:13px}
+.toast-success{background:var(--success)}
+.toast-error{background:var(--danger)}
+.toast-warning{background:var(--warning);color:var(--navy)}
+.toast-info{background:var(--navy-mid);border-left:3px solid var(--gold)}
+
+/* Back to top */
+#backToTop{position:fixed;bottom:max(24px,calc(16px + env(safe-area-inset-bottom)));right:max(16px,calc(12px + env(safe-area-inset-right)));background:var(--gold);color:var(--navy);border-radius:50%;width:46px;height:46px;display:none;align-items:center;justify-content:center;box-shadow:var(--shadow-gold);z-index:90;font-size:18px;font-weight:700;cursor:pointer}
+#backToTop.show{display:flex}
+
+/* Settings modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.65);z-index:9000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card-bg);border-radius:var(--radius-lg);max-width:520px;width:100%;max-height:92dvh;overflow-y:auto;border-top:4px solid var(--gold);animation:slideUp .22s ease}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:15px;font-weight:700}
+.modal-close{background:transparent;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm);line-height:1}
+.modal-close:hover{color:var(--text);background:rgba(0,0,0,.06)}
+.modal-body{padding:18px}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.3px;text-transform:uppercase}
+.field input{height:42px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
+.field input:focus{border-color:var(--gold)}
+.field .hint{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Animations */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Loading bar */
+#loadingBar{position:fixed;top:0;left:0;height:3px;background:var(--gold);width:0;transition:width .4s;z-index:10000}
+
+/* Footer ver tag */
+.foot-info{text-align:center;font-size:11px;color:var(--muted);padding:18px 12px 24px;letter-spacing:.4px}
+
+/* Compare arrow indicator */
+.cmp-arr{display:inline-block;font-size:11px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:6px}
+.cmp-up{background:rgba(46,204,113,.15);color:var(--success)}
+.cmp-down{background:rgba(231,76,60,.15);color:var(--danger)}
+.cmp-neutral{background:rgba(107,120,150,.15);color:var(--muted)}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>RATTANA <span>VENDOR</span></h1>
+    <div class="subtitle">เทียบยอดขาย Vendor — ย้อนหลัง 6 เดือน vs เดือนปัจจุบัน</div>
+    <div id="g_id_onload" data-client_id="615875645128-gasjjvkt6lu8g449cbnhl40k1pu25r0b.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with"></div>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen" class="page" style="display:none">
+
+  <header>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v1.0</span></div>
+    <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
+    <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
+    <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
+    <button class="user-chip" id="userChip" onclick="logout()" title="ออกจากระบบ">
+      <span id="userNick">—</span>
+    </button>
+  </header>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="overview">📊 ภาพรวม</button>
+    <button class="tab-btn" data-tab="sellin">📥 ซื้อเข้า (Sell-In)</button>
+    <button class="tab-btn" data-tab="stock">📦 สต๊อก</button>
+  </div>
+
+  <div class="filter-bar">
+    <div class="vendor-area">
+      <span class="lbl">เลือก Vendor</span>
+      <div class="dd-wrap" id="vendorDD">
+        <button class="dd-trigger" onclick="toggleVendorDD()" type="button">
+          <span id="vendorLabel">— เลือก Vendor —</span>
+          <span class="dd-arr">▾</span>
+        </button>
+        <div class="dd-panel" id="vendorPanel">
+          <input class="dd-search" type="text" placeholder="🔍 ค้นหา vendor..." oninput="filterVendorList(this.value)" autocomplete="off" id="vendorSearch">
+          <ul class="dd-list" id="vendorList"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-pane active" id="tab-overview">
+      <div id="ovEmpty" class="empty-state">
+        <div class="icon">🎯</div>
+        <div class="ttl">เลือก Vendor เพื่อดูข้อมูล</div>
+        <div class="sub">เปรียบเทียบยอดขาย CS กับ EXVat<br>ย้อนหลัง 6 เดือนจาก BigQuery vs เดือนปัจจุบันจาก BP</div>
+      </div>
+
+      <div id="ovContent" style="display:none">
+        <!-- Stat cards -->
+        <div class="stat-grid" id="statGrid"></div>
+
+        <!-- 6 month trend chart -->
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span class="gold-bar"></span>เทรนด์ 6 เดือน + เดือนปัจจุบัน</h3>
+            <span id="periodLbl" class="badge badge-gold"></span>
+          </div>
+          <div class="card-body">
+            <div class="month-bars" id="monthBars"></div>
+            <div class="chart-legend">
+              <span><span class="lg-dot" style="background:var(--navy)"></span>Sales CS</span>
+              <span><span class="lg-dot" style="background:var(--gold)"></span>EXVat (บาท)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hierarchy drill -->
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span class="gold-bar"></span>ดูตามหมวด — คลิกเพื่อ Drill Down</h3>
+            <button class="btn btn-outline btn-sm" id="resetDrill" style="display:none">↑ ขึ้นหนึ่งระดับ</button>
+          </div>
+          <div class="card-body">
+            <div class="breadcrumb" id="breadcrumb"></div>
+            <div class="tbl-wrap">
+              <table class="tbl" id="drillTbl">
+                <thead>
+                  <tr id="drillThead"></tr>
+                </thead>
+                <tbody id="drillTbody"></tbody>
+                <tfoot id="drillTfoot"></tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELL-IN TAB -->
+    <div class="tab-pane" id="tab-sellin">
+      <div id="seEmpty" class="empty-state">
+        <div class="icon">📥</div>
+        <div class="ttl">เลือก Vendor เพื่อดูยอดซื้อเข้า</div>
+        <div class="sub">ข้อมูลซื้อเข้าเดือนปัจจุบัน — รวมรับ CS และยอดบาท</div>
+      </div>
+      <div id="seContent" style="display:none"></div>
+    </div>
+
+    <!-- STOCK TAB -->
+    <div class="tab-pane" id="tab-stock">
+      <div id="stEmpty" class="empty-state">
+        <div class="icon">📦</div>
+        <div class="ttl">เลือก Vendor เพื่อดูสต๊อก</div>
+        <div class="sub">สต๊อกสินค้าแต่ละคลัง — W1, W2, W3, W4, C4</div>
+      </div>
+      <div id="stContent" style="display:none"></div>
+    </div>
+
+  </div>
+
+  <div class="foot-info">Rattana Vendor Compare · v1.0 · 2026-05-21</div>
+</div>
+
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div id="loadingBar"></div>
+
+<!-- Spinner -->
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner-box">
+    <div class="spinner-ring"></div>
+    <p id="spinnerMsg">Loading...</p>
+  </div>
+</div>
+
+<!-- Config modal -->
+<div class="modal-overlay" id="cfgModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>ตั้งค่า — Data Sources</h3>
+      <button class="modal-close" onclick="closeCfg()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>BigQuery Proxy URL (Apps Script Web App)</label>
+        <input id="cfgBqUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <div class="hint">URL ของ Apps Script ที่ deploy เป็น Web App (ดูในไฟล์ .gs ที่แนบ)</div>
+      </div>
+      <div class="field">
+        <label>BP Workbook ID (Sales DATA BP …)</label>
+        <input id="cfgBpId">
+        <div class="hint">ID ของ Google Sheets ไฟล์ "Sales DATA BP <เดือนปัจจุบัน>" — อัพเดทตอนเปลี่ยนเดือน</div>
+      </div>
+      <div class="field">
+        <label>BP Sheet Tab Name</label>
+        <input id="cfgBpTab">
+        <div class="hint">ชื่อชีท (ปกติ "BP")</div>
+      </div>
+      <div class="field">
+        <label>Stock Sheet ID</label>
+        <input id="cfgStockId">
+      </div>
+      <div class="field">
+        <label>Stock Sheet Tab Name</label>
+        <input id="cfgStockTab">
+      </div>
+      <div class="field">
+        <label>Sell-In Sheet ID (ไฟล์ Claude)</label>
+        <input id="cfgClaudeId">
+      </div>
+      <div class="field">
+        <label>Sell-In Sheet Tab Name</label>
+        <input id="cfgClaudeTab">
+        <div class="hint">ชื่อชีท (ปกติ "sell in")</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeCfg()">ยกเลิก</button>
+      <button class="btn btn-gold" onclick="saveCfg()">บันทึก & รีโหลด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────── */
+/* CONFIG — adjust here or via Settings modal                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+const AUTH_CONFIG = {
+  clientId: '615875645128-gasjjvkt6lu8g449cbnhl40k1pu25r0b.apps.googleusercontent.com',
+  usersSheetId: '1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',
+  usersSheetName: 'Rattana Users for apps',
+};
+
+const DEFAULT_CFG = {
+  bqProxyUrl: '',  // ← user must paste Apps Script Web App URL here or via Settings
+  bpId:       '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',
+  bpTab:      'BP',
+  stockId:    '1XBoIAk5_4C18k5Iln1Pn0qPHi-Os4T5dauu03Fs0UjI',
+  stockTab:   'Product_Detail',   // sheet at gid=789206653 — confirm tab name in Settings
+  claudeId:   '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',
+  claudeTab:  'sell in',
+};
+
+const CFG_KEY = 'rattanaVendorCfg_v1';
+function loadCfg() {
+  try {
+    const raw = localStorage.getItem(CFG_KEY);
+    if (!raw) return { ...DEFAULT_CFG };
+    return { ...DEFAULT_CFG, ...JSON.parse(raw) };
+  } catch { return { ...DEFAULT_CFG }; }
+}
+function saveCfgObj(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
+let CFG = loadCfg();
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* HELPERS                                                                  */
+/* ──────────────────────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const fmt = n => (Number(n)||0).toLocaleString('th-TH', {maximumFractionDigits:2});
+const fmtInt = n => (Math.round(Number(n)||0)).toLocaleString('th-TH');
+const escHtml = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normVendor = s => String(s||'').replace(/\s+/g,' ').trim();
+
+function showSpinner(msg='Loading...') { $('spinnerMsg').textContent = msg; $('spinner').classList.add('show'); }
+function hideSpinner() { $('spinner').classList.remove('show'); }
+function setLoading(on) { $('loadingBar').style.width = on ? '85%' : '0'; }
+function showToast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+/* RFC-4180 CSV parser */
+function parseCsv(text) {
+  if (!text) return [];
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = []; let row = [], cell = '', inQuote = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuote) {
+      if (ch === '"') { if (text[i+1] === '"'){ cell += '"'; i++; } else inQuote = false; }
+      else cell += ch;
+    } else {
+      if (ch === '"') inQuote = true;
+      else if (ch === ',') { row.push(cell); cell = ''; }
+      else if (ch === '\r') { /* skip */ }
+      else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+  }
+  if (cell.length || row.length) { row.push(cell); rows.push(row); }
+  if (!rows.length) return [];
+  const clean = s => String(s||'').replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim();
+  const headers = rows[0].map(clean);
+  return rows.slice(1).filter(r => r.some(c => clean(c))).map(r => Object.fromEntries(headers.map((k,i)=>[k,clean(r[i])])));
+}
+
+async function fetchSheetCsv(sheetId, sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('fetch sheet failed: ' + res.status);
+  return parseCsv(await res.text());
+}
+
+/* Cache (5 min TTL) */
+const TTL = 5*60*1000;
+const cacheGet = k => { try{ const i=JSON.parse(localStorage.getItem(k)); return i && Date.now()-i.ts<TTL ? i.data : null; }catch{ return null; } };
+const cacheSet = (k,d) => { try{ localStorage.setItem(k, JSON.stringify({ts:Date.now(), data:d})); }catch{} };
+
+/* Parse Thai-formatted numbers (handles commas, negative parens, leading backslash-minus, escaped minus) */
+function pNum(s) {
+  if (s == null || s === '') return 0;
+  let t = String(s).replace(/,/g,'').replace(/\\-/g,'-').replace(/\s/g,'');
+  // (123) → -123
+  if (/^\(.+\)$/.test(t)) t = '-' + t.slice(1,-1);
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+
+/* Date parsing for BP — Doc_Date format DD/MM/YYYY (Gregorian) */
+function parseBpDate(s) {
+  if (!s) return null;
+  const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) return null;
+  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+}
+
+/* Returns Year/Month for current month and last 6 month labels (YYYY/MM) */
+function getPeriodLabels() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const mon = now.getMonth() + 1;
+  const labels = [];
+  for (let i = 6; i >= 1; i--) {
+    let m = mon - i, y = year;
+    while (m <= 0) { m += 12; y -= 1; }
+    labels.push(`${y}/${String(m).padStart(2,'0')}`);
+  }
+  const curLabel = `${year}/${String(mon).padStart(2,'0')}`;
+  return { historyLabels: labels, currentLabel: curLabel };
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* AUTH                                                                     */
+/* ──────────────────────────────────────────────────────────────────────── */
+function decodeJwtPayload(token) {
+  const parts = String(token||'').split('.');
+  if (parts.length < 2) throw new Error('JWT invalid');
+  let b64 = parts[1].replace(/-/g,'+').replace(/_/g,'/');
+  const pad = (4 - b64.length % 4) % 4;
+  if (pad) b64 += '='.repeat(pad);
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+}
+const normalizeEmail = s => String(s||'').replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\s+/g,'').toLowerCase();
+
+let currentUser = null;
+function showLoginError(msg) { const e = $('loginErr'); e.textContent = msg; e.classList.add('show'); }
+
+async function handleGoogleLogin(r) {
+  showSpinner('กำลังตรวจสอบ...');
+  try {
+    const email = normalizeEmail(decodeJwtPayload(r.credential).email);
+    const users = await fetchSheetCsv(AUTH_CONFIG.usersSheetId, AUTH_CONFIG.usersSheetName);
+    const user = users.find(u => normalizeEmail(u['E-mail']) === email);
+    if (!user) { showLoginError('ไม่พบ Email นี้ในระบบ — ติดต่อแอดมิน'); return; }
+    if (String(user['Status']||'').trim().toLowerCase() !== 'active') { showLoginError('บัญชีถูกระงับ — ติดต่อแอดมิน'); return; }
+    currentUser = {
+      email, name: user['ชื่อ - สกุล'], nickname: user['ชื่อเล่น'],
+      role: parseInt(user['User Role'])||1, dept: user['แผนก'],
+      company: user['บริษัท'], warehouse: user['W'], empId: user['รหัสพนักงาน'],
+    };
+    localStorage.setItem('rattanaUser', JSON.stringify({ data: currentUser, exp: Date.now() + 30*24*60*60*1000 }));
+    enterApp();
+  } catch (e) {
+    console.error(e);
+    showLoginError('เกิดข้อผิดพลาด ลองอีกครั้ง');
+  } finally {
+    hideSpinner();
+  }
+}
+
+function checkSession() {
+  try {
+    const raw = localStorage.getItem('rattanaUser');
+    if (!raw) return;
+    const { data, exp } = JSON.parse(raw);
+    if (Date.now() > exp) { localStorage.removeItem('rattanaUser'); return; }
+    currentUser = data;
+    enterApp();
+  } catch { localStorage.removeItem('rattanaUser'); }
+}
+
+function enterApp() {
+  $('loginScreen').style.display = 'none';
+  $('appScreen').style.display = 'flex';
+  $('userChip').style.display = 'inline-flex';
+  $('userNick').textContent = currentUser.nickname || currentUser.name || currentUser.email;
+  initApp();
+}
+
+function logout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  localStorage.removeItem('rattanaUser');
+  location.reload();
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* APP STATE                                                                */
+/* ──────────────────────────────────────────────────────────────────────── */
+let VENDORS = [];          // [{vendor, sales_cs, exvat}] from BQ proxy
+let BQ_SALES_ROWS = [];    // current vendor's BQ rows
+let BP_ALL_ROWS = [];      // ALL BP rows (filtered by month locally)
+let STOCK_ALL_ROWS = [];   // ALL stock rows
+let SELLIN_ALL_ROWS = [];  // ALL sell-in rows
+let SELECTED_VENDOR = null;
+let DRILL = { level: 'brand', brand: null, pack: null };  // 'brand' | 'pack' | 'product'
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* BQ PROXY                                                                 */
+/* ──────────────────────────────────────────────────────────────────────── */
+async function bqCall(action, params={}) {
+  if (!CFG.bqProxyUrl) {
+    throw new Error('ยังไม่ได้ตั้งค่า BigQuery Proxy URL — เปิด ⚙ Settings เพื่อใส่');
+  }
+  const u = new URL(CFG.bqProxyUrl);
+  u.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+  const res = await fetch(u.toString());
+  if (!res.ok) throw new Error('BQ proxy http ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'BQ proxy error');
+  return json.data;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* INITIAL LOAD                                                             */
+/* ──────────────────────────────────────────────────────────────────────── */
+async function initApp() {
+  // Try to load BP / Stock / Sell-In sheets in parallel, and BQ vendors
+  showSpinner('กำลังโหลดข้อมูล...');
+  setLoading(true);
+  try {
+    const [bp, stock, sellin, vendors] = await Promise.all([
+      loadBp().catch(e => { console.error('BP', e); showToast('โหลด BP ไม่สำเร็จ', 'warning'); return []; }),
+      loadStock().catch(e => { console.error('Stock', e); showToast('โหลด Stock ไม่สำเร็จ', 'warning'); return []; }),
+      loadSellIn().catch(e => { console.error('Sellin', e); showToast('โหลด Sell-In ไม่สำเร็จ', 'warning'); return []; }),
+      loadVendors().catch(e => { console.error('Vendors', e); showToast('โหลด Vendor list ไม่สำเร็จ — ' + e.message, 'warning'); return []; }),
+    ]);
+    BP_ALL_ROWS = bp;
+    STOCK_ALL_ROWS = stock;
+    SELLIN_ALL_ROWS = sellin;
+    VENDORS = vendors;
+    renderVendorList();
+    showToast('โหลดข้อมูลเรียบร้อย', 'success');
+  } finally {
+    hideSpinner();
+    setLoading(false);
+  }
+}
+
+async function loadVendors() {
+  const cached = cacheGet('bq_vendors');
+  if (cached) return cached;
+  const rows = await bqCall('vendors', { months: 6 });
+  const cleaned = rows
+    .map(r => ({ vendor: normVendor(r.vendor), sales_cs: pNum(r.sales_cs), exvat: pNum(r.exvat) }))
+    .filter(r => r.vendor && r.vendor !== 'Non Product' && r.vendor !== 'Non-Product');
+  cacheSet('bq_vendors', cleaned);
+  return cleaned;
+}
+
+async function loadBp() {
+  const cached = cacheGet('bp_rows');
+  if (cached) return cached;
+  const raw = await fetchSheetCsv(CFG.bpId, CFG.bpTab);
+  // Only keep current-month rows (some BP files might have a leading or trailing row from neighbour month — filter to current)
+  const { currentLabel } = getPeriodLabels();
+  const [cy, cm] = currentLabel.split('/').map(Number);
+  const cleaned = raw.map(r => ({
+    doc_date: r['Doc_Date'] || r['Doc Date'] || '',
+    cat_vendor: normVendor(r['Cat_Vendor']),
+    cat_brand: r['Cat_Brand'] || '',
+    cat_pack: r['Cat_Pack'] || '',
+    product_name: r['Product_Name'] || '',
+    sales_cs: pNum(r['Sales_CS']),
+    free_cs: pNum(r['Free_CS']),
+    exvat: pNum(r['EXVat']),
+    total_baht: pNum(r['TotalBaht']),
+  })).filter(r => {
+    const d = parseBpDate(r.doc_date);
+    return d && d.getFullYear() === cy && (d.getMonth()+1) === cm && r.cat_vendor;
+  });
+  cacheSet('bp_rows', cleaned);
+  return cleaned;
+}
+
+async function loadStock() {
+  const cached = cacheGet('stock_rows');
+  if (cached) return cached;
+  const raw = await fetchSheetCsv(CFG.stockId, CFG.stockTab);
+  const cleaned = raw.map(r => ({
+    product_name: r['PRODUCT NAME'] || r['Product Name'] || '',
+    cat_vendor: normVendor(r['CAT VENDOR'] || r['Cat Vendor']),
+    cat_brand: r['CAT BRAND'] || '',
+    short_name: r['SHORT NAME'] || '',
+    stock_w1: pNum(r['STOCK W1']),
+    stock_w2: pNum(r['STOCK W2']),
+    stock_w3: pNum(r['STOCK W3']),
+    stock_w4: pNum(r['STOCK W4']),
+    stock_c4: pNum(r['STOCK C4']),
+    unit_cs:  r['RATTANA UNIT CS'] || r['UNIT CS'] || '',
+  })).filter(r => r.product_name && r.cat_vendor);
+  cacheSet('stock_rows', cleaned);
+  return cleaned;
+}
+
+async function loadSellIn() {
+  const cached = cacheGet('sellin_rows');
+  if (cached) return cached;
+  const raw = await fetchSheetCsv(CFG.claudeId, CFG.claudeTab);
+  // header: Vender | SUM ของ รวมรับCS | SUM ของ บาท
+  const cleaned = raw.map(r => {
+    // pick first three values regardless of exact header text
+    const keys = Object.keys(r);
+    const vendor = r[keys[0]] || '';
+    const cs = r[keys[1]];
+    const baht = r[keys[2]];
+    return { vendor: normVendor(vendor), cs: pNum(cs), baht: pNum(baht) };
+  }).filter(r => r.vendor);
+  cacheSet('sellin_rows', cleaned);
+  return cleaned;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* VENDOR DROPDOWN                                                          */
+/* ──────────────────────────────────────────────────────────────────────── */
+function renderVendorList() {
+  const ul = $('vendorList');
+  if (!VENDORS.length) {
+    ul.innerHTML = '<li class="no-result">ยังไม่มีรายชื่อ vendor — ตั้งค่า BQ Proxy ที่ ⚙</li>';
+    return;
+  }
+  // sorted by exvat desc (largest first)
+  const sorted = [...VENDORS].sort((a,b) => b.exvat - a.exvat);
+  ul.innerHTML = sorted.map(v => `
+    <li onclick="selectVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')">
+      <div class="vrow">
+        <span class="vname">${escHtml(v.vendor)}</span>
+        <span class="vamt">${fmtInt(v.exvat)} ฿</span>
+      </div>
+    </li>
+  `).join('');
+}
+
+function filterVendorList(q) {
+  const ql = q.toLowerCase();
+  document.querySelectorAll('#vendorList li').forEach(li => {
+    const name = (li.querySelector('.vname')?.textContent || li.textContent || '').toLowerCase();
+    li.style.display = name.includes(ql) ? '' : 'none';
+  });
+}
+
+function toggleVendorDD() {
+  const p = $('vendorPanel');
+  const open = p.classList.contains('open');
+  document.querySelectorAll('.dd-panel').forEach(x => x.classList.remove('open'));
+  if (!open) {
+    p.classList.add('open');
+    setTimeout(()=> $('vendorSearch').focus(), 50);
+  }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.dd-wrap')) {
+    document.querySelectorAll('.dd-panel').forEach(p => p.classList.remove('open'));
+  }
+});
+
+async function selectVendor(vendor) {
+  SELECTED_VENDOR = vendor;
+  $('vendorLabel').textContent = vendor;
+  $('vendorPanel').classList.remove('open');
+  DRILL = { level: 'brand', brand: null, pack: null };
+  await loadVendorData();
+}
+
+async function loadVendorData() {
+  if (!SELECTED_VENDOR) return;
+  showSpinner('โหลดข้อมูล ' + SELECTED_VENDOR.substring(0,40) + '...');
+  try {
+    const cacheKey = 'bq_sales_' + SELECTED_VENDOR;
+    let bq = cacheGet(cacheKey);
+    if (!bq) {
+      bq = await bqCall('sales', { vendor: SELECTED_VENDOR, months: 6 });
+      bq = bq.map(r => ({
+        month_year: r.month_year,
+        cat_brand: r.cat_brand,
+        cat_pack: r.cat_pack,
+        product_name: r.product_name,
+        product_code: r.product_code,
+        sales_cs: pNum(r.sales_cs),
+        free_cs: pNum(r.free_cs),
+        exvat: pNum(r.exvat),
+        total_baht: pNum(r.total_baht),
+      }));
+      cacheSet(cacheKey, bq);
+    }
+    BQ_SALES_ROWS = bq;
+    renderAll();
+    showToast('โหลด ' + SELECTED_VENDOR.substring(0,30) + ' เรียบร้อย', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('โหลดไม่สำเร็จ: ' + e.message, 'error');
+  } finally {
+    hideSpinner();
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* RENDER — OVERVIEW                                                        */
+/* ──────────────────────────────────────────────────────────────────────── */
+function renderAll() {
+  if (!SELECTED_VENDOR) return;
+  $('ovEmpty').style.display = 'none';
+  $('ovContent').style.display = 'block';
+  $('seEmpty').style.display = 'none';
+  $('seContent').style.display = 'block';
+  $('stEmpty').style.display = 'none';
+  $('stContent').style.display = 'block';
+
+  renderStats();
+  renderMonthBars();
+  renderDrill();
+  renderSellIn();
+  renderStock();
+}
+
+function vendorBpRows() {
+  return BP_ALL_ROWS.filter(r => r.cat_vendor === SELECTED_VENDOR);
+}
+
+function renderStats() {
+  const bq = BQ_SALES_ROWS;
+  const bp = vendorBpRows();
+  const bqCS  = bq.reduce((s,r)=>s+r.sales_cs, 0);
+  const bqEX  = bq.reduce((s,r)=>s+r.exvat, 0);
+  const bpCS  = bp.reduce((s,r)=>s+r.sales_cs, 0);
+  const bpEX  = bp.reduce((s,r)=>s+r.exvat, 0);
+  const avgMonthlyCS = bqCS / 6;
+  const avgMonthlyEX = bqEX / 6;
+  const csRatio = avgMonthlyCS > 0 ? (bpCS / avgMonthlyCS * 100) : 0;
+  const exRatio = avgMonthlyEX > 0 ? (bpEX / avgMonthlyEX * 100) : 0;
+
+  // Days into current month (for context)
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const proRataPct = (dayOfMonth / daysInMonth * 100).toFixed(0);
+
+  const { historyLabels, currentLabel } = getPeriodLabels();
+  $('periodLbl').textContent = `${historyLabels[0]} → ${currentLabel}`;
+
+  const cmpClass = (cur, avg) => cur >= avg ? 'cmp-up' : (cur < avg*0.85 ? 'cmp-down' : 'cmp-neutral');
+  const cmpSym   = (cur, avg) => cur >= avg ? '▲' : '▼';
+
+  $('statGrid').innerHTML = `
+    <div class="stat-card info">
+      <div class="s-label">BQ 6 เดือน — Sales CS</div>
+      <div class="s-value">${fmtInt(bqCS)}</div>
+      <div class="s-sub">เฉลี่ย ${fmtInt(avgMonthlyCS)} / เดือน</div>
+    </div>
+    <div class="stat-card info">
+      <div class="s-label">BQ 6 เดือน — EXVat</div>
+      <div class="s-value">${fmtInt(bqEX)} ฿</div>
+      <div class="s-sub">เฉลี่ย ${fmtInt(avgMonthlyEX)} / เดือน</div>
+    </div>
+    <div class="stat-card ${bpCS >= avgMonthlyCS ? 'success' : 'warning'}">
+      <div class="s-label">BP เดือนนี้ — Sales CS</div>
+      <div class="s-value">${fmtInt(bpCS)} <span class="cmp-arr ${cmpClass(bpCS, avgMonthlyCS)}">${cmpSym(bpCS, avgMonthlyCS)} ${csRatio.toFixed(0)}%</span></div>
+      <div class="s-sub">วันที่ ${dayOfMonth}/${daysInMonth} (${proRataPct}% ของเดือน)</div>
+    </div>
+    <div class="stat-card ${bpEX >= avgMonthlyEX ? 'success' : 'warning'}">
+      <div class="s-label">BP เดือนนี้ — EXVat</div>
+      <div class="s-value">${fmtInt(bpEX)} ฿ <span class="cmp-arr ${cmpClass(bpEX, avgMonthlyEX)}">${cmpSym(bpEX, avgMonthlyEX)} ${exRatio.toFixed(0)}%</span></div>
+      <div class="s-sub">เทียบเฉลี่ย 6 เดือน</div>
+    </div>
+  `;
+}
+
+function renderMonthBars() {
+  const { historyLabels, currentLabel } = getPeriodLabels();
+  // Aggregate BQ by month
+  const byMonth = {};
+  historyLabels.forEach(l => byMonth[l] = { cs:0, ex:0 });
+  BQ_SALES_ROWS.forEach(r => {
+    if (byMonth[r.month_year]) {
+      byMonth[r.month_year].cs += r.sales_cs;
+      byMonth[r.month_year].ex += r.exvat;
+    }
+  });
+  // BP for current month
+  const bp = vendorBpRows();
+  const bpCS = bp.reduce((s,r)=>s+r.sales_cs, 0);
+  const bpEX = bp.reduce((s,r)=>s+r.exvat, 0);
+
+  const allMonths = [...historyLabels, currentLabel];
+  const allData   = [...historyLabels.map(l => byMonth[l]), { cs: bpCS, ex: bpEX }];
+
+  const maxCS = Math.max(1, ...allData.map(d => d.cs));
+  const maxEX = Math.max(1, ...allData.map(d => d.ex));
+
+  const html = allMonths.map((m, i) => {
+    const d = allData[i];
+    const hCS = Math.max(2, (d.cs / maxCS) * 56);
+    const hEX = Math.max(2, (d.ex / maxEX) * 56);
+    const isCur = i === allMonths.length - 1;
+    const monShort = m.split('/')[1] + '/' + m.split('/')[0].substring(2);
+    return `
+      <div class="mb-cell ${isCur ? 'current' : ''}">
+        <div class="mb-month">${monShort}${isCur ? ' • BP' : ''}</div>
+        <div class="mb-bar">
+          <div class="bar-cs" style="height:${hCS}px" title="Sales CS"></div>
+          <div class="bar-ex" style="height:${hEX}px" title="EXVat"></div>
+        </div>
+        <div class="mb-val">${fmtInt(d.cs)} CS</div>
+        <div class="mb-val" style="color:var(--gold);font-weight:700">${fmtInt(d.ex)} ฿</div>
+      </div>
+    `;
+  }).join('');
+  $('monthBars').innerHTML = html;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* DRILL DOWN — Cat_Brand → Cat_Pack → Product                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+function renderDrill() {
+  const bp = vendorBpRows();
+  const bq = BQ_SALES_ROWS;
+  let groupKey, headerLabel, nextLevel, displayKey;
+  const filterMatch = (r) => {
+    if (DRILL.level === 'pack' || DRILL.level === 'product') {
+      if ((r.cat_brand||'') !== (DRILL.brand||'')) return false;
+    }
+    if (DRILL.level === 'product') {
+      if ((r.cat_pack||'') !== (DRILL.pack||'')) return false;
+    }
+    return true;
+  };
+
+  if (DRILL.level === 'brand') {
+    groupKey = 'cat_brand'; headerLabel = 'Cat Brand'; nextLevel = 'pack';
+  } else if (DRILL.level === 'pack') {
+    groupKey = 'cat_pack'; headerLabel = 'Cat Pack'; nextLevel = 'product';
+  } else {
+    groupKey = 'product_name'; headerLabel = 'สินค้า'; nextLevel = null;
+  }
+
+  // Aggregate from BQ (history avg per month) + BP (current month)
+  const agg = {};
+  bq.filter(filterMatch).forEach(r => {
+    const k = r[groupKey] || '(ไม่ระบุ)';
+    if (!agg[k]) agg[k] = { name:k, bqCS:0, bqEX:0, bpCS:0, bpEX:0 };
+    agg[k].bqCS += r.sales_cs;
+    agg[k].bqEX += r.exvat;
+  });
+  bp.filter(filterMatch).forEach(r => {
+    const k = r[groupKey] || '(ไม่ระบุ)';
+    if (!agg[k]) agg[k] = { name:k, bqCS:0, bqEX:0, bpCS:0, bpEX:0 };
+    agg[k].bpCS += r.sales_cs;
+    agg[k].bpEX += r.exvat;
+  });
+
+  const rows = Object.values(agg).sort((a,b) => b.bqEX - a.bqEX);
+
+  // Breadcrumb
+  let crumb = `<span class="crumb ${DRILL.level==='brand'?'current':''}" onclick="setDrill('brand',null,null)">📦 ทุก Cat Brand</span>`;
+  if (DRILL.brand) {
+    crumb += `<span class="sep">›</span><span class="crumb ${DRILL.level==='pack'?'current':''}" onclick="setDrill('pack','${escHtml(DRILL.brand).replace(/'/g,"\\'")}',null)">${escHtml(DRILL.brand)}</span>`;
+  }
+  if (DRILL.pack) {
+    crumb += `<span class="sep">›</span><span class="crumb current">${escHtml(DRILL.pack)}</span>`;
+  }
+  $('breadcrumb').innerHTML = crumb;
+  $('resetDrill').style.display = (DRILL.level !== 'brand') ? '' : 'none';
+  $('resetDrill').onclick = () => {
+    if (DRILL.level === 'product') setDrill('pack', DRILL.brand, null);
+    else if (DRILL.level === 'pack') setDrill('brand', null, null);
+  };
+
+  // Table
+  $('drillThead').innerHTML = `
+    <th data-key="name" data-type="str">${headerLabel} <span class="sort-ind"></span></th>
+    <th data-key="bqCS" data-type="num" class="num">BQ 6M CS <span class="sort-ind"></span></th>
+    <th data-key="bqEX" data-type="num" class="num">BQ 6M EXVat <span class="sort-ind"></span></th>
+    <th data-key="bpCS" data-type="num" class="num">BP เดือนนี้ CS <span class="sort-ind"></span></th>
+    <th data-key="bpEX" data-type="num" class="num">BP เดือนนี้ EXVat <span class="sort-ind"></span></th>
+    <th data-key="ratio" data-type="num" class="num">เทียบ <span class="sort-ind"></span></th>
+  `;
+
+  if (!rows.length) {
+    $('drillTbody').innerHTML = `<tr class="empty-row"><td colspan="6">ไม่พบข้อมูล</td></tr>`;
+    $('drillTfoot').innerHTML = '';
+    return;
+  }
+
+  const tot = rows.reduce((s,r) => ({ bqCS:s.bqCS+r.bqCS, bqEX:s.bqEX+r.bqEX, bpCS:s.bpCS+r.bpCS, bpEX:s.bpEX+r.bpEX }), {bqCS:0,bqEX:0,bpCS:0,bpEX:0});
+
+  $('drillTbody').innerHTML = rows.map(r => {
+    const avgEX = r.bqEX / 6;
+    const ratio = avgEX > 0 ? (r.bpEX / avgEX * 100) : 0;
+    const ratioCls = ratio >= 100 ? 'cmp-up' : (ratio < 70 ? 'cmp-down' : 'cmp-neutral');
+    const clickable = nextLevel !== null;
+    const click = clickable ? `onclick="setDrill('${nextLevel}', ${DRILL.level==='brand' ? `'${escHtml(r.name).replace(/'/g,"\\'")}'` : `'${escHtml(DRILL.brand).replace(/'/g,"\\'")}'`}, ${DRILL.level==='pack' ? `'${escHtml(r.name).replace(/'/g,"\\'")}'` : 'null'})"` : '';
+    return `
+      <tr class="${clickable ? 'clickable' : ''}" ${click}>
+        <td>${escHtml(r.name)}${clickable ? ' <span class="badge badge-gold" style="font-size:9px">▶</span>' : ''}</td>
+        <td class="num">${fmtInt(r.bqCS)}</td>
+        <td class="num">${fmtInt(r.bqEX)}</td>
+        <td class="num" style="color:var(--navy);font-weight:700">${fmtInt(r.bpCS)}</td>
+        <td class="num" style="color:var(--navy);font-weight:700">${fmtInt(r.bpEX)}</td>
+        <td class="num"><span class="cmp-arr ${ratioCls}">${ratio.toFixed(0)}%</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  const totAvgEX = tot.bqEX / 6;
+  const totRatio = totAvgEX > 0 ? (tot.bpEX / totAvgEX * 100) : 0;
+  const totRatioCls = totRatio >= 100 ? 'cmp-up' : (totRatio < 70 ? 'cmp-down' : 'cmp-neutral');
+  $('drillTfoot').innerHTML = `
+    <tr>
+      <td>รวม (${rows.length} รายการ)</td>
+      <td class="num">${fmtInt(tot.bqCS)}</td>
+      <td class="num">${fmtInt(tot.bqEX)}</td>
+      <td class="num">${fmtInt(tot.bpCS)}</td>
+      <td class="num">${fmtInt(tot.bpEX)}</td>
+      <td class="num"><span class="cmp-arr ${totRatioCls}">${totRatio.toFixed(0)}%</span></td>
+    </tr>
+  `;
+}
+
+function setDrill(level, brand, pack) {
+  DRILL = { level, brand, pack };
+  renderDrill();
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* SELL-IN TAB                                                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+function renderSellIn() {
+  // Match by normalized vendor (sell-in uses different vendor names sometimes — try fuzzy match)
+  const sel = SELECTED_VENDOR;
+  let row = SELLIN_ALL_ROWS.find(r => r.vendor === sel);
+  if (!row) {
+    // Fuzzy: substring match in either direction
+    row = SELLIN_ALL_ROWS.find(r =>
+      sel.includes(r.vendor) || r.vendor.includes(sel) ||
+      normVendor(sel).replace(/[().]/g,'') === normVendor(r.vendor).replace(/[().]/g,'')
+    );
+  }
+
+  if (!row) {
+    $('seContent').innerHTML = `
+      <div class="card card-gold">
+        <div class="card-head"><h3><span class="gold-bar"></span>ยอดซื้อเข้าเดือนนี้ (Sell-In)</h3></div>
+        <div class="card-body">
+          <div class="empty-state" style="padding:30px 20px">
+            <div class="icon">🔍</div>
+            <div class="ttl">ไม่พบข้อมูลซื้อเข้าของ vendor นี้</div>
+            <div class="sub">${escHtml(sel)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Compare with BP current month
+  const bp = vendorBpRows();
+  const bpCS = bp.reduce((s,r)=>s+r.sales_cs, 0);
+  const bpEX = bp.reduce((s,r)=>s+r.exvat, 0);
+  const stockBalance = row.cs - bpCS;  // ซื้อเข้า - ขายออก
+  const moneyBalance = row.baht - bpEX;
+
+  $('seContent').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card info">
+        <div class="s-label">ซื้อเข้า — CS</div>
+        <div class="s-value">${fmtInt(row.cs)}</div>
+        <div class="s-sub">รวมรับ CS</div>
+      </div>
+      <div class="stat-card info">
+        <div class="s-label">ซื้อเข้า — บาท</div>
+        <div class="s-value">${fmtInt(row.baht)} ฿</div>
+        <div class="s-sub">มูลค่ารวม</div>
+      </div>
+      <div class="stat-card ${stockBalance >= 0 ? 'success' : 'danger'}">
+        <div class="s-label">ซื้อเข้า − ขายออก (CS)</div>
+        <div class="s-value">${fmtInt(stockBalance)}</div>
+        <div class="s-sub">${stockBalance >= 0 ? 'ซื้อมากกว่าขาย' : 'ขายมากกว่าซื้อ'}</div>
+      </div>
+      <div class="stat-card ${moneyBalance >= 0 ? 'success' : 'danger'}">
+        <div class="s-label">ซื้อเข้า − ขายออก (฿)</div>
+        <div class="s-value">${fmtInt(moneyBalance)} ฿</div>
+        <div class="s-sub">เทียบ EXVat ของ BP</div>
+      </div>
+    </div>
+
+    <div class="card card-gold">
+      <div class="card-head">
+        <h3><span class="gold-bar"></span>สรุปการเคลื่อนไหวสินค้า — ${escHtml(sel)}</h3>
+        <span class="badge badge-gold">เดือนนี้</span>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>รายการ</th>
+                <th class="num">CS</th>
+                <th class="num">บาท (EXVat)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>📥 ซื้อเข้า</td><td class="num" style="color:var(--info);font-weight:700">${fmtInt(row.cs)}</td><td class="num" style="color:var(--info);font-weight:700">${fmtInt(row.baht)}</td></tr>
+              <tr><td>📤 ขายออก (BP เดือนนี้)</td><td class="num">${fmtInt(bpCS)}</td><td class="num">${fmtInt(bpEX)}</td></tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>💰 คงเหลือสุทธิ</td>
+                <td class="num" style="color:${stockBalance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmtInt(stockBalance)}</td>
+                <td class="num" style="color:${moneyBalance >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmtInt(moneyBalance)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* STOCK TAB                                                                */
+/* ──────────────────────────────────────────────────────────────────────── */
+function renderStock() {
+  const sel = SELECTED_VENDOR;
+  // Match by CAT VENDOR — fuzzy match
+  const exact = STOCK_ALL_ROWS.filter(r => r.cat_vendor === sel);
+  let rows = exact;
+  if (!rows.length) {
+    rows = STOCK_ALL_ROWS.filter(r =>
+      sel.includes(r.cat_vendor) || r.cat_vendor.includes(sel)
+    );
+  }
+
+  if (!rows.length) {
+    $('stContent').innerHTML = `
+      <div class="card card-gold">
+        <div class="card-head"><h3><span class="gold-bar"></span>สต๊อกสินค้า</h3></div>
+        <div class="card-body">
+          <div class="empty-state" style="padding:30px 20px">
+            <div class="icon">🔍</div>
+            <div class="ttl">ไม่พบสต๊อกสินค้าของ vendor นี้</div>
+            <div class="sub">${escHtml(sel)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort by total stock desc
+  rows.forEach(r => r._tot = r.stock_w1 + r.stock_w2 + r.stock_w3 + r.stock_w4 + r.stock_c4);
+  rows.sort((a,b) => b._tot - a._tot);
+
+  const tot = rows.reduce((s,r) => ({
+    w1:s.w1+r.stock_w1, w2:s.w2+r.stock_w2, w3:s.w3+r.stock_w3, w4:s.w4+r.stock_w4, c4:s.c4+r.stock_c4, t:s.t+r._tot
+  }), {w1:0,w2:0,w3:0,w4:0,c4:0,t:0});
+
+  $('stContent').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="s-label">W1 สมุทรสงคราม</div><div class="s-value">${fmt(tot.w1)}</div></div>
+      <div class="stat-card"><div class="s-label">W2 สุพรรณบุรี</div><div class="s-value">${fmt(tot.w2)}</div></div>
+      <div class="stat-card"><div class="s-label">W3 ราชบุรี</div><div class="s-value">${fmt(tot.w3)}</div></div>
+      <div class="stat-card"><div class="s-label">W4 นครปฐม</div><div class="s-value">${fmt(tot.w4)}</div></div>
+    </div>
+
+    <div class="card card-gold">
+      <div class="card-head">
+        <h3><span class="gold-bar"></span>สต๊อกราย Product — ${escHtml(sel)}</h3>
+        <span class="badge badge-gold">${rows.length} รายการ</span>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>สินค้า</th>
+                <th class="num">W1</th>
+                <th class="num">W2</th>
+                <th class="num">W3</th>
+                <th class="num">W4</th>
+                <th class="num">C4</th>
+                <th class="num">รวม</th>
+                <th>หน่วย</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td>${escHtml(r.product_name)}</td>
+                  <td class="num">${fmt(r.stock_w1)}</td>
+                  <td class="num">${fmt(r.stock_w2)}</td>
+                  <td class="num">${fmt(r.stock_w3)}</td>
+                  <td class="num">${fmt(r.stock_w4)}</td>
+                  <td class="num">${fmt(r.stock_c4)}</td>
+                  <td class="num" style="color:var(--gold);font-weight:700">${fmt(r._tot)}</td>
+                  <td style="font-size:11px;color:var(--muted)">${escHtml(r.unit_cs)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>รวม (${rows.length})</td>
+                <td class="num">${fmt(tot.w1)}</td>
+                <td class="num">${fmt(tot.w2)}</td>
+                <td class="num">${fmt(tot.w3)}</td>
+                <td class="num">${fmt(tot.w4)}</td>
+                <td class="num">${fmt(tot.c4)}</td>
+                <td class="num">${fmt(tot.t)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* TAB SWITCHING                                                            */
+/* ──────────────────────────────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* DARK MODE                                                                */
+/* ──────────────────────────────────────────────────────────────────────── */
+const DARK_KEY = 'rattanaDark';
+if (localStorage.getItem(DARK_KEY) === '1') document.body.classList.add('dark');
+$('btnDark').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  localStorage.setItem(DARK_KEY, document.body.classList.contains('dark') ? '1' : '0');
+});
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* REFRESH                                                                  */
+/* ──────────────────────────────────────────────────────────────────────── */
+$('btnRefresh').addEventListener('click', async () => {
+  const b = $('btnRefresh');
+  b.disabled = true;
+  b.style.transform = 'rotate(360deg)';
+  b.style.transition = 'transform .6s';
+  // Clear caches
+  ['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k => localStorage.removeItem(k));
+  if (SELECTED_VENDOR) localStorage.removeItem('bq_sales_' + SELECTED_VENDOR);
+  await initApp();
+  if (SELECTED_VENDOR) await loadVendorData();
+  b.disabled = false;
+  setTimeout(()=>{ b.style.transform = ''; b.style.transition = ''; }, 600);
+});
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* SETTINGS                                                                 */
+/* ──────────────────────────────────────────────────────────────────────── */
+$('btnCfg').addEventListener('click', () => {
+  $('cfgBqUrl').value     = CFG.bqProxyUrl || '';
+  $('cfgBpId').value      = CFG.bpId || '';
+  $('cfgBpTab').value     = CFG.bpTab || '';
+  $('cfgStockId').value   = CFG.stockId || '';
+  $('cfgStockTab').value  = CFG.stockTab || '';
+  $('cfgClaudeId').value  = CFG.claudeId || '';
+  $('cfgClaudeTab').value = CFG.claudeTab || '';
+  $('cfgModal').classList.add('open');
+});
+function closeCfg() { $('cfgModal').classList.remove('open'); }
+async function saveCfg() {
+  CFG = {
+    bqProxyUrl: $('cfgBqUrl').value.trim(),
+    bpId:       $('cfgBpId').value.trim(),
+    bpTab:      $('cfgBpTab').value.trim() || 'BP',
+    stockId:    $('cfgStockId').value.trim(),
+    stockTab:   $('cfgStockTab').value.trim() || 'Product_Detail',
+    claudeId:   $('cfgClaudeId').value.trim(),
+    claudeTab:  $('cfgClaudeTab').value.trim() || 'sell in',
+  };
+  saveCfgObj(CFG);
+  ['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k => localStorage.removeItem(k));
+  closeCfg();
+  showToast('บันทึกแล้ว — กำลังโหลดใหม่...', 'success');
+  await initApp();
+}
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* BACK TO TOP                                                              */
+/* ──────────────────────────────────────────────────────────────────────── */
+window.addEventListener('scroll', () => {
+  $('backToTop').classList.toggle('show', window.scrollY > 300);
+});
+
+/* ──────────────────────────────────────────────────────────────────────── */
+/* BOOT                                                                     */
+/* ──────────────────────────────────────────────────────────────────────── */
+window.handleGoogleLogin = handleGoogleLogin;
+window.selectVendor = selectVendor;
+window.toggleVendorDD = toggleVendorDD;
+window.filterVendorList = filterVendorList;
+window.setDrill = setDrill;
+window.logout = logout;
+window.closeCfg = closeCfg;
+window.saveCfg = saveCfg;
+window.onload = checkSession;
+</script>
+</body>
+</html>
