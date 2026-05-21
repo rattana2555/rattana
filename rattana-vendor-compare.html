@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.9</title>
+<title>Rattana Vendor Compare v3.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -210,7 +210,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.9</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v3.0</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -295,7 +295,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.9 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v3.0 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -698,9 +698,12 @@ function renderSellIn(){
   `;
 }
 
-/* ══ STOCK — improved matching + manual pick ══ */
+/* ══ STOCK — improved matching + manual pick + pagination ══ */
 let STOCK_EXTRA_EXPANDED = false;
 let STOCK_VENDOR_OVERRIDE = {};
+let STOCK_PAGE = 1;
+const STOCK_PAGE_SIZE = 20;
+let _stockSortedRows = [];
 
 function renderStock(){
   const sel=SELECTED_VENDOR;
@@ -735,40 +738,22 @@ function renderStock(){
   }
 
   rows.sort((a,b)=>b.main_total-a.main_total);
+  _stockSortedRows=rows;
+  STOCK_PAGE=1;
 
-  // Get column labels from first row
   const mainLabels=rows[0]?.main_stock.map(s=>s.label)||[];
   const extraLabels=rows[0]?.extra_stock.map(s=>s.label)||[];
-
-  // Totals
   const mainTotals=mainLabels.map((_,i)=>rows.reduce((s,r)=>s+(r.main_stock[i]?.val||0),0));
   const extraTotals=extraLabels.map((_,i)=>rows.reduce((s,r)=>s+(r.extra_stock[i]?.val||0),0));
   const grandTotal=rows.reduce((s,r)=>s+r.main_total,0);
-
   const matchedName=STOCK_VENDOR_OVERRIDE[sel]||rows[0]?.cat_vendor||sel;
+  const totalPages=Math.ceil(rows.length/STOCK_PAGE_SIZE);
 
-  // Stat cards (first 4 main cols)
   const statCards=mainLabels.map((lbl,i)=>`
     <div class="stat-card"><div class="s-label">${escHtml(lbl)}</div><div class="s-value">${fmt(mainTotals[i])}</div></div>
   `).join('');
-
-  // Table headers
   const mainTh=mainLabels.map(l=>`<th class="num">${escHtml(l)}</th>`).join('');
   const extraTh=extraLabels.map(l=>`<th class="num month-col">${escHtml(l)}</th>`).join('');
-
-  // Table rows
-  const tbodyHtml=rows.map(r=>{
-    const mainCells=r.main_stock.map(s=>`<td class="num">${fmt(s.val)}</td>`).join('');
-    const extraCells=r.extra_stock.map(s=>`<td class="num month-col">${fmt(s.val)}</td>`).join('');
-    return`<tr>
-      <td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td>
-      ${mainCells}
-      ${extraCells}
-      <td class="num" style="color:var(--gold);font-weight:700">${fmt(r.main_total)}</td>
-    </tr>`;
-  }).join('');
-
-  // Footer
   const mainFootCells=mainTotals.map(t=>`<td class="num">${fmt(t)}</td>`).join('');
   const extraFootCells=extraTotals.map(t=>`<td class="num month-col">${fmt(t)}</td>`).join('');
 
@@ -796,7 +781,7 @@ function renderStock(){
               ${extraTh}
               <th class="num">รวม</th>
             </tr></thead>
-            <tbody>${tbodyHtml}</tbody>
+            <tbody id="stockTbody">${_buildStockTbody(rows.slice(0,STOCK_PAGE_SIZE))}</tbody>
             <tfoot><tr>
               <td>รวม (${rows.length})</td>
               ${mainFootCells}
@@ -805,9 +790,46 @@ function renderStock(){
             </tr></tfoot>
           </table>
         </div>
+        <div id="stockPagWrap">${_buildStockPag(rows.length,totalPages)}</div>
       </div>
     </div>
   `;
+}
+
+function _buildStockTbody(pageRows){
+  return pageRows.map(r=>{
+    const mainCells=r.main_stock.map(s=>`<td class="num">${fmt(s.val)}</td>`).join('');
+    const extraCells=r.extra_stock.map(s=>`<td class="num month-col">${fmt(s.val)}</td>`).join('');
+    return`<tr>
+      <td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td>
+      ${mainCells}
+      ${extraCells}
+      <td class="num" style="color:var(--gold);font-weight:700">${fmt(r.main_total)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function _buildStockPag(total,totalPages){
+  if(totalPages<=1)return'';
+  const start=(STOCK_PAGE-1)*STOCK_PAGE_SIZE;
+  const end=Math.min(start+STOCK_PAGE_SIZE,total);
+  return`<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 0 4px;font-size:13px;border-top:1px solid var(--border);margin-top:8px">
+    <button class="btn btn-outline btn-sm" onclick="stockGoPage(${STOCK_PAGE-1})" ${STOCK_PAGE<=1?'disabled':''}>◄ ก่อนหน้า</button>
+    <span style="color:var(--muted)">${start+1}–${end} จาก ${total} รายการ | หน้า ${STOCK_PAGE}/${totalPages}</span>
+    <button class="btn btn-outline btn-sm" onclick="stockGoPage(${STOCK_PAGE+1})" ${STOCK_PAGE>=totalPages?'disabled':''}>ถัดไป ►</button>
+  </div>`;
+}
+
+function stockGoPage(p){
+  const total=_stockSortedRows.length;
+  const totalPages=Math.ceil(total/STOCK_PAGE_SIZE);
+  if(p<1||p>totalPages)return;
+  STOCK_PAGE=p;
+  const start=(p-1)*STOCK_PAGE_SIZE;
+  const tbody=document.getElementById('stockTbody');
+  if(tbody)tbody.innerHTML=_buildStockTbody(_stockSortedRows.slice(start,start+STOCK_PAGE_SIZE));
+  const wrap=document.getElementById('stockPagWrap');
+  if(wrap)wrap.innerHTML=_buildStockPag(total,totalPages);
 }
 
 function toggleStockExtra(){
@@ -860,7 +882,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;
 window.onload=checkSession;
 </script>
 </body>
