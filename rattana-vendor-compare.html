@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.6</title>
+<title>Rattana Vendor Compare v2.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -210,7 +210,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.6</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.7</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -295,7 +295,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.6 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v2.7 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -700,7 +700,7 @@ function renderStock(){
   const matchedName=STOCK_VENDOR_OVERRIDE[sel]||rows[0]?.cat_vendor||sel;
 
   // Stat cards (first 4 main cols)
-  const statCards=mainLabels.slice(0,4).map((lbl,i)=>`
+  const statCards=mainLabels.map((lbl,i)=>`
     <div class="stat-card"><div class="s-label">${escHtml(lbl)}</div><div class="s-value">${fmt(mainTotals[i])}</div></div>
   `).join('');
 
