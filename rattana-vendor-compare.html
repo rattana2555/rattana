@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.7</title>
+<title>Rattana Vendor Compare v2.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -210,7 +210,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.7</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.8</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -295,7 +295,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.7 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v2.8 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -549,6 +549,9 @@ function renderLineChart(){
 }
 
 /* ══ DRILL DOWN ══ */
+const PAGE_SIZE = 20;
+let DRILL_PAGE = 0;
+
 function toggleMonthCols(){
   MONTHS_EXPANDED=!MONTHS_EXPANDED;
   $('drillTbl').classList.toggle('expanded',MONTHS_EXPANDED);
@@ -564,7 +567,6 @@ function renderDrill(){
   else if(DRILL.level==='pack'){groupKey='cat_pack';headerLabel='Cat Pack';nextLevel='product';}
   else{groupKey='product_name';headerLabel='สินค้า';nextLevel=null;}
 
-  // Aggregate per group per month (BQ) + current (BP)
   const agg={};
   bq.filter(fm).forEach(r=>{
     const k=r[groupKey]||'(ไม่ระบุ)';
@@ -580,8 +582,11 @@ function renderDrill(){
     agg[k].bpCS+=r.sales_cs;agg[k].bpEX+=r.exvat;
   });
 
-  const rows=Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
+  const allRows=Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
   const wd=getWDStats();
+  const totalPages=Math.max(1,Math.ceil(allRows.length/PAGE_SIZE));
+  if(DRILL_PAGE>=totalPages)DRILL_PAGE=totalPages-1;
+  const rows=allRows.slice(DRILL_PAGE*PAGE_SIZE,(DRILL_PAGE+1)*PAGE_SIZE);
 
   // Breadcrumb
   let crumb=`<span class="crumb ${DRILL.level==='brand'?'current':''}" onclick="setDrill('brand',null,null)">📦 ทุก Brand</span>`;
@@ -593,43 +598,86 @@ function renderDrill(){
   $('drillTbl').classList.toggle('expanded',MONTHS_EXPANDED);
   $('toggleMonths').textContent=MONTHS_EXPANDED?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';
 
-  // Build header
+  // Header
   const monCols=historyLabels.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l}">${ms}<br>CS</th>`;}).join('');
   $('drillThead').innerHTML=`
     <th>${headerLabel}</th>
     ${monCols}
-    <th class="num th-avg">AVG/เดือน<br>CS</th>
+    <th class="num th-avg">AVG<br>CS</th>
+    <th class="num th-avg">AVG<br>฿</th>
     <th class="num th-cur">เดือนนี้<br>CS</th>
     <th class="num th-cur">เดือนนี้<br>EXVat ฿</th>
-    <th class="num">เทียบเป้า<br>(Pro-rata)</th>
+    <th class="num">CS%</th>
+    <th class="num">฿%</th>
   `;
 
-  if(!rows.length){$('drillTbody').innerHTML=`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;$('drillTfoot').innerHTML='';return;}
+  if(!allRows.length){$('drillTbody').innerHTML=`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;$('drillTfoot').innerHTML='';renderDrillPager(0,0,0);return;}
+
+  // Totals for ALL rows (not just page)
   const tot={bqCS:0,bqEX:0,bpCS:0,bpEX:0,months:{}};
   historyLabels.forEach(l=>tot.months[l]={cs:0,ex:0});
+  allRows.forEach(r=>{tot.bqCS+=r.bqCS;tot.bqEX+=r.bqEX;tot.bpCS+=r.bpCS;tot.bpEX+=r.bpEX;historyLabels.forEach(l=>{tot.months[l].cs+=(r.months[l]?.cs||0);tot.months[l].ex+=(r.months[l]?.ex||0);});});
 
   $('drillTbody').innerHTML=rows.map(r=>{
-    const avgCS=r.bqCS/6;
-    const expCS=avgCS*wd.rate;
-    const ratio=expCS>0?(r.bpCS/expCS*100):0;
-    const rc=ratio>=100?'cmp-up':(ratio<80?'cmp-down':'cmp-neutral');
+    const avgCS=r.bqCS/6,avgEX=r.bqEX/6;
+    const expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
+    const ratioCS=expCS>0?(r.bpCS/expCS*100):0;
+    const ratioEX=expEX>0?(r.bpEX/expEX*100):0;
+    const rcCS=ratioCS>=100?'cmp-up':(ratioCS<80?'cmp-down':'cmp-neutral');
+    const rcEX=ratioEX>=100?'cmp-up':(ratioEX<80?'cmp-down':'cmp-neutral');
     const clickable=nextLevel!==null;
     const brandArg=DRILL.level==='brand'?`'${escHtml(r.name).replace(/'/g,"\\'")}'`:`'${escHtml(DRILL.brand||'').replace(/'/g,"\\'")}'`;
     const packArg=DRILL.level==='pack'?`'${escHtml(r.name).replace(/'/g,"\\'")}'`:'null';
     const click=clickable?`onclick="setDrill('${nextLevel}',${brandArg},${packArg})"` :'';
-    // Monthly cols
-    const mCols=historyLabels.map(l=>{tot.months[l]={cs:(tot.months[l]?.cs||0)+(r.months[l]?.cs||0),ex:(tot.months[l]?.ex||0)+(r.months[l]?.ex||0)};return`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`;}).join('');
-    tot.bqCS+=r.bqCS;tot.bqEX+=r.bqEX;tot.bpCS+=r.bpCS;tot.bpEX+=r.bpEX;
+    const mCols=historyLabels.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
     const nameHtml=nextLevel?`<span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span> <span class="badge badge-gold" style="font-size:9px">▶</span>`:`<span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span>`;
-    return`<tr class="${clickable?'clickable':''}" ${click}><td>${nameHtml}</td>${mCols}<td class="num" style="background:rgba(52,152,219,.05)">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${rc}">${ratio.toFixed(0)}%</span></td></tr>`;
+    return`<tr class="${clickable?'clickable':''}" ${click}><td>${nameHtml}</td>${mCols}
+      <td class="num" style="background:rgba(52,152,219,.05)">${fmtInt(avgCS)}</td>
+      <td class="num" style="background:rgba(52,152,219,.05)">${fmtInt(avgEX)}</td>
+      <td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td>
+      <td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td>
+      <td class="num"><span class="cmp-arr ${rcCS}">${ratioCS.toFixed(0)}%</span></td>
+      <td class="num"><span class="cmp-arr ${rcEX}">${ratioEX.toFixed(0)}%</span></td>
+    </tr>`;
   }).join('');
 
-  const totAvgCS=tot.bqCS/6,totExp=totAvgCS*wd.rate,totR=totExp>0?(tot.bpCS/totExp*100):0,totC=totR>=100?'cmp-up':(totR<80?'cmp-down':'cmp-neutral');
+  const totAvgCS=tot.bqCS/6,totAvgEX=tot.bqEX/6;
+  const totExpCS=totAvgCS*wd.rate,totExpEX=totAvgEX*wd.rate;
+  const totRCS=totExpCS>0?(tot.bpCS/totExpCS*100):0,totREX=totExpEX>0?(tot.bpEX/totExpEX*100):0;
+  const totCCS=totRCS>=100?'cmp-up':(totRCS<80?'cmp-down':'cmp-neutral');
+  const totCEX=totREX>=100?'cmp-up':(totREX<80?'cmp-down':'cmp-neutral');
   const totMCols=historyLabels.map(l=>`<td class="num month-col">${fmtInt(tot.months[l]?.cs||0)}</td>`).join('');
-  $('drillTfoot').innerHTML=`<tr><td>รวม (${rows.length} รายการ)</td>${totMCols}<td class="num">${fmtInt(totAvgCS)}</td><td class="num">${fmtInt(tot.bpCS)}</td><td class="num">${fmtInt(tot.bpEX)}</td><td class="num"><span class="cmp-arr ${totC}">${totR.toFixed(0)}%</span></td></tr>`;
+  $('drillTfoot').innerHTML=`<tr>
+    <td>รวมทั้งหมด (${allRows.length})</td>${totMCols}
+    <td class="num">${fmtInt(totAvgCS)}</td>
+    <td class="num">${fmtInt(totAvgEX)}</td>
+    <td class="num">${fmtInt(tot.bpCS)}</td>
+    <td class="num">${fmtInt(tot.bpEX)}</td>
+    <td class="num"><span class="cmp-arr ${totCCS}">${totRCS.toFixed(0)}%</span></td>
+    <td class="num"><span class="cmp-arr ${totCEX}">${totREX.toFixed(0)}%</span></td>
+  </tr>`;
+
+  renderDrillPager(DRILL_PAGE, totalPages, allRows.length);
 }
 
-function setDrill(level,brand,pack){DRILL={level,brand,pack};renderDrill();}
+function renderDrillPager(page, totalPages, total){
+  const start=page*PAGE_SIZE+1, end=Math.min((page+1)*PAGE_SIZE, total);
+  let html='';
+  if(totalPages>1){
+    html=`<div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:10px 0;flex-wrap:wrap;font-size:13px">
+      <button class="btn btn-outline btn-sm" onclick="drillPage(${page-1})" ${page===0?'disabled':''}>◀ ก่อนหน้า</button>
+      <span style="color:var(--muted)">${start}–${end} จาก ${total} รายการ &nbsp;|&nbsp; หน้า ${page+1}/${totalPages}</span>
+      <button class="btn btn-outline btn-sm" onclick="drillPage(${page+1})" ${page>=totalPages-1?'disabled':''}>ถัดไป ▶</button>
+    </div>`;
+  }
+  let pagerEl=$('drillPager');
+  if(!pagerEl){pagerEl=document.createElement('div');pagerEl.id='drillPager';$('drillTbl').parentNode.appendChild(pagerEl);}
+  pagerEl.innerHTML=html;
+}
+
+function drillPage(p){DRILL_PAGE=p;renderDrill();}
+
+function setDrill(level,brand,pack){DRILL={level,brand,pack};DRILL_PAGE=0;renderDrill();}
 
 /* ══ SELL-IN ══ */
 function renderSellIn(){
@@ -812,7 +860,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;
 window.onload=checkSession;
 </script>
 </body>
