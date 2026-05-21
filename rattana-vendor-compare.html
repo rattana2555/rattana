@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.3</title>
+<title>Rattana Vendor Compare v2.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -192,7 +192,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.3</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.4</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -277,7 +277,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.3 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v2.4 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -403,7 +403,38 @@ async function initApp(){
 }
 async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
 async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht'])})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
-async function loadStock(){const c=cacheGet('stock_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.stockId,CFG.stockTab);const r=raw.map(r=>({product_name:r['PRODUCT NAME']||r['Product Name']||r['Product_Name']||'',cat_vendor:normVendor(r['CAT VENDOR']||r['Cat Vendor']||r['Cat_Vendor']||''),cat_brand:r['CAT BRAND']||r['Cat_Brand']||'',short_name:r['SHORT NAME']||'',stock_w1:pNum(r['STOCK W1']||r['Stock_W1']),stock_w2:pNum(r['STOCK W2']||r['Stock_W2']),stock_w3:pNum(r['STOCK W3']||r['Stock_W3']),stock_w4:pNum(r['STOCK W4']||r['Stock_W4']),stock_c4:pNum(r['STOCK C4']||r['Stock_C4']),unit_cs:r['RATTANA UNIT CS']||r['UNIT CS']||''})).filter(r=>r.product_name);cacheSet('stock_rows',r);return r;}
+/* parseCsv to raw arrays (no header conversion) */
+function parseCsvArrays(text){
+  if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  const rows=[];let row=[],cell='',inQuote=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];if(inQuote){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else inQuote=false;}else cell+=ch;}else{if(ch==='"')inQuote=true;else if(ch===','){row.push(cell.replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim());cell='';}else if(ch==='\r'){}else if(ch==='\n'){row.push(cell.replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim());rows.push(row);row=[];cell='';}else cell+=ch;}}
+  if(cell.length||row.length){row.push(cell.replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim());rows.push(row);}
+  return rows;
+}
+
+async function loadStock(){
+  const c=cacheGet('stock_rows');if(c)return c;
+  // Fetch by gid=789206653 using positional columns
+  // A(0)=Product Name, BF(57)=Cat Vendor, BN(65)-BR(69)=main stock, BS(70)-CE(82)=extra stock
+  const url=`https://docs.google.com/spreadsheets/d/${CFG.stockId}/gviz/tq?tqx=out:csv&gid=789206653`;
+  const res=await fetch(url);
+  if(!res.ok)throw new Error('Stock fetch failed: '+res.status);
+  const rows=parseCsvArrays(await res.text());
+  if(rows.length<2)return[];
+  const hdrs=rows[0]; // header row
+  // Column indices (0-based)
+  const CI={name:0,vendor:57,bn:65,bo:66,bp:67,bq:68,br:69};
+  const mainCols=[65,66,67,68,69]; // BN-BR
+  const extraCols=[70,71,72,73,74,75,76,77,78,79,80,81,82]; // BS-CE
+  const r=rows.slice(1).filter(r=>r[CI.name]||r[CI.vendor]).map(r=>({
+    product_name:r[CI.name]||'',
+    cat_vendor:normVendor(r[CI.vendor]||''),
+    main_stock:mainCols.map(i=>({label:hdrs[i]||`col${i}`,val:pNum(r[i])})),
+    extra_stock:extraCols.map(i=>({label:hdrs[i]||`col${i}`,val:pNum(r[i])})).filter(s=>s.label),
+    main_total:mainCols.reduce((s,i)=>s+pNum(r[i]),0),
+  })).filter(r=>r.product_name&&r.cat_vendor);
+  cacheSet('stock_rows',r);return r;
+}
 async function loadSellIn(){const c=cacheGet('sellin_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.claudeId,CFG.claudeTab);const r=raw.map(r=>{const keys=Object.keys(r);return{vendor:normVendor(r[keys[0]]||''),cs:pNum(r[keys[1]]),baht:pNum(r[keys[2]])};}).filter(r=>r.vendor);cacheSet('sellin_rows',r);return r;}
 
 /* ══ VENDOR DROPDOWN ══ */
@@ -603,7 +634,121 @@ function renderSellIn(){
 }
 
 /* ══ STOCK — improved matching + manual pick ══ */
-let STOCK_VENDOR_OVERRIDE = {}; // { bqVendor: stockVendor }
+let STOCK_EXTRA_EXPANDED = false;
+
+function renderStock(){
+  const sel=SELECTED_VENDOR;
+  let rows=matchStock(sel);
+  const usedOverride=!!STOCK_VENDOR_OVERRIDE[sel];
+
+  if(!rows.length){
+    const allVendors=getUniqueStockVendors();
+    const vendorChips=allVendors.map(v=>`
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--row-alt);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;margin:4px;cursor:pointer;font-size:12px"
+           onclick="pickStockVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')">
+        <span style="color:var(--text)">${escHtml(v.vendor)}</span>
+        <span style="color:var(--muted);font-size:10px">${v.count} รายการ</span>
+      </div>
+    `).join('');
+    $('stContent').innerHTML=`
+      <div class="card card-gold">
+        <div class="card-head">
+          <h3><span class="gold-bar"></span>ไม่พบชื่อ Vendor ตรงกัน</h3>
+          <span class="badge badge-warn">เลือกชื่อจากรายการด้านล่าง</span>
+        </div>
+        <div class="card-body">
+          <div style="background:rgba(201,168,76,.07);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:13px">
+            <b style="color:var(--danger)">ชื่อใน BQ:</b>
+            <span style="margin-left:8px;font-family:monospace;background:var(--border);padding:2px 8px;border-radius:4px">${escHtml(sel)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">CAT VENDOR ในชีท Stock — คลิกเพื่อเลือก:</div>
+          <div style="max-height:400px;overflow-y:auto">${vendorChips}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  rows.sort((a,b)=>b.main_total-a.main_total);
+
+  // Get column labels from first row
+  const mainLabels=rows[0]?.main_stock.map(s=>s.label)||[];
+  const extraLabels=rows[0]?.extra_stock.map(s=>s.label)||[];
+
+  // Totals
+  const mainTotals=mainLabels.map((_,i)=>rows.reduce((s,r)=>s+(r.main_stock[i]?.val||0),0));
+  const extraTotals=extraLabels.map((_,i)=>rows.reduce((s,r)=>s+(r.extra_stock[i]?.val||0),0));
+  const grandTotal=rows.reduce((s,r)=>s+r.main_total,0);
+
+  const matchedName=STOCK_VENDOR_OVERRIDE[sel]||rows[0]?.cat_vendor||sel;
+
+  // Stat cards (first 4 main cols)
+  const statCards=mainLabels.slice(0,4).map((lbl,i)=>`
+    <div class="stat-card"><div class="s-label">${escHtml(lbl)}</div><div class="s-value">${fmt(mainTotals[i])}</div></div>
+  `).join('');
+
+  // Table headers
+  const mainTh=mainLabels.map(l=>`<th class="num">${escHtml(l)}</th>`).join('');
+  const extraTh=extraLabels.map(l=>`<th class="num month-col">${escHtml(l)}</th>`).join('');
+
+  // Table rows
+  const tbodyHtml=rows.map(r=>{
+    const mainCells=r.main_stock.map(s=>`<td class="num">${fmt(s.val)}</td>`).join('');
+    const extraCells=r.extra_stock.map(s=>`<td class="num month-col">${fmt(s.val)}</td>`).join('');
+    return`<tr>
+      <td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td>
+      ${mainCells}
+      ${extraCells}
+      <td class="num" style="color:var(--gold);font-weight:700">${fmt(r.main_total)}</td>
+    </tr>`;
+  }).join('');
+
+  // Footer
+  const mainFootCells=mainTotals.map(t=>`<td class="num">${fmt(t)}</td>`).join('');
+  const extraFootCells=extraTotals.map(t=>`<td class="num month-col">${fmt(t)}</td>`).join('');
+
+  $('stContent').innerHTML=`
+    ${usedOverride?`<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span>🔗 Map: <b>${escHtml(sel)}</b> → <b>${escHtml(matchedName)}</b></span>
+      <button class="btn btn-outline btn-sm" onclick="delete STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}'];renderStock()">✕ ล้าง</button>
+    </div>`:''}
+    <div class="stat-grid">${statCards}</div>
+    <div class="card card-gold">
+      <div class="card-head">
+        <h3><span class="gold-bar"></span>สต๊อกราย Product — ${escHtml(matchedName)}</h3>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-gold">${rows.length} รายการ</span>
+          <button class="btn btn-outline btn-sm" id="btnStockExtra" onclick="toggleStockExtra()">${STOCK_EXTRA_EXPANDED?'🔒 ซ่อนคอลัมน์':'📊 แสดงทั้งหมด'}</button>
+          <button class="btn btn-outline btn-sm" onclick="STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}']='';renderStock()">🔄 เปลี่ยน vendor</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table class="tbl ${STOCK_EXTRA_EXPANDED?'expanded':''}" id="stockTbl">
+            <thead><tr>
+              <th>สินค้า</th>
+              ${mainTh}
+              ${extraTh}
+              <th class="num">รวม</th>
+            </tr></thead>
+            <tbody>${tbodyHtml}</tbody>
+            <tfoot><tr>
+              <td>รวม (${rows.length})</td>
+              ${mainFootCells}
+              ${extraFootCells}
+              <td class="num">${fmt(grandTotal)}</td>
+            </tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleStockExtra(){
+  STOCK_EXTRA_EXPANDED=!STOCK_EXTRA_EXPANDED;
+  const tbl=$('stockTbl');if(tbl)tbl.classList.toggle('expanded',STOCK_EXTRA_EXPANDED);
+  const btn=$('btnStockExtra');if(btn)btn.textContent=STOCK_EXTRA_EXPANDED?'🔒 ซ่อนคอลัมน์':'📊 แสดงทั้งหมด';
+}
 
 function matchStock(sel){
   // 0. Manual override
@@ -638,77 +783,6 @@ function pickStockVendor(stockVendor){
   renderStock();
 }
 
-function renderStock(){
-  const sel=SELECTED_VENDOR;
-  let rows=matchStock(sel);
-  const usedOverride=!!STOCK_VENDOR_OVERRIDE[sel];
-
-  if(!rows.length){
-    // Show all unique cat_vendor from stock sheet so user can pick
-    const allVendors=getUniqueStockVendors();
-    const vendorChips=allVendors.map(v=>`
-      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--row-alt);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;margin:4px;cursor:pointer;font-size:12px"
-           onclick="pickStockVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')">
-        <span style="color:var(--text)">${escHtml(v.vendor)}</span>
-        <span style="color:var(--muted);font-size:10px">${v.count} รายการ</span>
-      </div>
-    `).join('');
-    $('stContent').innerHTML=`
-      <div class="card card-gold">
-        <div class="card-head">
-          <h3><span class="gold-bar"></span>ไม่พบชื่อ Vendor ตรงกัน</h3>
-          <span class="badge badge-warn">เลือกชื่อที่ถูกต้องจากรายการด้านล่าง</span>
-        </div>
-        <div class="card-body">
-          <div style="background:rgba(201,168,76,.07);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;font-size:13px">
-            <span style="font-weight:600;color:var(--danger)">ชื่อใน BQ:</span>
-            <span style="margin-left:8px;font-family:monospace;background:var(--border);padding:2px 8px;border-radius:4px">${escHtml(sel)}</span>
-          </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">ชื่อ CAT VENDOR ในชีท Stock — คลิกเพื่อเลือก:</div>
-          <div style="max-height:400px;overflow-y:auto">${vendorChips}</div>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  rows.forEach(r=>r._tot=r.stock_w1+r.stock_w2+r.stock_w3+r.stock_w4+r.stock_c4);
-  rows.sort((a,b)=>b._tot-a._tot);
-  const tot=rows.reduce((s,r)=>({w1:s.w1+r.stock_w1,w2:s.w2+r.stock_w2,w3:s.w3+r.stock_w3,w4:s.w4+r.stock_w4,c4:s.c4+r.stock_c4,t:s.t+r._tot}),{w1:0,w2:0,w3:0,w4:0,c4:0,t:0});
-  const matchedName=STOCK_VENDOR_OVERRIDE[sel]||rows[0]?.cat_vendor||sel;
-  const overrideBadge=usedOverride?`<button class="btn btn-outline btn-sm" onclick="delete STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}'];renderStock()">✕ ล้างการ map</button>`:'';
-  $('stContent').innerHTML=`
-    ${usedOverride?`<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span>🔗 Map: <b>${escHtml(sel)}</b> → <b>${escHtml(matchedName)}</b></span>
-      ${overrideBadge}
-    </div>`:''}
-    <div class="stat-grid">
-      <div class="stat-card"><div class="s-label">W1 สมุทรสงคราม</div><div class="s-value">${fmt(tot.w1)}</div></div>
-      <div class="stat-card"><div class="s-label">W2 สุพรรณบุรี</div><div class="s-value">${fmt(tot.w2)}</div></div>
-      <div class="stat-card"><div class="s-label">W3 ราชบุรี</div><div class="s-value">${fmt(tot.w3)}</div></div>
-      <div class="stat-card"><div class="s-label">W4 นครปฐม + C4</div><div class="s-value">${fmt(tot.w4+tot.c4)}</div></div>
-    </div>
-    <div class="card card-gold">
-      <div class="card-head">
-        <h3><span class="gold-bar"></span>สต๊อกราย Product — ${escHtml(matchedName)}</h3>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="badge badge-gold">${rows.length} รายการ</span>
-          <button class="btn btn-outline btn-sm" onclick="STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}']='';renderStock()" title="เลือก vendor อื่น">🔄 เปลี่ยน vendor</button>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="tbl-wrap">
-          <table class="tbl">
-            <thead><tr><th>สินค้า</th><th class="num">W1</th><th class="num">W2</th><th class="num">W3</th><th class="num">W4</th><th class="num">C4</th><th class="num">รวม</th><th>หน่วย</th></tr></thead>
-            <tbody>${rows.map(r=>`<tr><td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td><td class="num">${fmt(r.stock_w1)}</td><td class="num">${fmt(r.stock_w2)}</td><td class="num">${fmt(r.stock_w3)}</td><td class="num">${fmt(r.stock_w4)}</td><td class="num">${fmt(r.stock_c4)}</td><td class="num" style="color:var(--gold);font-weight:700">${fmt(r._tot)}</td><td style="font-size:11px;color:var(--muted)">${escHtml(r.unit_cs)}</td></tr>`).join('')}</tbody>
-            <tfoot><tr><td>รวม (${rows.length})</td><td class="num">${fmt(tot.w1)}</td><td class="num">${fmt(tot.w2)}</td><td class="num">${fmt(tot.w3)}</td><td class="num">${fmt(tot.w4)}</td><td class="num">${fmt(tot.c4)}</td><td class="num">${fmt(tot.t)}</td><td></td></tr></tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 /* ══ TAB / DARK / REFRESH / SETTINGS ══ */
 document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');$('tab-'+btn.dataset.tab).classList.add('active');});});
 const DARK_KEY='rattanaDark';if(localStorage.getItem(DARK_KEY)==='1')document.body.classList.add('dark');
@@ -720,7 +794,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;
 window.onload=checkSession;
 </script>
 </body>
