@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Vendor Compare v2.4</title>
+<title>Rattana Vendor Compare v2.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -89,8 +89,26 @@ body.dark .badge-gold{color:var(--gold-light)}
 .tbl .empty-row td{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
 .tbl tfoot td{background:linear-gradient(to right,rgba(201,168,76,.18),rgba(201,168,76,.08));font-weight:700;padding:9px 10px;border-top:2px solid var(--gold);font-size:12px}
 .tbl tfoot td.num{text-align:right}
+/* ── Sticky first column (freeze product name on mobile scroll) ── */
+.tbl thead th:first-child,
+.tbl tbody td:first-child,
+.tbl tfoot td:first-child{
+  position:sticky;left:0;z-index:3;
+  background:var(--navy); /* header */
+}
+.tbl tbody td:first-child{background:var(--card-bg);}
+.tbl tbody tr:nth-child(even) td:first-child{background:var(--row-alt);}
+.tbl tbody tr:hover td:first-child{background:rgba(201,168,76,.07);}
+.tbl tfoot td:first-child{background:linear-gradient(to right,rgba(201,168,76,.25),rgba(201,168,76,.1));}
+/* Mobile card view for drill table */
+@media(max-width:639px){
+  .tbl{min-width:340px}
+  .tbl thead th,.tbl tbody td,.tbl tfoot td{padding:7px 8px;font-size:11px}
+  .prod-name{max-width:120px}
+}
 /* Month columns - hidden by default */
 .tbl .month-col{display:none}
+
 .tbl.expanded .month-col{display:table-cell}
 /* Product name truncate */
 .prod-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
@@ -192,7 +210,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 
 <div id="appScreen" class="page" style="display:none">
   <header>
-    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.4</span></div>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v2.5</span></div>
     <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
     <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
     <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
@@ -277,7 +295,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       <div id="stContent" style="display:none"></div>
     </div>
   </div>
-  <div class="foot-info">Rattana Vendor Compare · v2.4 · 2026-05-21</div>
+  <div class="foot-info">Rattana Vendor Compare · v2.5 · 2026-05-21</div>
 </div>
 
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -308,7 +326,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 <script>
 /* ══ CONFIG ══ */
 const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
-const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'1XBoIAk5_4C18k5Iln1Pn0qPHi-Os4T5dauu03Fs0UjI',stockTab:'Product_Detail',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
+const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',stockTab:'PDDT',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
 const CFG_KEY='rattanaVendorCfg_v2';
 function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
 if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
@@ -414,9 +432,8 @@ function parseCsvArrays(text){
 
 async function loadStock(){
   const c=cacheGet('stock_rows');if(c)return c;
-  // Fetch by gid=789206653 using positional columns
-  // A(0)=Product Name, BF(57)=Cat Vendor, BN(65)-BR(69)=main stock, BS(70)-CE(82)=extra stock
-  const url=`https://docs.google.com/spreadsheets/d/${CFG.stockId}/gviz/tq?tqx=out:csv&gid=789206653`;
+  // Fetch by sheet name PDDT (same column layout: A=name, BF=vendor, BN-BR=main, BS-CE=extra)
+  const url=`https://docs.google.com/spreadsheets/d/${CFG.stockId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CFG.stockTab||'PDDT')}`;
   const res=await fetch(url);
   if(!res.ok)throw new Error('Stock fetch failed: '+res.status);
   const rows=parseCsvArrays(await res.text());
