@@ -508,9 +508,17 @@ function renderLineChart(){
   // BQ history: EXVat per WH per month
   const byMonthWH={};
   historyLabels.forEach(l=>{byMonthWH[l]={};WHs.forEach(w=>byMonthWH[l][w]=0);});
+  // Debug: log what months BQ actually returned
+  const _bqMonths=[...new Set(BQ_SALES_ROWS.map(r=>r.month_year))];
+  console.log('[Chart] BQ months in data:',_bqMonths);
+  console.log('[Chart] Expected historyLabels:',historyLabels);
   BQ_SALES_ROWS.forEach(r=>{
     const wh=(r.wh||'').toUpperCase().trim();
-    if(byMonthWH[r.month_year]&&WHs.includes(wh))byMonthWH[r.month_year][wh]+=r.exvat;
+    // Robust normalization: handle YYYY-MM, YYYY/MM, YYYY-MM-DD, full timestamp, etc.
+    let my=String(r.month_year||'').trim();
+    const dm=my.match(/(\d{4})[-\/\.](\d{1,2})/);
+    if(dm)my=`${dm[1]}/${dm[2].padStart(2,'0')}`;
+    if(byMonthWH[my]&&WHs.includes(wh))byMonthWH[my][wh]+=r.exvat;
   });
 
   // BP current month: EXVat per WS
