@@ -303,9 +303,8 @@ const AUTH_CONFIG = {
   usersSheetName: 'Sheet1'   // ← เปลี่ยนจาก 'Rattana Users for apps'
 };
 
-// Product master list — ชีท PDDT (accessible)
+// Product master list — ชีท PDDT (ใช้ชื่อชีทเท่านั้น ไม่ใช้ gid เพราะ gid=654974441 เป็น dashboard)
 const PRODUCT_SHEET_ID   = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
-const PRODUCT_GID        = '654974441';
 const PRODUCT_SHEET_NAME = 'PDDT';
 
 // Sales data
@@ -550,11 +549,10 @@ async function loadData() {
   try {
     /* 1 ── Product master list (PRIMARY — 12,000+ items) */
     allProducts = [];
-    // PDDT sheet — try gid + sheet name + export format
+    // PDDT sheet — ใช้ชื่อชีทเท่านั้น (gid=654974441 คือ dashboard ไม่ใช่ product list)
     const productUrls = [
       gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME, range: 'A:A' }),
-      gvizUrl(PRODUCT_SHEET_ID, { gid: PRODUCT_GID, range: 'A:A' }),
-      `https://docs.google.com/spreadsheets/d/${PRODUCT_SHEET_ID}/export?format=csv&gid=${PRODUCT_GID}`,
+      `https://docs.google.com/spreadsheets/d/${PRODUCT_SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(PRODUCT_SHEET_NAME)}`,
     ];
     let productLoaded = false;
     for (const url of productUrls) {
