@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana สินค้ายังไม่ขาย v4.0</title>
+<title>Rattana สินค้ายังไม่ขาย v4.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
 <style>
 /* ── Design Tokens ── */
@@ -32,17 +32,9 @@ input,select{font-family:inherit;font-size:16px}
 .l-brand{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;font-family:'Outfit',sans-serif;margin-bottom:6px}
 .l-title{color:#fff;font-size:23px;font-weight:700;margin-bottom:6px;font-family:'Outfit',sans-serif}
 .l-sub{color:rgba(255,255,255,.55);font-size:13px;margin-bottom:28px;line-height:1.8}
-.l-input-wrap{position:relative;margin-bottom:12px}
-.l-input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
-#empIdInput{width:100%;height:52px;padding:0 16px 0 46px;border-radius:var(--radius-md);border:2px solid rgba(201,168,76,.3);background:rgba(255,255,255,.08);color:#fff;font-size:18px;font-weight:600;font-family:'Sarabun',sans-serif;outline:none;transition:border-color .2s;letter-spacing:1px;text-align:center}
-#empIdInput::placeholder{color:rgba(255,255,255,.35);font-weight:400;font-size:14px;letter-spacing:0}
-#empIdInput:focus{border-color:var(--gold)}
-.l-btn{width:100%;height:52px;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;border:none;margin-top:4px;transition:opacity .2s,transform .1s;font-family:'Sarabun',sans-serif}
-.l-btn:hover{opacity:.9}
-.l-btn:active{transform:scale(.97)}
-.l-btn:disabled{opacity:.5;cursor:not-allowed}
+#googleBtnArea{display:flex;justify-content:center;min-height:44px;margin-bottom:8px}
 .l-spinner{display:none;margin:14px auto 0;width:32px;height:32px;border:3px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
-.l-error{display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-top:12px;line-height:1.6}
+.l-error{display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-top:12px;line-height:1.6;white-space:pre-wrap;text-align:left}
 .l-divider{height:1px;background:rgba(201,168,76,.2);margin:20px 0 14px}
 .l-foot{color:rgba(255,255,255,.35);font-size:11px;line-height:1.7}
 .l-foot b{color:var(--gold)}
@@ -57,7 +49,8 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 .icon-btn:hover{background:rgba(255,255,255,.12)}
 .user-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 10px 3px 3px;cursor:pointer;flex-shrink:0;transition:background .15s}
 .user-chip:hover{background:rgba(255,255,255,.18)}
-.user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#ff6b35);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.user-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#ff6b35);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;overflow:hidden}
+.user-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .user-nm{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── HERO ── */
@@ -72,7 +65,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 .scard.success .sv{color:#5aefaa}
 .scard .sl{font-size:10px;color:rgba(255,255,255,.5);margin-top:3px;font-weight:500}
 
-/* ── SELLER BAR (managers) ── */
+/* ── SELLER BAR (role >= 3) ── */
 .seller-bar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:10px 14px}
 .seller-bar>label{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px}
 
@@ -94,8 +87,8 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 .search-wrap input{width:100%;height:40px;padding:0 12px 0 36px;border-radius:20px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s}
 .search-wrap input:focus{border-color:var(--gold)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
-.sort-sel{height:40px;padding:0 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;min-width:175px;cursor:pointer;transition:border-color .15s}
-.sort-sel:focus{border-color:var(--gold)}
+.filter-sel{height:40px;padding:0 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s}
+.filter-sel:focus{border-color:var(--gold)}
 .result-cnt{font-size:12px;color:var(--muted);white-space:nowrap}
 
 /* ── HOT NOTE + LEGEND ── */
@@ -105,6 +98,9 @@ header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0
 .legend-items{display:flex;flex-wrap:wrap;gap:10px}
 .legend-item{display:flex;align-items:center;gap:5px;font-size:12px}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── MONTH BADGE ── */
+.month-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--gold);margin:8px 14px 2px;width:fit-content}
 
 /* ── PRODUCT GRID ── */
 .product-grid{padding:10px 14px;display:flex;flex-direction:column;gap:8px;padding-bottom:max(40px,calc(16px + env(safe-area-inset-bottom)))}
@@ -133,7 +129,7 @@ body.dark .phot{background:#3a1e00;color:#ffb74d;border-color:#e65100}
 .pvol{font-size:13px;font-weight:700;color:var(--navy)}
 body.dark .pvol{color:var(--gold-light)}
 .psl{font-size:11px;color:var(--muted)}
-.pno{font-size:11px;color:var(--muted);font-style:italic;text-align:right}
+.pno{font-size:11px;color:var(--danger);font-style:italic;text-align:right}
 
 /* ── EMPTY / ERROR ── */
 .empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
@@ -183,20 +179,14 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
       <span class="l-icon">📦</span>
       <div class="l-brand">Rattana Sales Tracker</div>
       <div class="l-title">สินค้ายังไม่ขายเดือนนี้</div>
-      <div class="l-sub">ดูสินค้าที่ยังไม่ขาย เปรียบเทียบเซลล์อื่น<br>พร้อมจัดอันดับ ⭐ และระบบดาว</div>
-      <div class="l-input-wrap">
-        <span class="l-input-icon">🪪</span>
-        <input type="text" id="empIdInput" placeholder="รหัสพนักงาน เช่น 14038"
-          autocomplete="off" autocorrect="off" spellcheck="false"
-          onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <button class="l-btn" id="loginBtn" onclick="doLogin()">🔓 เข้าสู่ระบบ</button>
+      <div class="l-sub">ดูสินค้าที่เพื่อนขายดี แต่เรายังไม่มียอด<br>พร้อมจัดอันดับ ⭐ และกรองตามหมวด</div>
+      <div id="googleBtnArea"></div>
       <div class="l-spinner" id="loginSpinner"></div>
       <div class="l-error" id="loginError"></div>
       <div class="l-divider"></div>
-      <div class="l-foot">เฉพาะพนักงาน <b>Rattana</b> ที่มี <b>User Role</b><br>มีปัญหา? ติดต่อผู้ดูแลระบบ</div>
+      <div class="l-foot">เฉพาะพนักงาน <b>Rattana</b> ที่ลงทะเบียนแล้วเท่านั้น<br>มีปัญหา? ติดต่อผู้ดูแลระบบ</div>
     </div>
-    <div class="l-ver">Rattana สินค้ายังไม่ขาย v4.0 · 2026-05-22</div>
+    <div class="l-ver">Rattana สินค้ายังไม่ขาย v4.1 · 2026</div>
   </div>
 </div>
 
@@ -235,12 +225,12 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
     </div>
   </div>
 
-  <!-- SELLER DROPDOWN (managers: role >= 4) -->
+  <!-- SELLER DROPDOWN (role >= 3) -->
   <div class="seller-bar" id="sellerBar" style="display:none">
     <label>👤 เลือกดูข้อมูลเซลล์</label>
     <div class="dd-wrap" id="ddSeller">
       <button class="dd-trigger" onclick="toggleDD('ddSeller')" type="button">
-        <span id="ddSellerLabel">— ดูทุกเซลล์ —</span>
+        <span id="ddSellerLabel">— ดูของฉัน —</span>
         <span style="font-size:12px;color:var(--muted)">▾</span>
       </button>
       <div class="dd-panel" id="ddSellerPanel" style="display:none">
@@ -251,17 +241,24 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
     </div>
   </div>
 
+  <!-- MONTH BADGE -->
+  <div class="month-badge" id="monthBadge" style="display:none">
+    📅 <span id="monthLabel">-</span>
+  </div>
+
   <!-- FILTER BAR -->
   <div class="filter-bar">
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input type="text" id="srch" placeholder="ค้นหาชื่อสินค้า…" oninput="render()">
     </div>
-    <select class="sort-sel" id="fsort" onchange="render()">
+    <select class="filter-sel" id="catFilter" onchange="render()" style="min-width:130px">
+      <option value="">📦 ทุกหมวด</option>
+    </select>
+    <select class="filter-sel" id="fsort" onchange="render()" style="min-width:170px">
       <option value="pop">🏆 ยอดบาทรวมทุกเซลล์</option>
       <option value="sellers">👥 จำนวนเซลล์ที่ขาย</option>
       <option value="name">🔤 ชื่อ ก-ฮ</option>
-      <option value="none">📦 ยังไม่มีใครขาย</option>
     </select>
     <span class="result-cnt" id="resultCnt">-</span>
   </div>
@@ -287,417 +284,647 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
 <!-- BACK TO TOP -->
 <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
-/* ── CONFIG ── */
-const SHEET_ID    = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
-const S_USER      = 'User';
-const S_PDDT      = 'PDDT';
-const S_UNSOLD    = 'สินค้ายังไม่ขาย';
-const SESSION_KEY = 'rtn_unsold_v4';
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000; // 7 วัน
-const MANAGER_ROLE = 4; // role >= 4 เห็นทุกเซลล์
+/* ═══════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════ */
+const AUTH_CONFIG = {
+  clientId: '615875645128-gasjjvkt6lu8g449cbnhl40k1pu25r0b.apps.googleusercontent.com',
+  usersSheetId: '1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',
+  usersSheetName: 'Rattana Users for apps'
+};
 
-// Column index (0-based) ใน Sheet User
-const CI = { empId:2, name:31, nick:6, wh:1, role:15 };
-// Col AF (index 31) = ชื่อเซลล์ มี "คุณ" นำหน้าอยู่แล้ว ใช้เป็น sellerName โดยตรง
+// Product master list
+const PRODUCT_SHEET_ID = '1XBoIAk5_4C18k5Iln1Pn0qPHi-Os4T5dauu03Fs0UjI';
+const PRODUCT_GID      = '789206653';
+const PRODUCT_SHEET_NAME = 'Product';
 
-const csvUrl = s =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(s)}`;
+// Sales data
+const SALES_SHEET_ID = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
+const SALES_GID      = '429808572';
 
-let currentUser = null;
-let allProducts = [];
-let soldMap = {};    // sellerName → Set of sold products
-let salesAgg = {};   // product → { cs, baht, sellers }
-let allSellers = [];
-let selView = null;  // currently viewed seller (managers)
+const SESSION_KEY = 'rtn_unsold_v41';
+const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-/* ── HELPERS ── */
-const $ = id => document.getElementById(id);
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let currentUser    = null;   // { name, email, role, sellerName, picture }
+let allProducts    = [];     // master product names
+let salesByProduct = {};     // productName -> { totalBaht, sellers, sellerBaht, catBU, catType, catBrand }
+let myProducts     = new Set();  // products current seller HAS sold
+let allSellers     = [];     // sorted list of all seller names in sales data
+let categoryOptions = [];    // Cat_BU unique values
+let selectedSeller = null;   // null = show current user's data; string = specific seller
+let dataMonth      = '';     // label like "พฤษภาคม 2026"
 
-function showSpinner(msg = 'กำลังโหลด…') {
-  $('spinnerMsg').textContent = msg;
-  $('spinnerOverlay').classList.add('show');
+/* ═══════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════ */
+function decodeJwtPayload(token) {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    return JSON.parse(decodeURIComponent(
+      atob(b64).split('').map(c => '%' + ('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    ));
+  } catch { return {}; }
 }
-function hideSpinner() { $('spinnerOverlay').classList.remove('show'); }
 
-function showToast(msg, type = 'info') {
+function normalizeEmail(e) { return (e||'').toLowerCase().trim(); }
+
+function stripKhun(name) {
+  return (name||'').replace(/^คุณ[\s]+/, '').trim();
+}
+
+function fmtBaht(n) {
+  if (!n || isNaN(n)) return '฿0';
+  n = Number(n);
+  if (n >= 1000000) return '฿' + (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1000)    return '฿' + Math.round(n/1000) + 'K';
+  return '฿' + Math.round(n).toLocaleString('th-TH');
+}
+
+function fmtNum(n) { return (n||0).toLocaleString('th-TH'); }
+
+function thMonth(m) {
+  const months = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return months[m] || '';
+}
+
+/* RFC-4180 CSV parser (handles Thai, quotes, newlines) */
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false, i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i += 2; continue; }
+        inQ = false;
+      } else { field += c; }
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else { field += c; }
+    }
+    i++;
+  }
+  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.length > 0);
+}
+
+function csvToObjects(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1)
+    .filter(r => r.some(c => c.trim()))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (r[i] || '').trim(); });
+      return obj;
+    });
+}
+
+function gvizUrl(sheetId, opts = {}) {
+  let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+  if (opts.gid)   url += `&gid=${opts.gid}`;
+  if (opts.sheet) url += `&sheet=${encodeURIComponent(opts.sheet)}`;
+  if (opts.range) url += `&range=${opts.range}`;
+  return url;
+}
+
+async function fetchCSV(url) {
+  const res  = await fetch(url);
+  const text = await res.text();
+  if (!res.ok || text.trim().startsWith('<')) {
+    throw new Error('ไม่สามารถอ่านข้อมูลได้ (ต้องเผยแพร่ชีตหรือเข้าสู่ระบบ Google)');
+  }
+  return text;
+}
+
+/* ═══════════════════════════════════════════
+   TOAST + SPINNER
+═══════════════════════════════════════════ */
+function toast(msg, type = 'info', dur = 3500) {
   const t = document.createElement('div');
   t.className = `toast toast-${type}`;
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  setTimeout(() => t.remove(), dur);
 }
 
-function toggleDark() {
-  document.body.classList.toggle('dark');
-  const d = document.body.classList.contains('dark');
-  $('darkBtn').textContent = d ? '☀️' : '🌙';
-  localStorage.setItem('rtn_dark', d ? '1' : '0');
+function showSpinner(msg = 'กำลังโหลด…') {
+  document.getElementById('spinnerMsg').textContent = msg;
+  document.getElementById('spinnerOverlay').classList.add('show');
 }
-if (localStorage.getItem('rtn_dark') === '1') toggleDark();
-
-window.addEventListener('scroll', () => {
-  $('backToTop').classList.toggle('show', window.scrollY > 300);
-});
-
-function fmt(n, d = 0) {
-  return (n || 0).toLocaleString('th-TH', { minimumFractionDigits: d, maximumFractionDigits: d });
+function hideSpinner() {
+  document.getElementById('spinnerOverlay').classList.remove('show');
 }
 
-/* ── CSV PARSER (RFC-4180, handles Thai, quoted newlines) ── */
-function parseCsv(text) {
-  const rows = []; let row = [], f = '', q = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (q) {
-      if (c === '"' && text[i+1] === '"') { f += '"'; i++; }
-      else if (c === '"') q = false;
-      else f += c;
-    } else if (c === '"') q = true;
-    else if (c === ',') { row.push(f.trim()); f = ''; }
-    else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i+1] === '\n') i++;
-      row.push(f.trim());
-      if (row.some(x => x)) rows.push(row);
-      row = []; f = '';
-    } else f += c;
-  }
-  if (f || row.length) { row.push(f.trim()); if (row.some(x => x)) rows.push(row); }
-  return rows;
+/* ═══════════════════════════════════════════
+   SESSION
+═══════════════════════════════════════════ */
+function saveSession(user) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ user, ts: Date.now() }));
 }
-
-async function fetchCsv(sheetName) {
-  const r = await fetch(csvUrl(sheetName));
-  if (!r.ok) throw new Error(`โหลด "${sheetName}" ไม่สำเร็จ (HTTP ${r.status})`);
-  return r.text();
+function loadSession() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (!d) return null;
+    if (Date.now() - d.ts > SESSION_TTL) { localStorage.removeItem(SESSION_KEY); return null; }
+    return d.user;
+  } catch { return null; }
 }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
-/* ── CUSTOM DROPDOWN ── */
-function filterDD(inp, listId) {
-  const q = inp.value.toLowerCase();
-  document.querySelectorAll(`#${listId} li`).forEach(li => {
-    li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+/* ═══════════════════════════════════════════
+   GOOGLE AUTH
+═══════════════════════════════════════════ */
+function initGoogleAuth() {
+  if (!window.google?.accounts?.id) { setTimeout(initGoogleAuth, 400); return; }
+  google.accounts.id.initialize({
+    client_id: AUTH_CONFIG.clientId,
+    callback: handleGoogleLogin,
+    auto_select: false,
+    cancel_on_tap_outside: false
   });
+  google.accounts.id.renderButton(
+    document.getElementById('googleBtnArea'),
+    { theme: 'outline', size: 'large', width: 280, text: 'signin_with', shape: 'rectangular', logo_alignment: 'left' }
+  );
 }
-function toggleDD(wrapId) {
-  const panel = document.querySelector(`#${wrapId} .dd-panel`);
-  const isOpen = panel.style.display === 'flex';
-  document.querySelectorAll('.dd-panel').forEach(x => x.style.display = 'none');
-  panel.style.display = isOpen ? 'none' : 'flex';
-  if (!isOpen) setTimeout(() => panel.querySelector('.dd-search').focus(), 50);
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.dd-wrap'))
-    document.querySelectorAll('.dd-panel').forEach(x => x.style.display = 'none');
-});
 
-/* ── LOGIN ── */
-async function doLogin() {
-  const empId = ($('empIdInput').value || '').trim();
-  if (!empId) { showLoginErr('กรุณาใส่รหัสพนักงาน'); return; }
-  $('loginBtn').disabled = true;
-  $('loginSpinner').style.display = 'block';
-  $('loginError').style.display = 'none';
+async function handleGoogleLogin(response) {
+  const spinner = document.getElementById('loginSpinner');
+  const errEl   = document.getElementById('loginError');
+  spinner.style.display = 'block';
+  errEl.style.display   = 'none';
   try {
-    const rows = parseCsv(await fetchCsv(S_USER));
-    let found = null;
-    for (let i = 1; i < rows.length; i++) {
-      if ((rows[i][CI.empId] || '').trim() === empId) { found = rows[i]; break; }
+    const payload = decodeJwtPayload(response.credential);
+    const email   = normalizeEmail(payload.email || '');
+    if (!email) throw new Error('ไม่พบอีเมลใน Google account');
+
+    // Fetch users sheet
+    const usersUrl  = gvizUrl(AUTH_CONFIG.usersSheetId, { sheet: AUTH_CONFIG.usersSheetName });
+    const usersText = await fetchCSV(usersUrl).catch(e => { throw new Error('โหลดข้อมูลผู้ใช้ไม่ได้: ' + e.message); });
+    const users     = csvToObjects(usersText);
+
+    // Find user by email (search all columns)
+    let userRow = null;
+    for (const u of users) {
+      if (Object.values(u).map(normalizeEmail).includes(email)) { userRow = u; break; }
     }
-    if (!found) { showLoginErr('❌ ไม่พบรหัสพนักงานนี้ในระบบ'); return; }
-    const roleVal = (found[CI.role] || '').trim();
-    if (!roleVal) { showLoginErr('❌ บัญชีนี้ยังไม่ได้รับ User Role'); return; }
-    const fullName = (found[CI.name] || '').trim();
-    const roleNum  = parseInt(roleVal) || 0;
-    currentUser = {
-      empId,
-      name:       fullName,
-      nickname:   (found[CI.nick] || '').trim(),
-      sellerName: fullName, // col AF มี "คุณ" นำหน้าอยู่แล้ว — ใช้ตรงๆ
-      role:       roleNum,
-      warehouse:  (found[CI.wh] || '').trim(),
-      isManager:  roleNum >= MANAGER_ROLE
-    };
-    try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({
-        user: currentUser, expiresAt: Date.now() + SESSION_TTL
-      }));
-    } catch(e) {}
-    enterApp();
-  } catch(e) {
-    showLoginErr('❌ ' + e.message);
-  } finally {
-    $('loginBtn').disabled = false;
-    $('loginSpinner').style.display = 'none';
-  }
-}
+    if (!userRow) throw new Error(`ไม่พบ "${email}" ในระบบ\nกรุณาติดต่อผู้ดูแลระบบ`);
 
-function showLoginErr(msg) {
-  $('loginError').textContent = msg;
-  $('loginError').style.display = 'block';
-}
+    // Extract fields — try common Rattana column names
+    const name       = userRow['ชื่อ - สกุล'] || userRow['ชื่อ'] || userRow['Name'] || email;
+    const roleRaw    = userRow['Role'] || userRow['role'] || userRow['บทบาท'] || userRow['ระดับ'] || '1';
+    const role       = parseInt(roleRaw) || 1;
+    const sellerName = stripKhun(name); // strip "คุณ " prefix for matching Sale NO ROO
 
-function checkSession() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return false;
-    const d = JSON.parse(raw);
-    if (!d?.user || !d?.expiresAt) return false;
-    if (Date.now() > d.expiresAt) { localStorage.removeItem(SESSION_KEY); return false; }
-    currentUser = d.user;
-    enterApp();
-    return true;
-  } catch { return false; }
-}
-
-function enterApp() {
-  const dn = currentUser.nickname || currentUser.name || currentUser.empId;
-  $('uAv').textContent = dn.trim().charAt(0).toUpperCase();
-  $('uNm').textContent = (dn.split(' ')[0] || dn).substring(0, 10);
-  updateHeroHeader();
-  $('loginScreen').style.display = 'none';
-  $('mainApp').style.display = 'block';
-  loadData();
-}
-
-function updateHeroHeader(viewSeller) {
-  if (viewSeller && viewSeller !== currentUser.sellerName) {
-    $('heroHi').textContent  = 'กำลังดูข้อมูลของ:';
-    $('heroName').textContent = viewSeller;
-    $('heroRole').textContent = '⚡ มุมมองผู้จัดการ';
-  } else {
-    $('heroHi').textContent  = 'สวัสดีคุณ 👋';
-    $('heroName').textContent = currentUser.name || currentUser.empId;
-    $('heroRole').textContent = currentUser.isManager
-      ? `⚡ ผู้จัดการ${currentUser.warehouse ? ' · คลัง ' + currentUser.warehouse : ''}`
-      : `🏷️ เซลล์ขาย${currentUser.warehouse ? ' · คลัง ' + currentUser.warehouse : ''}`;
+    currentUser = { name, email, role, sellerName, picture: payload.picture || '' };
+    saveSession(currentUser);
+    spinner.style.display = 'none';
+    showMainApp();
+  } catch (err) {
+    spinner.style.display = 'none';
+    errEl.style.display = 'block';
+    errEl.textContent   = err.message;
   }
 }
 
 function doLogout() {
   if (!confirm('ออกจากระบบ?')) return;
-  localStorage.removeItem(SESSION_KEY);
-  currentUser = null;
-  location.reload();
+  clearSession();
+  currentUser    = null;
+  allProducts    = [];
+  salesByProduct = {};
+  myProducts     = new Set();
+  allSellers     = [];
+  categoryOptions = [];
+  selectedSeller = null;
+  document.getElementById('mainApp').style.display      = 'none';
+  document.getElementById('loginScreen').style.display  = 'flex';
+  document.getElementById('loginError').style.display   = 'none';
+  // Re-render Google button after small delay
+  setTimeout(() => window.google?.accounts?.id?.renderButton(
+    document.getElementById('googleBtnArea'),
+    { theme:'outline', size:'large', width:280, text:'signin_with', shape:'rectangular', logo_alignment:'left' }
+  ), 200);
 }
 
-/* ── LOAD DATA ── */
+/* ═══════════════════════════════════════════
+   LOAD DATA
+═══════════════════════════════════════════ */
 async function loadData() {
-  showSpinner('โหลดรายชื่อสินค้า…');
+  showSpinner('กำลังโหลดข้อมูลยอดขาย…');
+  document.getElementById('productGrid').innerHTML = '';
+
   try {
-    // 1. Products (PDDT sheet, column A)
-    const p = parseCsv(await fetchCsv(S_PDDT));
-    allProducts = [];
-    for (let i = 0; i < p.length; i++) {
-      const n = (p[i][0] || '').trim();
-      if (i === 0 && n.toLowerCase().includes('ชื่อสินค้า')) continue;
-      if (n) allProducts.push(n);
-    }
+    /* 1 — Sales data (primary source) */
+    const salesText    = await fetchCSV(gvizUrl(SALES_SHEET_ID, { gid: SALES_GID }));
+    const allSalesRows = csvToObjects(salesText);
 
-    // 2. Sales data (สินค้ายังไม่ขาย: A=เซลล์, B=สินค้า, C=CS, D=บาท)
-    showSpinner('โหลดยอดขาย…');
-    const s = parseCsv(await fetchCsv(S_UNSOLD));
-    soldMap = {}; salesAgg = {};
-    const sellerSet = new Set();
-    for (let i = 0; i < s.length; i++) {
-      const r      = s[i];
-      const seller = (r[0] || '').trim();
-      const prod   = (r[1] || '').trim();
-      const cs     = parseFloat((r[2] || '').replace(/,/g, '')) || 0;
-      const bt     = parseFloat((r[3] || '').replace(/,/g, '')) || 0;
-      if (!seller || !prod) continue;
-      if (i === 0 && seller.toLowerCase().includes('sale')) continue; // skip header row
-      if (!soldMap[seller]) soldMap[seller] = new Set();
-      soldMap[seller].add(prod);
-      sellerSet.add(seller);
-      if (!salesAgg[prod]) salesAgg[prod] = { cs:0, baht:0, sellers:new Set() };
-      salesAgg[prod].cs   += cs;
-      salesAgg[prod].baht += bt;
-      salesAgg[prod].sellers.add(seller);
-    }
-    allSellers = [...sellerSet].sort((a, b) => a.localeCompare(b, 'th'));
+    if (allSalesRows.length === 0) throw new Error('ไม่พบข้อมูลในชีทยอดขาย');
 
-    // 3. Build seller dropdown for managers
-    if (currentUser?.isManager) {
-      $('sellerBar').style.display = 'block';
-      const list = $('ddSellerList');
-      list.innerHTML = '';
-      // "ดูทุกเซลล์" as null
-      const liAll = document.createElement('li');
-      liAll.textContent = '— ดูทุกเซลล์ —';
-      liAll.onclick = () => selectSeller(null, '— ดูทุกเซลล์ —');
-      list.appendChild(liAll);
-      // Individual sellers
-      allSellers.forEach(sn => {
-        const li = document.createElement('li');
-        li.textContent = sn;
-        li.onclick = () => selectSeller(sn, sn);
-        list.appendChild(li);
-      });
-      // Default: show own data
-      if (currentUser.sellerName && allSellers.includes(currentUser.sellerName)) {
-        selectSeller(currentUser.sellerName, currentUser.sellerName, false);
-      } else {
-        selView = null;
+    /* 2 — Process sales first (builds salesByProduct & allSellers) */
+    processSalesData(allSalesRows);
+
+    /* 3 — Product master list (optional — used to add catalog items not yet in sales) */
+    try {
+      let productText;
+      try {
+        productText = await fetchCSV(gvizUrl(PRODUCT_SHEET_ID, { gid: PRODUCT_GID, range: 'A:A' }));
+      } catch {
+        productText = await fetchCSV(gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME, range: 'A:A' }));
       }
-    } else {
-      selView = currentUser?.sellerName || null;
+      const pRows = parseCSV(productText);
+      // Skip obvious header rows; add products not already in allProducts
+      const existingSet = new Set(allProducts.map(p => p.toLowerCase().trim()));
+      pRows.forEach(r => {
+        const v = (r[0] || '').trim();
+        if (v && !/^(product|สินค้า|รายการ|ชื่อ|name|product_name)/i.test(v)) {
+          if (!existingSet.has(v.toLowerCase().trim())) {
+            allProducts.push(v);
+            existingSet.add(v.toLowerCase().trim());
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('Product sheet skipped:', e.message);
+      // Not fatal — allProducts already populated from sales data
     }
 
+    buildCategoryDropdown();
+    buildSellerDropdown();
+    updateHeroStats();
     render();
     hideSpinner();
-    showToast(`✅ โหลดสำเร็จ — สินค้า ${allProducts.length} รายการ`, 'success');
-  } catch(e) {
+
+    toast(`✅ โหลดสำเร็จ · ยอดขาย ${allSalesRows.length} รายการ · สินค้า ${allProducts.length} ชนิด`, 'success', 3000);
+
+  } catch (e) {
     hideSpinner();
-    $('productGrid').innerHTML = `
-      <div class="error-box">
-        ❌ ${e.message}<br><br>
-        • ตรวจสอบว่า Sheet แชร์เป็น <strong>"ทุกคนที่มีลิงก์ → ดูได้"</strong><br>
-        • ชื่อ Tab: <code>PDDT</code>, <code>สินค้ายังไม่ขาย</code>, <code>User</code><br><br>
-        <button onclick="loadData()">🔄 ลองใหม่</button>
+    document.getElementById('productGrid').innerHTML =
+      `<div class="error-box" style="grid-column:1/-1">
+        ❌ โหลดข้อมูลไม่สำเร็จ: ${e.message}
+        <br><button onclick="loadData()">🔄 ลองใหม่</button>
       </div>`;
+    toast('โหลดข้อมูลไม่ได้', 'error');
   }
 }
 
-function selectSeller(val, label, doRender = true) {
-  selView = val;
-  $('ddSellerLabel').textContent = label;
-  $('ddSellerPanel').style.display = 'none';
-  document.querySelectorAll('#ddSellerList li').forEach(li => {
-    li.classList.toggle('selected', li.textContent === label);
+function processSalesData(rows) {
+  /* ── กรองเดือนปัจจุบัน; fallback → เดือนล่าสุดในข้อมูล ── */
+  const now  = new Date();
+  const curM = now.getMonth() + 1;
+  const curY = now.getFullYear();
+
+  function rowMonth(row) {
+    const parts = (row['Doc_Date'] || '').split('/');
+    if (parts.length === 3) return { m: parseInt(parts[1]), y: parseInt(parts[2]) };
+    return null;
+  }
+
+  let filtered = rows.filter(r => { const d = rowMonth(r); return d && d.m === curM && d.y === curY; });
+
+  if (filtered.length === 0) {
+    // Use most-recent month in data
+    let maxY = 0, maxM = 0;
+    rows.forEach(r => {
+      const d = rowMonth(r);
+      if (d && (d.y > maxY || (d.y === maxY && d.m > maxM))) { maxY = d.y; maxM = d.m; }
+    });
+    filtered  = maxY > 0 ? rows.filter(r => { const d = rowMonth(r); return d && d.m === maxM && d.y === maxY; }) : rows;
+    dataMonth = maxM > 0 ? `${thMonth(maxM)} ${maxY}` : 'ทั้งหมด';
+  } else {
+    dataMonth = `${thMonth(curM)} ${curY}`;
+  }
+
+  document.getElementById('monthLabel').textContent = 'ข้อมูล ' + dataMonth;
+  document.getElementById('monthBadge').style.display = 'flex';
+
+  /* ── สร้าง salesByProduct จาก filtered rows ── */
+  salesByProduct = {};
+  for (const row of filtered) {
+    const prod    = (row['Product_Name'] || '').trim();
+    if (!prod) continue;
+    // Sale NO ROO = ชื่อเซลล์ (ไม่มี "คุณ" แล้ว); strip ป้องกันกรณีมี prefix เหลือ
+    const seller  = stripKhun((row['Sale NO ROO'] || '').trim());
+    const baht    = parseFloat((row['TotalBaht'] || '0').replace(/,/g, '')) || 0;
+    const catBU   = (row['Cat_BU']    || '').trim();
+    const catType = (row['Cat_Type']  || '').trim();
+    const catBrand= (row['Cat_Brand'] || '').trim();
+
+    if (!salesByProduct[prod]) {
+      salesByProduct[prod] = { totalBaht: 0, sellers: new Set(), sellerBaht: {}, catBU: new Set(), catType: new Set(), catBrand: new Set() };
+    }
+    salesByProduct[prod].totalBaht += baht;
+    if (seller) salesByProduct[prod].sellers.add(seller);
+    salesByProduct[prod].sellerBaht[seller] = (salesByProduct[prod].sellerBaht[seller] || 0) + baht;
+    if (catBU)    salesByProduct[prod].catBU.add(catBU);
+    if (catType)  salesByProduct[prod].catType.add(catType);
+    if (catBrand) salesByProduct[prod].catBrand.add(catBrand);
+  }
+
+  /* ── allProducts = ชื่อสินค้าจาก Sales data (ตรงกัน 100%) ── */
+  allProducts = Object.keys(salesByProduct);
+
+  /* ── Category options (Cat_BU) ── */
+  const buSet = new Set();
+  Object.values(salesByProduct).forEach(d => d.catBU.forEach(c => buSet.add(c)));
+  categoryOptions = [...buSet].filter(Boolean).sort();
+
+  /* ── All sellers ── */
+  const selSet = new Set();
+  Object.values(salesByProduct).forEach(d => d.sellers.forEach(s => { if (s) selSet.add(s); }));
+  allSellers = [...selSet].sort((a, b) => a.localeCompare(b, 'th'));
+
+  computeMyProducts();
+}
+
+function computeMyProducts() {
+  const seller = selectedSeller ?? currentUser?.sellerName ?? '';
+  myProducts = new Set();
+  for (const [prod, data] of Object.entries(salesByProduct)) {
+    if (data.sellers.has(seller)) myProducts.add(prod);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CATEGORY DROPDOWN
+═══════════════════════════════════════════ */
+function buildCategoryDropdown() {
+  const sel = document.getElementById('catFilter');
+  // Keep first option (ทุกหมวด), rebuild rest
+  sel.innerHTML = '<option value="">📦 ทุกหมวด</option>';
+  categoryOptions.forEach(c => {
+    const o = document.createElement('option');
+    o.value = o.textContent = c;
+    sel.appendChild(o);
   });
-  if (doRender) {
-    updateHeroHeader(val);
+}
+
+/* ═══════════════════════════════════════════
+   SELLER DROPDOWN (role >= 3)
+═══════════════════════════════════════════ */
+function buildSellerDropdown() {
+  const bar = document.getElementById('sellerBar');
+  if (!currentUser || currentUser.role < 3) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+
+  const list = document.getElementById('ddSellerList');
+  list.innerHTML = '';
+
+  // "ดูของฉัน" option
+  addSellerOption(list, null, `— ดูของฉัน (${currentUser.sellerName}) —`, selectedSeller === null);
+  // All sellers from sales data
+  allSellers.forEach(name => addSellerOption(list, name, name, selectedSeller === name));
+}
+
+function addSellerOption(list, value, label, isSelected) {
+  const li = document.createElement('li');
+  li.textContent = label;
+  if (isSelected) li.classList.add('selected');
+  li.onclick = () => {
+    selectedSeller = value;
+    document.getElementById('ddSellerLabel').textContent = label;
+    document.getElementById('ddSellerPanel').style.display = 'none';
+    // Update selected highlight
+    list.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
+    li.classList.add('selected');
+    computeMyProducts();
+    updateHeroStats();
     render();
-  }
+  };
+  list.appendChild(li);
 }
 
-async function refreshData() {
-  const btn = $('refreshBtn');
-  btn.style.transform = 'rotate(360deg)';
-  btn.style.transition = 'transform .6s';
-  btn.disabled = true;
-  allProducts = []; soldMap = {}; salesAgg = [];
-  await loadData();
-  btn.disabled = false;
-  setTimeout(() => { btn.style.transform = ''; btn.style.transition = ''; }, 700);
+function toggleDD(id) {
+  const panel = document.getElementById(id + 'Panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
 }
 
-/* ── STAR SYSTEM (based on total baht, top percentile) ── */
-function getStars(prod) {
-  const a = salesAgg[prod];
-  if (!a || a.baht <= 0) return { stars:'', tier:0 };
-  const allBaht = Object.values(salesAgg)
-    .filter(x => x.baht > 0).map(x => x.baht).sort((a, b) => b - a);
-  if (!allBaht.length) return { stars:'', tier:0 };
-  const pct = allBaht.findIndex(v => v <= a.baht) / allBaht.length;
-  if (pct < 0.2) return { stars:'🌟🌟🌟', tier:1 };
-  if (pct < 0.4) return { stars:'🌟🌟',   tier:2 };
-  if (pct < 0.6) return { stars:'🌟',      tier:3 };
-  return { stars:'', tier:0 };
+function filterDD(input, listId) {
+  const q = input.value.toLowerCase();
+  document.getElementById(listId).querySelectorAll('li').forEach(li => {
+    li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
 }
 
-/* ── RENDER ── */
+/* ═══════════════════════════════════════════
+   HERO STATS
+═══════════════════════════════════════════ */
+function updateHeroStats() {
+  // allProducts = keys of salesByProduct → all are valid
+  const total  = allProducts.length;
+  const sold   = allProducts.filter(p => myProducts.has(p)).length;
+  const unsold = total - sold;
+
+  document.getElementById('stTotal').textContent  = fmtNum(total);
+  document.getElementById('stUnsold').textContent = fmtNum(unsold);
+  document.getElementById('stSold').textContent   = fmtNum(sold);
+
+  const displayName = selectedSeller
+    ? `คุณ${selectedSeller} (ดูแทน)`
+    : (currentUser?.name || '');
+
+  document.getElementById('heroHi').textContent   = 'สวัสดี 👋';
+  document.getElementById('heroName').textContent = displayName;
+
+  const sellerLabel = selectedSeller || currentUser?.sellerName || '-';
+  document.getElementById('heroRole').textContent =
+    `Role ${currentUser?.role || '-'} · เซลล์: ${sellerLabel} · ${dataMonth}`;
+}
+
+/* ═══════════════════════════════════════════
+   STAR TIER
+═══════════════════════════════════════════ */
+function getStarTier(totalBaht, sortedBahtDesc) {
+  if (!sortedBahtDesc.length) return 0;
+  const idx = sortedBahtDesc.indexOf(totalBaht);
+  if (idx < 0) return 0;
+  const pct = (idx + 1) / sortedBahtDesc.length;
+  if (pct <= 0.20) return 3;
+  if (pct <= 0.40) return 2;
+  if (pct <= 0.60) return 1;
+  return 0;
+}
+
+/* ═══════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════ */
 function render() {
-  if (!currentUser) return;
-  const q      = ($('srch').value || '').trim().toLowerCase();
-  const sb     = $('fsort').value;
-  const seller = selView || currentUser.sellerName;
-  const sold   = soldMap[seller] || new Set();
+  const srch    = (document.getElementById('srch')?.value || '').toLowerCase().trim();
+  const catVal  = document.getElementById('catFilter')?.value || '';
+  const sortVal = document.getElementById('fsort')?.value || 'pop';
 
-  // Unsold = all products minus what this seller sold
-  let unsold = allProducts.filter(p => !sold.has(p));
-  if (q) unsold = unsold.filter(p => p.toLowerCase().includes(q));
+  // allProducts = Object.keys(salesByProduct) → every prod has sales data
+  // Show: products others have sold that current user/seller hasn't sold yet
+  let products = allProducts.filter(prod => {
+    if (myProducts.has(prod)) return false;            // I already sold it
+    if (catVal && !salesByProduct[prod].catBU.has(catVal)) return false; // category filter
+    if (srch && !prod.toLowerCase().includes(srch)) return false;        // search filter
+    return true;
+  });
 
   // Sort
-  if (sb === 'pop')
-    unsold.sort((a, b) => (salesAgg[b]?.baht || 0) - (salesAgg[a]?.baht || 0));
-  else if (sb === 'sellers')
-    unsold.sort((a, b) => (salesAgg[b]?.sellers.size || 0) - (salesAgg[a]?.sellers.size || 0));
-  else if (sb === 'name')
-    unsold.sort((a, b) => a.localeCompare(b, 'th'));
-  else if (sb === 'none')
-    unsold = unsold.filter(p => !salesAgg[p] || salesAgg[p].baht <= 0);
-
-  // Stats
-  const tot = allProducts.length;
-  const sc  = sold.size;
-  $('stTotal').textContent  = fmt(tot);
-  $('stUnsold').textContent = fmt(tot - sc);
-  $('stSold').textContent   = fmt(sc);
-  $('resultCnt').textContent = `${unsold.length} สินค้า`;
-
-  // Hot note
-  const hotCnt = unsold.filter(p => salesAgg[p]?.sellers.size > 0).length;
-  $('hotNote').innerHTML = hotCnt > 0
-    ? `💡 มี <strong>${hotCnt}</strong> สินค้าที่เซลล์คนอื่นขายได้แล้ว แต่ <strong>${seller}</strong> ยังไม่ขายเลย!`
-    : '';
-
-  // Legend visibility
-  $('legBox').style.display = unsold.some(p => getStars(p).tier > 0) ? '' : 'none';
-
-  // Hero
-  updateHeroHeader(selView !== currentUser.sellerName ? selView : null);
-
-  // Grid
-  const grid = $('productGrid');
-  if (!allProducts.length) {
-    grid.innerHTML = `<div class="empty-state">
-      <div class="ei">📭</div>
-      <div class="et">ยังไม่มีข้อมูล</div>
-      <div class="es">กด 🔄 เพื่อโหลดข้อมูลใหม่</div>
-    </div>`;
-    return;
+  if (sortVal === 'pop') {
+    products.sort((a, b) => (salesByProduct[b]?.totalBaht || 0) - (salesByProduct[a]?.totalBaht || 0));
+  } else if (sortVal === 'sellers') {
+    products.sort((a, b) => (salesByProduct[b]?.sellers?.size || 0) - (salesByProduct[a]?.sellers?.size || 0));
+  } else if (sortVal === 'name') {
+    products.sort((a, b) => a.localeCompare(b, 'th'));
   }
-  if (!unsold.length) {
-    const msgMap = {
-      none: `<div class="empty-state"><div class="ei">🟢</div><div class="et">ไม่มีสินค้าที่ยังไม่มีใครขาย</div><div class="es">ทุกสินค้ามีเซลล์อื่นขายแล้ว</div></div>`,
-      default: `<div class="empty-state"><div class="ei">🎉🏆🎊</div><div class="et">ขายครบทุกสินค้าแล้ว!</div><div class="es">เก่งมากคร้าบ 🎖️</div></div>`
-    };
-    grid.innerHTML = q
-      ? `<div class="empty-state"><div class="ei">🔍</div><div class="et">ไม่พบ "${q}"</div><div class="es">ลองเปลี่ยนคำค้นหา</div></div>`
-      : (sb === 'none' ? msgMap.none : msgMap.default);
+
+  // All baht values for tier calculation (sorted desc)
+  const allBahtDesc = products
+    .map(p => salesByProduct[p]?.totalBaht || 0)
+    .sort((a, b) => b - a);
+
+  document.getElementById('resultCnt').textContent = `${products.length} รายการ`;
+  document.getElementById('legBox').style.display = products.length > 0 ? 'block' : 'none';
+
+  const grid = document.getElementById('productGrid');
+
+  if (products.length === 0) {
+    const sellerLabel = selectedSeller || currentUser?.sellerName || '';
+    const noCat = catVal ? ` ในหมวด "${catVal}"` : '';
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="ei">🎉</div>
+        <div class="et">ยอดเยี่ยม!</div>
+        <div class="es">ไม่มีสินค้าที่เพื่อนขายแต่คุณยังไม่ขาย${noCat}<br>
+          ${srch ? `(ผลการค้นหา "${srch}")` : 'หรือลองเปลี่ยนตัวกรอง'}
+        </div>
+      </div>`;
     return;
   }
 
+  // Render cards
   grid.innerHTML = '';
-  unsold.forEach((p, i) => {
-    const a = salesAgg[p];
-    const { stars, tier } = getStars(p);
-    const rank = i + 1;
-    const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉'
-      : `<span style="font-size:14px">${rank}</span>`;
-    const sc2    = a ? a.sellers.size : 0;
-    const hotTag = sc2 > 0
-      ? `<span class="phot">🔥 ${sc2} เซลล์ขายแล้ว!</span>` : '';
-    const metaHtml = sc2 > 0
-      ? `<div class="pvol">${sc2} คน</div><div class="psl">ขายแล้ว</div>`
-      : `<div class="pno">ยังไม่มี<br>ใครขาย</div>`;
-    const detailHtml = a && a.baht > 0
-      ? `💰 ฿${fmt(a.baht)} · 📦 ${fmt(a.cs, 2)} ลัง`
-      : 'ยังไม่มียอดจากเซลล์อื่น';
+  products.forEach((prod, i) => {
+    const data = salesByProduct[prod];
+    const tier = getStarTier(data.totalBaht, allBahtDesc);
+    const stars = '🌟'.repeat(tier);
+    const tierClass = ['t0','t3','t2','t1'][tier] || 't0';
+    const catLabels = [...data.catBU].slice(0,2).join(', ') || '-';
+    const sellerCount = data.sellers.size;
 
     const card = document.createElement('div');
-    card.className = `pcard t${tier}`;
+    card.className = `pcard ${tierClass}`;
     card.innerHTML = `
       <div class="pcard-body">
-        <div class="prank">${rankLabel}</div>
+        <div class="prank">${i + 1}</div>
         <div class="pinfo">
-          <div class="pname">${p}${hotTag}</div>
-          ${stars ? `<div class="pstars">${stars}</div>` : ''}
-          <div class="pdetail">${detailHtml}</div>
+          <div class="pname">${escHtml(prod)}</div>
+          <div class="pstars">${stars || '—'}${tier === 3 ? '<span class="phot">HOT</span>' : ''}</div>
+          <div class="pdetail">👥 ${sellerCount} เซลล์ขาย · ${escHtml(catLabels)}</div>
         </div>
-        <div class="pmeta">${metaHtml}</div>
+        <div class="pmeta">
+          <div class="pvol">${fmtBaht(data.totalBaht)}</div>
+          <div class="psl">ยอดรวมทุกเซลล์</div>
+          <div class="pno">ยังไม่ขาย</div>
+        </div>
       </div>`;
     grid.appendChild(card);
   });
 }
 
-/* ── INIT ── */
-if (!checkSession()) {
-  $('loginScreen').style.display = 'flex';
-  setTimeout(() => $('empIdInput').focus(), 300);
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+/* ═══════════════════════════════════════════
+   UI ACTIONS
+═══════════════════════════════════════════ */
+function toggleDark() {
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  document.getElementById('darkBtn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('rtn_dark', isDark ? '1' : '0');
+}
+
+function refreshData() {
+  allProducts    = [];
+  salesByProduct = {};
+  myProducts     = new Set();
+  allSellers     = [];
+  categoryOptions = [];
+  selectedSeller = null;
+  document.getElementById('ddSellerLabel').textContent = '— ดูของฉัน —';
+  loadData();
+}
+
+/* ═══════════════════════════════════════════
+   SHOW MAIN APP
+═══════════════════════════════════════════ */
+function showMainApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display     = 'block';
+
+  const u = currentUser;
+
+  // Avatar: use Google picture or initial
+  const avEl = document.getElementById('uAv');
+  if (u.picture) {
+    avEl.innerHTML = `<img src="${u.picture}" alt="">`;
+  } else {
+    avEl.textContent = stripKhun(u.name).charAt(0).toUpperCase() || '?';
+  }
+  document.getElementById('uNm').textContent = stripKhun(u.name).split(' ')[0] || u.name;
+
+  // Hero placeholder while loading
+  document.getElementById('heroName').textContent = u.name;
+  document.getElementById('heroRole').textContent = `Role ${u.role} · กำลังโหลด…`;
+
+  loadData();
+}
+
+/* ═══════════════════════════════════════════
+   BACK TO TOP
+═══════════════════════════════════════════ */
+window.addEventListener('scroll', () => {
+  document.getElementById('backToTop').classList.toggle('show', window.scrollY > 300);
+});
+
+/* ═══════════════════════════════════════════
+   STARTUP
+═══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore dark mode
+  if (localStorage.getItem('rtn_dark') === '1') {
+    document.body.classList.add('dark');
+    document.getElementById('darkBtn').textContent = '☀️';
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.dd-wrap')) {
+      document.querySelectorAll('.dd-panel').forEach(p => { p.style.display = 'none'; });
+    }
+  });
+
+  // Check saved session
+  const saved = loadSession();
+  if (saved) {
+    currentUser = saved;
+    showMainApp();
+    return;
+  }
+
+  // No session → show login + init Google
+  document.getElementById('loginScreen').style.display = 'flex';
+  initGoogleAuth();
+});
 </script>
 </body>
 </html>
