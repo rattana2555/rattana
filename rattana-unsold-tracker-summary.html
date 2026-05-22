@@ -496,7 +496,7 @@ async function handleGoogleLogin(response) {
 
     // Extract fields — try common Rattana column names
     const name       = userRow['ชื่อ - สกุล'] || userRow['ชื่อ'] || userRow['Name'] || email;
-    const roleRaw    = userRow['Role'] || userRow['role'] || userRow['บทบาท'] || userRow['ระดับ'] || '1';
+    const roleRaw    = userRow['User Role'] || userRow['Role'] || userRow['role'] || userRow['บทบาท'] || userRow['ระดับ'] || '1';
     const role       = parseInt(roleRaw) || 1;
     const sellerName = stripKhun(name); // strip "คุณ " prefix for matching Sale NO ROO
 
@@ -535,43 +535,40 @@ function doLogout() {
    LOAD DATA
 ═══════════════════════════════════════════ */
 async function loadData() {
-  showSpinner('กำลังโหลดข้อมูลยอดขาย…');
+  showSpinner('กำลังโหลดรายการสินค้า…');
   document.getElementById('productGrid').innerHTML = '';
 
   try {
-    /* 1 — Sales data (primary source) */
+    /* 1 ── Product master list (PRIMARY — 12,000+ items) */
+    allProducts = [];
+    const productUrls = [
+      gvizUrl(PRODUCT_SHEET_ID, { gid: PRODUCT_GID, range: 'A:A' }),
+      gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME, range: 'A:A' }),
+      `https://docs.google.com/spreadsheets/d/${PRODUCT_SHEET_ID}/export?format=csv&gid=${PRODUCT_GID}`,
+    ];
+    let productLoaded = false;
+    for (const url of productUrls) {
+      try {
+        const txt  = await fetchCSV(url);
+        const rows = parseCSV(txt);
+        const names = rows
+          .map(r => (r[0] || '').trim())
+          .filter(v => v && !/^(product|สินค้า|รายการ|ชื่อ|name|product_name)/i.test(v));
+        if (names.length > 50) { allProducts = names; productLoaded = true; break; }
+      } catch { continue; }
+    }
+    if (!productLoaded) {
+      toast('⚠️ โหลดรายการสินค้าไม่ได้ — จะใช้ชื่อจากยอดขายแทน (กรุณาแชร์ชีทสินค้าเป็น "ทุกคนดูได้")', 'info', 8000);
+    }
+
+    /* 2 ── Sales data */
+    showSpinner('กำลังโหลดข้อมูลยอดขาย…');
     const salesText    = await fetchCSV(gvizUrl(SALES_SHEET_ID, { gid: SALES_GID }));
     const allSalesRows = csvToObjects(salesText);
-
     if (allSalesRows.length === 0) throw new Error('ไม่พบข้อมูลในชีทยอดขาย');
 
-    /* 2 — Process sales first (builds salesByProduct & allSellers) */
-    processSalesData(allSalesRows);
-
-    /* 3 — Product master list (optional — used to add catalog items not yet in sales) */
-    try {
-      let productText;
-      try {
-        productText = await fetchCSV(gvizUrl(PRODUCT_SHEET_ID, { gid: PRODUCT_GID, range: 'A:A' }));
-      } catch {
-        productText = await fetchCSV(gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME, range: 'A:A' }));
-      }
-      const pRows = parseCSV(productText);
-      // Skip obvious header rows; add products not already in allProducts
-      const existingSet = new Set(allProducts.map(p => p.toLowerCase().trim()));
-      pRows.forEach(r => {
-        const v = (r[0] || '').trim();
-        if (v && !/^(product|สินค้า|รายการ|ชื่อ|name|product_name)/i.test(v)) {
-          if (!existingSet.has(v.toLowerCase().trim())) {
-            allProducts.push(v);
-            existingSet.add(v.toLowerCase().trim());
-          }
-        }
-      });
-    } catch (e) {
-      console.warn('Product sheet skipped:', e.message);
-      // Not fatal — allProducts already populated from sales data
-    }
+    /* 3 ── Process */
+    processSalesData(allSalesRows, productLoaded);
 
     buildCategoryDropdown();
     buildSellerDropdown();
@@ -579,7 +576,7 @@ async function loadData() {
     render();
     hideSpinner();
 
-    toast(`✅ โหลดสำเร็จ · ยอดขาย ${allSalesRows.length} รายการ · สินค้า ${allProducts.length} ชนิด`, 'success', 3000);
+    toast(`✅ โหลดสำเร็จ · สินค้า ${allProducts.length} ชนิด · ยอดขาย ${allSalesRows.length} รายการ`, 'success', 3500);
 
   } catch (e) {
     hideSpinner();
@@ -592,7 +589,7 @@ async function loadData() {
   }
 }
 
-function processSalesData(rows) {
+function processSalesData(rows, hasProductList = false) {
   /* ── กรองเดือนปัจจุบัน; fallback → เดือนล่าสุดในข้อมูล ── */
   const now  = new Date();
   const curM = now.getMonth() + 1;
@@ -645,8 +642,11 @@ function processSalesData(rows) {
     if (catBrand) salesByProduct[prod].catBrand.add(catBrand);
   }
 
-  /* ── allProducts = ชื่อสินค้าจาก Sales data (ตรงกัน 100%) ── */
-  allProducts = Object.keys(salesByProduct);
+  /* ── allProducts: ใช้ Product sheet ถ้าโหลดได้, fallback → Sales data ── */
+  if (!hasProductList) {
+    allProducts = Object.keys(salesByProduct);
+  }
+  // (ถ้า hasProductList = true, allProducts ถูก set ไว้แล้วใน loadData)
 
   /* ── Category options (Cat_BU) ── */
   const buSet = new Set();
@@ -735,7 +735,9 @@ function filterDD(input, listId) {
    HERO STATS
 ═══════════════════════════════════════════ */
 function updateHeroStats() {
-  // allProducts = keys of salesByProduct → all are valid
+  // total = Product sheet count (or sales count if fallback)
+  // sold  = products I've sold (in myProducts)
+  // unsold = everything else
   const total  = allProducts.length;
   const sold   = allProducts.filter(p => myProducts.has(p)).length;
   const unsold = total - sold;
@@ -778,12 +780,15 @@ function render() {
   const catVal  = document.getElementById('catFilter')?.value || '';
   const sortVal = document.getElementById('fsort')?.value || 'pop';
 
-  // allProducts = Object.keys(salesByProduct) → every prod has sales data
-  // Show: products others have sold that current user/seller hasn't sold yet
+  // Show: products I haven't sold yet (sorted by how much others sold)
+  // allProducts may include items from Product sheet not in salesByProduct (no sales yet)
   let products = allProducts.filter(prod => {
-    if (myProducts.has(prod)) return false;            // I already sold it
-    if (catVal && !salesByProduct[prod].catBU.has(catVal)) return false; // category filter
-    if (srch && !prod.toLowerCase().includes(srch)) return false;        // search filter
+    if (myProducts.has(prod)) return false;            // I already sold it → hide
+    const sp = salesByProduct[prod];
+    if (catVal) {
+      if (!sp || !sp.catBU.has(catVal)) return false;  // category filter
+    }
+    if (srch && !prod.toLowerCase().includes(srch)) return false; // search filter
     return true;
   });
 
@@ -823,7 +828,7 @@ function render() {
   // Render cards
   grid.innerHTML = '';
   products.forEach((prod, i) => {
-    const data = salesByProduct[prod];
+    const data = salesByProduct[prod] || { totalBaht: 0, sellers: new Set(), catBU: new Set() };
     const tier = getStarTier(data.totalBaht, allBahtDesc);
     const stars = '🌟'.repeat(tier);
     const tierClass = ['t0','t3','t2','t1'][tier] || 't0';
