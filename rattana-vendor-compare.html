@@ -457,7 +457,7 @@ function renderVendorList(){const ul=$('vendorList');if(!VENDORS.length){ul.inne
 function filterVendorList(q){const ql=q.toLowerCase();document.querySelectorAll('#vendorList li').forEach(li=>{const name=(li.querySelector('.vname')?.textContent||'').toLowerCase();li.style.display=name.includes(ql)?'':'none';});}
 function toggleVendorDD(){const p=$('vendorPanel');const open=p.classList.contains('open');document.querySelectorAll('.dd-panel').forEach(x=>x.classList.remove('open'));if(!open){p.classList.add('open');setTimeout(()=>$('vendorSearch').focus(),50);}}
 document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-panel').forEach(p=>p.classList.remove('open'));});
-async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;await loadVendorData();}
+async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};await loadVendorData();}
 async function loadVendorData(){
   if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
   try{const ck='bq_sales_'+SELECTED_VENDOR;let bq=cacheGet(ck);if(!bq){bq=await bqCall('sales',{vendor:SELECTED_VENDOR,months:6});bq=bq.map(r=>({month_year:r.month_year,cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht),wh:(r.wh||r.WH||'').trim().toUpperCase()}));cacheSet(ck,bq);}BQ_SALES_ROWS=bq;renderAll();showToast('โหลดเรียบร้อย','success');}
@@ -505,18 +505,18 @@ function renderLineChart(){
   const WHs=['W1','W2','W3','W4'];
   const WHColors={W1:'#C9A84C',W2:'#3498DB',W3:'#E74C3C',W4:'#27AE60'};
 
-  // BQ history: CS per WH per month
+  // BQ history: EXVat per WH per month
   const byMonthWH={};
   historyLabels.forEach(l=>{byMonthWH[l]={};WHs.forEach(w=>byMonthWH[l][w]=0);});
   BQ_SALES_ROWS.forEach(r=>{
     const wh=(r.wh||'').toUpperCase().trim();
-    if(byMonthWH[r.month_year]&&WHs.includes(wh))byMonthWH[r.month_year][wh]+=r.sales_cs;
+    if(byMonthWH[r.month_year]&&WHs.includes(wh))byMonthWH[r.month_year][wh]+=r.exvat;
   });
 
-  // BP current month: CS per WS
+  // BP current month: EXVat per WS
   const bp=vendorBpRows();
   const curWH={};WHs.forEach(w=>curWH[w]=0);
-  bp.forEach(r=>{const ws=(r.ws||'').toUpperCase().trim();if(WHs.includes(ws))curWH[ws]+=r.sales_cs;});
+  bp.forEach(r=>{const ws=(r.ws||'').toUpperCase().trim();if(WHs.includes(ws))curWH[ws]+=r.exvat;});
 
   const allM=[...historyLabels,currentLabel];
   const n=allM.length;
@@ -529,7 +529,8 @@ function renderLineChart(){
   const yv=v=>PT+cH-(v/maxVal)*cH;
 
   const grids=[0,0.25,0.5,0.75,1].map(r=>{const y=(PT+cH-r*cH).toFixed(1);return`<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;}).join('');
-  const ylabels=[0,0.5,1].map(r=>`<text x="${PL-6}" y="${(PT+cH-r*cH+4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${fmtInt(maxVal*r)}</text>`).join('');
+  const fmtAx=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':fmtInt(v);
+  const ylabels=[0,0.5,1].map(r=>`<text x="${PL-6}" y="${(PT+cH-r*cH+4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${fmtAx(maxVal*r)}</text>`).join('');
   const xLabels=allM.map((m,i)=>{
     const x=xp(i).toFixed(1),isCur=i===n-1;
     const label=m.split('/')[1]+'/'+m.split('/')[0].substring(2);
@@ -545,7 +546,7 @@ function renderLineChart(){
   $('lineChartWrap').innerHTML=`
     <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
       ${grids}${ylabels}
-      <text x="${PL-6}" y="${PT-6}" text-anchor="end" font-size="9" fill="var(--muted)" font-weight="600">CS</text>
+      <text x="${PL-6}" y="${PT-6}" text-anchor="end" font-size="9" fill="var(--muted)" font-weight="600">฿</text>
       ${xLabels}${paths}
     </svg>
   `;
@@ -556,6 +557,7 @@ function renderLineChart(){
 /* ══ DRILL DOWN ══ */
 const PAGE_SIZE = 20;
 let DRILL_PAGE = 0;
+let EXPANDED = {}; // accordion: {brandName:bool, 'brand::pack':bool}
 
 function toggleMonthCols(){
   MONTHS_EXPANDED=!MONTHS_EXPANDED;
@@ -563,127 +565,107 @@ function toggleMonthCols(){
   $('toggleMonths').textContent=MONTHS_EXPANDED?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';
 }
 
-function renderDrill(){
-  const{historyLabels}=getPeriodLabels();
-  const bp=vendorBpRows(),bq=BQ_SALES_ROWS;
-  let groupKey,headerLabel,nextLevel;
-  const fm=r=>{if(DRILL.level==='pack'||DRILL.level==='product'){if((r.cat_brand||'')!==(DRILL.brand||''))return false;}if(DRILL.level==='product'){if((r.cat_pack||'')!==(DRILL.pack||''))return false;}return true;};
-  if(DRILL.level==='brand'){groupKey='cat_brand';headerLabel='Cat Brand';nextLevel='pack';}
-  else if(DRILL.level==='pack'){groupKey='cat_pack';headerLabel='Cat Pack';nextLevel='product';}
-  else if(DRILL.level==='all_products'){groupKey='product_name';headerLabel='สินค้า';nextLevel=null;}
-  else{groupKey='product_name';headerLabel='สินค้า';nextLevel=null;}
-
+/* ── helpers ── */
+function _buildAgg(bqRows,bpRows,key){
   const agg={};
-  bq.filter(fm).forEach(r=>{
-    const k=r[groupKey]||'(ไม่ระบุ)';
-    if(!agg[k])agg[k]={name:k,months:{},bqCS:0,bqEX:0,bpCS:0,bpEX:0};
-    const m=r.month_year;
-    if(!agg[k].months[m])agg[k].months[m]={cs:0,ex:0};
-    agg[k].months[m].cs+=r.sales_cs;agg[k].months[m].ex+=r.exvat;
-    agg[k].bqCS+=r.sales_cs;agg[k].bqEX+=r.exvat;
-  });
-  bp.filter(fm).forEach(r=>{
-    const k=r[groupKey]||'(ไม่ระบุ)';
-    if(!agg[k])agg[k]={name:k,months:{},bqCS:0,bqEX:0,bpCS:0,bpEX:0};
-    agg[k].bpCS+=r.sales_cs;agg[k].bpEX+=r.exvat;
-  });
+  bqRows.forEach(r=>{const k=r[key]||'(ไม่ระบุ)';if(!agg[k])agg[k]={name:k,months:{},bqCS:0,bqEX:0,bpCS:0,bpEX:0};if(!agg[k].months[r.month_year])agg[k].months[r.month_year]={cs:0,ex:0};agg[k].months[r.month_year].cs+=r.sales_cs;agg[k].months[r.month_year].ex+=r.exvat;agg[k].bqCS+=r.sales_cs;agg[k].bqEX+=r.exvat;});
+  bpRows.forEach(r=>{const k=r[key]||'(ไม่ระบุ)';if(!agg[k])agg[k]={name:k,months:{},bqCS:0,bqEX:0,bpCS:0,bpEX:0};agg[k].bpCS+=r.sales_cs;agg[k].bpEX+=r.exvat;});
+  return Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
+}
+function _drillTr(r,hl,wd,expandKey,canExpand,indent){
+  const avgCS=r.bqCS/6,avgEX=r.bqEX/6,expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
+  const rCS=expCS>0?(r.bpCS/expCS*100):0,rEX=expEX>0?(r.bpEX/expEX*100):0;
+  const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
+  const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
+  const mc=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
+  const isExp=canExpand&&!!EXPANDED[expandKey];
+  const pd=indent*20;
+  let nc;
+  if(canExpand){const sk=escHtml(expandKey).replace(/'/g,"\\'");nc=`<td style="padding-left:${pd+10}px"><span onclick="toggleExpand('${sk}',event)" style="cursor:pointer;display:inline-block;margin-right:6px;transition:transform .15s;transform:rotate(${isExp?90:0}deg);color:var(--gold);font-size:10px">▶</span><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  else{nc=`<td style="padding-left:${pd+32}px"><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  const bg=indent===1?'style="background:rgba(52,152,219,.04)"':indent===2?'style="background:rgba(201,168,76,.04)"':'';
+  return`<tr ${bg}>${nc}${mc}<td class="num">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td><td class="num">${fmtInt(avgEX)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
+}
+function _drillFoot(tot,totM,hl,wd,count){
+  const aCS=tot.bqCS/6,aEX=tot.bqEX/6,eCS=aCS*wd.rate,eEX=aEX*wd.rate;
+  const rCS=eCS>0?(tot.bpCS/eCS*100):0,rEX=eEX>0?(tot.bpEX/eEX*100):0;
+  const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
+  const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
+  const mc=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]?.cs||0)}</td>`).join('');
+  $('drillTfoot').innerHTML=`<tr><td>รวมทั้งหมด (${count})</td>${mc}<td class="num">${fmtInt(aCS)}</td><td class="num">${fmtInt(tot.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td><td class="num">${fmtInt(aEX)}</td><td class="num">${fmtInt(tot.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
+}
 
-  const allRows=Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
+function renderDrill(){
+  const{historyLabels:hl}=getPeriodLabels();
+  const bp=vendorBpRows(),bq=BQ_SALES_ROWS;
   const wd=getWDStats();
-  const totalPages=Math.max(1,Math.ceil(allRows.length/PAGE_SIZE));
-  if(DRILL_PAGE>=totalPages)DRILL_PAGE=totalPages-1;
-  const rows=allRows.slice(DRILL_PAGE*PAGE_SIZE,(DRILL_PAGE+1)*PAGE_SIZE);
+  const isFlat=DRILL.level==='all_products';
 
   // Breadcrumb
-  let crumb=`<span class="crumb ${DRILL.level==='brand'?'current':''}" onclick="setDrill('brand',null,null)">📦 ทุก Brand</span>`;
-  if(DRILL.level==='all_products')crumb+=`<span class="sep">›</span><span class="crumb current">📋 ทุกรายสินค้า</span>`;
-  if(DRILL.brand)crumb+=`<span class="sep">›</span><span class="crumb ${DRILL.level==='pack'?'current':''}" onclick="setDrill('pack','${escHtml(DRILL.brand).replace(/'/g,"\\'")}',null)">${escHtml(DRILL.brand)}</span>`;
-  if(DRILL.pack)crumb+=`<span class="sep">›</span><span class="crumb current">${escHtml(DRILL.pack)}</span>`;
+  let crumb=`<span class="crumb ${!isFlat?'current':''}" onclick="setDrill('brand',null,null)">📦 ทุก Brand</span>`;
+  if(isFlat)crumb+=`<span class="sep">›</span><span class="crumb current">📋 ทุกรายสินค้า</span>`;
   $('breadcrumb').innerHTML=crumb;
-  $('resetDrill').style.display=(DRILL.level!=='brand')?'':'none';
-  $('resetDrill').onclick=()=>{if(DRILL.level==='product')setDrill('pack',DRILL.brand,null);else setDrill('brand',null,null);};
+  $('resetDrill').style.display=isFlat?'':'none';
+  $('resetDrill').onclick=()=>setDrill('brand',null,null);
   $('drillTbl').classList.toggle('expanded',MONTHS_EXPANDED);
   $('toggleMonths').textContent=MONTHS_EXPANDED?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';
 
-  // Header
-  const monCols=historyLabels.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l}">${ms}<br>CS</th>`;}).join('');
-  $('drillThead').innerHTML=`
-    <th>${headerLabel}</th>
-    ${monCols}
-    <th class="num th-avg">AVG<br>CS</th>
-    <th class="num th-cur">เดือนนี้<br>CS</th>
-    <th class="num">CS%</th>
-    <th class="num th-avg">AVG<br>EXVat</th>
-    <th class="num th-cur">เดือนนี้<br>EXVat ฿</th>
-    <th class="num">EXVat%</th>
-  `;
+  const monCols=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l}">${ms}<br>CS</th>`;}).join('');
+  $('drillThead').innerHTML=`<th>${isFlat?'สินค้า':'Cat Brand / Pack / สินค้า'}</th>${monCols}<th class="num th-avg">AVG<br>CS</th><th class="num th-cur">เดือนนี้<br>CS</th><th class="num">CS%</th><th class="num th-avg">AVG<br>EXVat</th><th class="num th-cur">เดือนนี้<br>EXVat ฿</th><th class="num">EXVat%</th>`;
 
-  if(!allRows.length){$('drillTbody').innerHTML=`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;$('drillTfoot').innerHTML='';renderDrillPager(0,0,0);return;}
-
-  // Totals for ALL rows (not just page)
-  const tot={bqCS:0,bqEX:0,bpCS:0,bpEX:0,months:{}};
-  historyLabels.forEach(l=>tot.months[l]={cs:0,ex:0});
-  allRows.forEach(r=>{tot.bqCS+=r.bqCS;tot.bqEX+=r.bqEX;tot.bpCS+=r.bpCS;tot.bpEX+=r.bpEX;historyLabels.forEach(l=>{tot.months[l].cs+=(r.months[l]?.cs||0);tot.months[l].ex+=(r.months[l]?.ex||0);});});
-
-  $('drillTbody').innerHTML=rows.map(r=>{
-    const avgCS=r.bqCS/6,avgEX=r.bqEX/6;
-    const expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
-    const ratioCS=expCS>0?(r.bpCS/expCS*100):0;
-    const ratioEX=expEX>0?(r.bpEX/expEX*100):0;
-    const rcCS=ratioCS>=100?'cmp-up':(ratioCS<80?'cmp-down':'cmp-neutral');
-    const rcEX=ratioEX>=100?'cmp-up':(ratioEX<80?'cmp-down':'cmp-neutral');
-    const clickable=nextLevel!==null;
-    const brandArg=DRILL.level==='brand'?`'${escHtml(r.name).replace(/'/g,"\\'")}'`:`'${escHtml(DRILL.brand||'').replace(/'/g,"\\'")}'`;
-    const packArg=DRILL.level==='pack'?`'${escHtml(r.name).replace(/'/g,"\\'")}'`:'null';
-    const click=clickable?`onclick="setDrill('${nextLevel}',${brandArg},${packArg})"` :'';
-    const mCols=historyLabels.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
-    const nameHtml=nextLevel?`<span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span> <span class="badge badge-gold" style="font-size:9px">▶</span>`:`<span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span>`;
-    return`<tr class="${clickable?'clickable':''}" ${click}><td>${nameHtml}</td>${mCols}
-      <td class="num" style="background:rgba(52,152,219,.05)">${fmtInt(avgCS)}</td>
-      <td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td>
-      <td class="num"><span class="cmp-arr ${rcCS}">${ratioCS.toFixed(0)}%</span></td>
-      <td class="num" style="background:rgba(201,168,76,.05)">${fmtInt(avgEX)}</td>
-      <td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td>
-      <td class="num"><span class="cmp-arr ${rcEX}">${ratioEX.toFixed(0)}%</span></td>
-    </tr>`;
-  }).join('');
-
-  const totAvgCS=tot.bqCS/6,totAvgEX=tot.bqEX/6;
-  const totExpCS=totAvgCS*wd.rate,totExpEX=totAvgEX*wd.rate;
-  const totRCS=totExpCS>0?(tot.bpCS/totExpCS*100):0,totREX=totExpEX>0?(tot.bpEX/totExpEX*100):0;
-  const totCCS=totRCS>=100?'cmp-up':(totRCS<80?'cmp-down':'cmp-neutral');
-  const totCEX=totREX>=100?'cmp-up':(totREX<80?'cmp-down':'cmp-neutral');
-  const totMCols=historyLabels.map(l=>`<td class="num month-col">${fmtInt(tot.months[l]?.cs||0)}</td>`).join('');
-  $('drillTfoot').innerHTML=`<tr>
-    <td>รวมทั้งหมด (${allRows.length})</td>${totMCols}
-    <td class="num">${fmtInt(totAvgCS)}</td>
-    <td class="num">${fmtInt(tot.bpCS)}</td>
-    <td class="num"><span class="cmp-arr ${totCCS}">${totRCS.toFixed(0)}%</span></td>
-    <td class="num">${fmtInt(totAvgEX)}</td>
-    <td class="num">${fmtInt(tot.bpEX)}</td>
-    <td class="num"><span class="cmp-arr ${totCEX}">${totREX.toFixed(0)}%</span></td>
-  </tr>`;
-
-  renderDrillPager(DRILL_PAGE, totalPages, allRows.length);
-}
-
-function renderDrillPager(page, totalPages, total){
-  const start=page*PAGE_SIZE+1, end=Math.min((page+1)*PAGE_SIZE, total);
-  let html='';
-  if(totalPages>1){
-    html=`<div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:10px 0;flex-wrap:wrap;font-size:13px">
-      <button class="btn btn-outline btn-sm" onclick="drillPage(${page-1})" ${page===0?'disabled':''}>◀ ก่อนหน้า</button>
-      <span style="color:var(--muted)">${start}–${end} จาก ${total} รายการ &nbsp;|&nbsp; หน้า ${page+1}/${totalPages}</span>
-      <button class="btn btn-outline btn-sm" onclick="drillPage(${page+1})" ${page>=totalPages-1?'disabled':''}>ถัดไป ▶</button>
-    </div>`;
+  if(isFlat){
+    // Flat paginated all-products list
+    const all=_buildAgg(bq,bp,'product_name');
+    const tp=Math.max(1,Math.ceil(all.length/PAGE_SIZE));
+    if(DRILL_PAGE>=tp)DRILL_PAGE=tp-1;
+    const rows=all.slice(DRILL_PAGE*PAGE_SIZE,(DRILL_PAGE+1)*PAGE_SIZE);
+    if(!rows.length){$('drillTbody').innerHTML=`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;$('drillTfoot').innerHTML='';renderDrillPager(0,0,0);return;}
+    $('drillTbody').innerHTML=rows.map(r=>_drillTr(r,hl,wd,'',false,0)).join('');
+    const tot={bqCS:0,bqEX:0,bpCS:0,bpEX:0};const totM={};hl.forEach(l=>totM[l]={cs:0,ex:0});
+    all.forEach(r=>{tot.bqCS+=r.bqCS;tot.bqEX+=r.bqEX;tot.bpCS+=r.bpCS;tot.bpEX+=r.bpEX;hl.forEach(l=>{totM[l].cs+=r.months[l]?.cs||0;totM[l].ex+=r.months[l]?.ex||0;});});
+    _drillFoot(tot,totM,hl,wd,all.length);
+    renderDrillPager(DRILL_PAGE,tp,all.length);
+    return;
   }
-  let pagerEl=$('drillPager');
-  if(!pagerEl){pagerEl=document.createElement('div');pagerEl.id='drillPager';$('drillTbl').parentNode.appendChild(pagerEl);}
-  pagerEl.innerHTML=html;
+
+  // ── Accordion brand view ──
+  const brands=_buildAgg(bq,bp,'cat_brand');
+  let html='';
+  let tBqCS=0,tBqEX=0,tBpCS=0,tBpEX=0;
+  const totM={};hl.forEach(l=>totM[l]={cs:0,ex:0});
+
+  for(const brand of brands){
+    tBqCS+=brand.bqCS;tBqEX+=brand.bqEX;tBpCS+=brand.bpCS;tBpEX+=brand.bpEX;
+    hl.forEach(l=>{totM[l].cs+=brand.months[l]?.cs||0;totM[l].ex+=brand.months[l]?.ex||0;});
+    html+=_drillTr(brand,hl,wd,brand.name,true,0);
+    if(EXPANDED[brand.name]){
+      const packs=_buildAgg(bq.filter(r=>r.cat_brand===brand.name),bp.filter(r=>r.cat_brand===brand.name),'cat_pack');
+      for(const pack of packs){
+        const pk=brand.name+'::'+pack.name;
+        html+=_drillTr(pack,hl,wd,pk,true,1);
+        if(EXPANDED[pk]){
+          const prods=_buildAgg(bq.filter(r=>r.cat_brand===brand.name&&r.cat_pack===pack.name),bp.filter(r=>r.cat_brand===brand.name&&r.cat_pack===pack.name),'product_name');
+          for(const prod of prods)html+=_drillTr(prod,hl,wd,'',false,2);
+        }
+      }
+    }
+  }
+  $('drillTbody').innerHTML=html||`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;
+  _drillFoot({bqCS:tBqCS,bqEX:tBqEX,bpCS:tBpCS,bpEX:tBpEX},totM,hl,wd,brands.length);
+  let pe=$('drillPager');if(pe)pe.innerHTML='';
 }
 
-function drillPage(p){DRILL_PAGE=p;renderDrill();}
+function renderDrillPager(page,totalPages,total){
+  const start=page*PAGE_SIZE+1,end=Math.min((page+1)*PAGE_SIZE,total);
+  let html='';
+  if(totalPages>1){html=`<div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:10px 0;flex-wrap:wrap;font-size:13px"><button class="btn btn-outline btn-sm" onclick="drillPage(${page-1})" ${page===0?'disabled':''}>◀ ก่อนหน้า</button><span style="color:var(--muted)">${start}–${end} จาก ${total} รายการ &nbsp;|&nbsp; หน้า ${page+1}/${totalPages}</span><button class="btn btn-outline btn-sm" onclick="drillPage(${page+1})" ${page>=totalPages-1?'disabled':''}>ถัดไป ▶</button></div>`;}
+  let pe=$('drillPager');
+  if(!pe){pe=document.createElement('div');pe.id='drillPager';$('drillTbl').parentNode.appendChild(pe);}
+  pe.innerHTML=html;
+}
 
+function toggleExpand(key,ev){ev&&ev.stopPropagation();EXPANDED[key]=!EXPANDED[key];renderDrill();}
+function drillPage(p){DRILL_PAGE=p;renderDrill();}
 function setDrill(level,brand,pack){DRILL={level,brand,pack};DRILL_PAGE=0;renderDrill();}
 
 /* ══ SELL-IN ══ */
@@ -889,7 +871,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;
 window.onload=checkSession;
 </script>
 </body>
