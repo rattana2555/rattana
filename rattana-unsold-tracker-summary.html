@@ -180,6 +180,12 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
       <div class="l-brand">Rattana Sales Tracker</div>
       <div class="l-title">สินค้ายังไม่ขายเดือนนี้</div>
       <div class="l-sub">ดูสินค้าที่เพื่อนขายดี แต่เรายังไม่มียอด<br>พร้อมจัดอันดับ ⭐ และกรองตามหมวด</div>
+      <div id="g_id_onload"
+        data-client_id="909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com"
+        data-callback="handleGoogleLogin"
+        data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with" data-shape="rectangular" data-logo_alignment="left" data-width="280"></div>
       <div id="googleBtnArea"></div>
       <div class="l-spinner" id="loginSpinner"></div>
       <div class="l-error" id="loginError"></div>
@@ -292,7 +298,7 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
    CONFIG
 ═══════════════════════════════════════════ */
 const AUTH_CONFIG = {
-  clientId: '615875645128-gasjjvkt6lu8g449cbnhl40k1pu25r0b.apps.googleusercontent.com',
+  clientId: '909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',
   usersSheetId: '1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',
   usersSheetName: 'Rattana Users for apps'
 };
@@ -449,16 +455,21 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 ═══════════════════════════════════════════ */
 function initGoogleAuth() {
   if (!window.google?.accounts?.id) { setTimeout(initGoogleAuth, 400); return; }
+  // HTML g_id_onload handles initialization automatically
+  // Fallback: re-render button via JS if HTML element didn't fire
   google.accounts.id.initialize({
     client_id: AUTH_CONFIG.clientId,
     callback: handleGoogleLogin,
     auto_select: false,
     cancel_on_tap_outside: false
   });
-  google.accounts.id.renderButton(
-    document.getElementById('googleBtnArea'),
-    { theme: 'outline', size: 'large', width: 280, text: 'signin_with', shape: 'rectangular', logo_alignment: 'left' }
-  );
+  const area = document.getElementById('googleBtnArea');
+  if (area && !document.querySelector('.g_id_signin iframe')) {
+    google.accounts.id.renderButton(area, {
+      theme: 'outline', size: 'large', width: 280,
+      text: 'signin_with', shape: 'rectangular', logo_alignment: 'left'
+    });
+  }
 }
 
 async function handleGoogleLogin(response) {
