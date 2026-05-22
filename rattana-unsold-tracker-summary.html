@@ -308,12 +308,12 @@ const AUTH_CONFIG = {
 const PRODUCT_SHEET_ID   = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
 const PRODUCT_SHEET_NAME = 'PDDT';
 
-// Sales data
-const SALES_SHEET_ID = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
-const SALES_GID      = '429808572';
+// Sales data — ชีท BP (gid=429808572 ว่างเปล่า ใช้ชื่อชีทแทน)
+const SALES_SHEET_ID   = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
+const SALES_SHEET_NAME = 'BP';
 
-const APP_VERSION = 'v4.2';
-const SESSION_KEY = 'rtn_unsold_v42'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
+const APP_VERSION = 'v4.3';
+const SESSION_KEY = 'rtn_unsold_v43'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 /* ═══════════════════════════════════════════
@@ -573,7 +573,7 @@ async function loadData() {
 
     /* 2 ── Sales data */
     showSpinner('กำลังโหลดข้อมูลยอดขาย…');
-    const salesText    = await fetchCSV(gvizUrl(SALES_SHEET_ID, { gid: SALES_GID }));
+    const salesText    = await fetchCSV(gvizUrl(SALES_SHEET_ID, { sheet: SALES_SHEET_NAME }));
     const allSalesRows = csvToObjects(salesText);
     if (allSalesRows.length === 0) throw new Error('ไม่พบข้อมูลในชีทยอดขาย');
 
