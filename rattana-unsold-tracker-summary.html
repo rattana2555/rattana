@@ -300,13 +300,13 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
 const AUTH_CONFIG = {
   clientId: '909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',
   usersSheetId: '1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',
-  usersSheetName: 'Rattana Users for apps'
+  usersSheetName: 'Sheet1'   // ← เปลี่ยนจาก 'Rattana Users for apps'
 };
 
-// Product master list
-const PRODUCT_SHEET_ID = '1XBoIAk5_4C18k5Iln1Pn0qPHi-Os4T5dauu03Fs0UjI';
-const PRODUCT_GID      = '789206653';
-const PRODUCT_SHEET_NAME = 'Product';
+// Product master list — ชีท PDDT (accessible)
+const PRODUCT_SHEET_ID   = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
+const PRODUCT_GID        = '654974441';
+const PRODUCT_SHEET_NAME = 'PDDT';
 
 // Sales data
 const SALES_SHEET_ID = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
@@ -483,8 +483,17 @@ async function handleGoogleLogin(response) {
     if (!email) throw new Error('ไม่พบอีเมลใน Google account');
 
     // Fetch users sheet
-    const usersUrl  = gvizUrl(AUTH_CONFIG.usersSheetId, { sheet: AUTH_CONFIG.usersSheetName });
-    const usersText = await fetchCSV(usersUrl).catch(e => { throw new Error('โหลดข้อมูลผู้ใช้ไม่ได้: ' + e.message); });
+    // Try sheet name first, then gid=0 as fallback
+    let usersText;
+    try {
+      usersText = await fetchCSV(gvizUrl(AUTH_CONFIG.usersSheetId, { sheet: AUTH_CONFIG.usersSheetName }));
+    } catch {
+      try {
+        usersText = await fetchCSV(gvizUrl(AUTH_CONFIG.usersSheetId, { gid: '0' }));
+      } catch (e2) {
+        throw new Error('โหลดข้อมูลผู้ใช้ไม่ได้: ' + e2.message);
+      }
+    }
     const users     = csvToObjects(usersText);
 
     // Find user by email (search all columns)
@@ -541,9 +550,10 @@ async function loadData() {
   try {
     /* 1 ── Product master list (PRIMARY — 12,000+ items) */
     allProducts = [];
+    // PDDT sheet — try gid + sheet name + export format
     const productUrls = [
-      gvizUrl(PRODUCT_SHEET_ID, { gid: PRODUCT_GID, range: 'A:A' }),
       gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME, range: 'A:A' }),
+      gvizUrl(PRODUCT_SHEET_ID, { gid: PRODUCT_GID, range: 'A:A' }),
       `https://docs.google.com/spreadsheets/d/${PRODUCT_SHEET_ID}/export?format=csv&gid=${PRODUCT_GID}`,
     ];
     let productLoaded = false;
@@ -688,7 +698,8 @@ function buildCategoryDropdown() {
 ═══════════════════════════════════════════ */
 function buildSellerDropdown() {
   const bar = document.getElementById('sellerBar');
-  if (!currentUser || currentUser.role < 3) { bar.style.display = 'none'; return; }
+  if (!currentUser || currentUser.role <= 3) { bar.style.display = 'none'; return; }
+  // role > 3 (เช่น 4, 5) → เห็น dropdown เลือกเซลล์ได้
   bar.style.display = 'block';
 
   const list = document.getElementById('ddSellerList');
