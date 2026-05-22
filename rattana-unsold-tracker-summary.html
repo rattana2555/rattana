@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana สินค้ายังไม่ขาย v4.2</title>
+<title>Rattana สินค้ายังไม่ขาย v4.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
 <style>
 /* ── Design Tokens ── */
@@ -193,7 +193,7 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
       <div class="l-divider"></div>
       <div class="l-foot">เฉพาะพนักงาน <b>Rattana</b> ที่ลงทะเบียนแล้วเท่านั้น<br>มีปัญหา? ติดต่อผู้ดูแลระบบ</div>
     </div>
-    <div class="l-ver" id="loginVer">Rattana สินค้ายังไม่ขาย v4.2 · 2026</div>
+    <div class="l-ver" id="loginVer">Rattana สินค้ายังไม่ขาย v4.4 · 2026</div>
   </div>
 </div>
 
@@ -312,8 +312,8 @@ const PRODUCT_SHEET_NAME = 'PDDT';
 const SALES_SHEET_ID   = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
 const SALES_SHEET_NAME = 'BP';
 
-const APP_VERSION = 'v4.3';
-const SESSION_KEY = 'rtn_unsold_v43'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
+const APP_VERSION = 'v4.4';
+const SESSION_KEY = 'rtn_unsold_v44'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 /* ═══════════════════════════════════════════
@@ -791,14 +791,12 @@ function render() {
   const catVal  = document.getElementById('catFilter')?.value || '';
   const sortVal = document.getElementById('fsort')?.value || 'pop';
 
-  // Show: products I haven't sold yet (sorted by how much others sold)
-  // allProducts may include items from Product sheet not in salesByProduct (no sales yet)
-  let products = allProducts.filter(prod => {
-    if (myProducts.has(prod)) return false;            // I already sold it → hide
+  // วน loop จาก salesByProduct (ชื่อตรงกัน 100% กับ BP data)
+  // แสดงสินค้าที่มีคนอื่นขายในเดือนนี้ แต่ seller ที่เลือกยังไม่ได้ขาย
+  let products = Object.keys(salesByProduct).filter(prod => {
+    if (myProducts.has(prod)) return false;            // ขายแล้ว → ซ่อน
     const sp = salesByProduct[prod];
-    if (catVal) {
-      if (!sp || !sp.catBU.has(catVal)) return false;  // category filter
-    }
+    if (catVal && !sp.catBU.has(catVal)) return false; // category filter
     if (srch && !prod.toLowerCase().includes(srch)) return false; // search filter
     return true;
   });
