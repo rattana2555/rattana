@@ -114,6 +114,12 @@ body.dark .badge-gold{color:var(--gold-light)}
 .chip{padding:5px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:14px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .chip:hover{border-color:var(--gold);color:var(--gold)}
 .chip.active{background:var(--gold);color:#fff;border-color:var(--gold);font-weight:600;box-shadow:0 1px 3px rgba(201,168,76,.4)}
+.month-dd-wrap{position:relative;display:inline-block}
+.month-filter-panel{position:absolute;top:calc(100% + 4px);left:0;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);padding:6px;min-width:170px;z-index:1000;display:none}
+.month-filter-panel.open{display:block}
+.month-filter-panel label{display:flex;align-items:center;padding:6px 10px;cursor:pointer;font-size:13px;border-radius:4px;gap:8px;user-select:none}
+.month-filter-panel label:hover{background:rgba(201,168,76,.08)}
+.month-filter-panel input[type=checkbox]{margin:0;cursor:pointer;accent-color:var(--gold)}
 .tbl tbody td.month-ex{background:rgba(46,204,113,.06);color:#1d6f3d}
 .tbl thead th.month-ex{background:rgba(46,204,113,.25);color:#fff}
 .tbl tfoot td.month-ex{background:rgba(46,204,113,.10);font-weight:700;color:#1d6f3d}
@@ -404,6 +410,7 @@ let VENDORS=[],BQ_SALES_ROWS=[],BQ_TREND_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[
 let DRILL={level:'brand',brand:null,pack:null};
 let MONTHS_EXPANDED=false;
 let SELECTED_CHANNEL='ALL';
+let SELECTED_MONTHS=null; // null = all months selected
 
 /* ══ BQ PROXY ══ */
 async function bqCall(action,params={}){
@@ -466,8 +473,8 @@ async function loadSellIn(){const c=cacheGet('sellin_rows');if(c)return c;const 
 function renderVendorList(){const ul=$('vendorList');if(!VENDORS.length){ul.innerHTML='<li class="no-result">ยังไม่มี vendor — ตั้งค่า BQ Proxy ที่ ⚙</li>';return;}const sorted=[...VENDORS].sort((a,b)=>b.exvat-a.exvat);ul.innerHTML=sorted.map(v=>`<li onclick="selectVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')"><div class="vrow"><span class="vname">${escHtml(v.vendor)}</span><span class="vamt">${fmtInt(v.exvat)} ฿</span></div></li>`).join('');}
 function filterVendorList(q){const ql=q.toLowerCase();document.querySelectorAll('#vendorList li').forEach(li=>{const name=(li.querySelector('.vname')?.textContent||'').toLowerCase();li.style.display=name.includes(ql)?'':'none';});}
 function toggleVendorDD(){const p=$('vendorPanel');const open=p.classList.contains('open');document.querySelectorAll('.dd-panel').forEach(x=>x.classList.remove('open'));if(!open){p.classList.add('open');setTimeout(()=>$('vendorSearch').focus(),50);}}
-document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-panel').forEach(p=>p.classList.remove('open'));});
-async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};SELECTED_CHANNEL='ALL';await loadVendorData();}
+document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-panel').forEach(p=>p.classList.remove('open'));if(!e.target.closest('.month-dd-wrap')){const mp=document.getElementById('monthFilterPanel');if(mp)mp.classList.remove('open');}});
+async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};SELECTED_CHANNEL='ALL';SELECTED_MONTHS=null;await loadVendorData();}
 async function loadVendorData(){
   if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
   try{
@@ -485,21 +492,32 @@ async function loadVendorData(){
 }
 
 /* ══ RENDER ALL ══ */
-function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderChannelChips();renderStats();renderLineChart();renderDrill();renderSellIn();renderStock();}
-function _chMatch(r){return SELECTED_CHANNEL==='ALL'||(r.channel||'')===SELECTED_CHANNEL;}
-function vendorBpRows(){return BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR&&_chMatch(r));}
-function vendorBqSalesRows(){return BQ_SALES_ROWS.filter(_chMatch);}
-function vendorBqTrendRows(){return BQ_TREND_ROWS.filter(_chMatch);}
-function getAvailableChannels(){const s=new Set();BQ_TREND_ROWS.forEach(r=>{if(r.channel)s.add(r.channel);});BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR).forEach(r=>{if(r.channel)s.add(r.channel);});return[...s].sort();}
-function renderChannelChips(){const wrap=$('channelChips');if(!wrap)return;const chs=getAvailableChannels();if(!chs.length){wrap.style.display='none';return;}wrap.style.display='flex';wrap.innerHTML=`<span style="font-size:12px;color:var(--muted);align-self:center;margin-right:4px">Channel:</span><button class="chip ${SELECTED_CHANNEL==='ALL'?'active':''}" onclick="setChannel('ALL')">ทั้งหมด</button>`+chs.map(c=>`<button class="chip ${SELECTED_CHANNEL===c?'active':''}" onclick="setChannel('${escHtml(c).replace(/'/g,"\\'")}')">${escHtml(c)}</button>`).join('');}
+function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderChannelChips();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderSellIn();renderStock();}
+function _chKey(s){return String(s||'').toLowerCase().trim();}
+function _chMatch(r){return SELECTED_CHANNEL==='ALL'||_chKey(r.channel)===_chKey(SELECTED_CHANNEL);}
+function _monthMatch(my){return !SELECTED_MONTHS||SELECTED_MONTHS.has(my);}
+function getActiveHistoryMonths(){const{historyLabels}=getPeriodLabels();return !SELECTED_MONTHS?historyLabels:historyLabels.filter(l=>SELECTED_MONTHS.has(l));}
+function isCurrentMonthActive(){if(!SELECTED_MONTHS)return true;const{currentLabel}=getPeriodLabels();return SELECTED_MONTHS.has(currentLabel);}
+function activeMonthCount(){return Math.max(1,getActiveHistoryMonths().length);}
+function vendorBpRows(){if(!isCurrentMonthActive())return[];return BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR&&_chMatch(r));}
+function vendorBqSalesRows(){return BQ_SALES_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
+function vendorBqTrendRows(){return BQ_TREND_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
+function getAvailableChannels(){const map=new Map();const collect=r=>{if(!r.channel)return;const k=_chKey(r.channel);if(!map.has(k))map.set(k,String(r.channel).trim());};BQ_TREND_ROWS.forEach(collect);BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR).forEach(collect);return[...map.values()].sort((a,b)=>a.localeCompare(b));}
+function renderChannelChips(){const wrap=$('channelChips');if(!wrap)return;const chs=getAvailableChannels();if(!chs.length){wrap.style.display='none';return;}wrap.style.display='flex';const isAct=c=>_chKey(c)===_chKey(SELECTED_CHANNEL);wrap.innerHTML=`<span style="font-size:12px;color:var(--muted);align-self:center;margin-right:4px">Channel:</span><button class="chip ${SELECTED_CHANNEL==='ALL'?'active':''}" onclick="setChannel('ALL')">ทั้งหมด</button>`+chs.map(c=>`<button class="chip ${isAct(c)?'active':''}" onclick="setChannel('${escHtml(c).replace(/'/g,"\\'")}')">${escHtml(c)}</button>`).join('')+`<span style="margin-left:10px;color:var(--border)">|</span><div class="month-dd-wrap"><button class="chip" onclick="toggleMonthFilter(event)">📅 <span id="monthFilterLabel">เดือน: ทั้งหมด</span> ▾</button><div class="month-filter-panel" id="monthFilterPanel"><div id="monthFilterList"></div><div style="display:flex;gap:4px;padding:6px 4px 2px;border-top:1px solid var(--border);margin-top:4px"><button class="btn btn-outline btn-sm" onclick="monthFilterAll(event)" style="flex:1;font-size:11px;padding:4px 8px">ทั้งหมด</button><button class="btn btn-outline btn-sm" onclick="monthFilterNone(event)" style="flex:1;font-size:11px;padding:4px 8px">ล้าง</button></div></div></div>`;renderMonthFilterLabel();}
 function setChannel(c){SELECTED_CHANNEL=c;renderAll();}
+function renderMonthFilterLabel(){const{historyLabels,currentLabel}=getPeriodLabels();const total=historyLabels.length+1;const count=SELECTED_MONTHS?SELECTED_MONTHS.size:total;const lbl=$('monthFilterLabel');if(!lbl)return;lbl.textContent=count===total?'เดือน: ทั้งหมด':(count===0?'เดือน: 0 (ไม่มี)':`เดือน: ${count}/${total}`);}
+function renderMonthFilterList(){const{historyLabels,currentLabel}=getPeriodLabels();const all=[...historyLabels,currentLabel];const sel=SELECTED_MONTHS||new Set(all);const list=$('monthFilterList');if(!list)return;list.innerHTML=all.map(l=>{const isCur=l===currentLabel;const checked=sel.has(l)?'checked':'';const disp=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<label><input type="checkbox" ${checked} onchange="toggleMonth('${l}')"/>${disp}${isCur?' <span style="color:var(--gold);font-size:11px;margin-left:auto">(ปัจจุบัน)</span>':''}</label>`;}).join('');}
+function toggleMonthFilter(ev){ev&&ev.stopPropagation();const p=$('monthFilterPanel');if(!p)return;const open=p.classList.toggle('open');if(open)renderMonthFilterList();}
+function toggleMonth(m){const{historyLabels,currentLabel}=getPeriodLabels();const all=[...historyLabels,currentLabel];if(!SELECTED_MONTHS)SELECTED_MONTHS=new Set(all);if(SELECTED_MONTHS.has(m))SELECTED_MONTHS.delete(m);else SELECTED_MONTHS.add(m);if(SELECTED_MONTHS.size===all.length)SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();}
+function monthFilterAll(ev){ev&&ev.stopPropagation();SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();}
+function monthFilterNone(ev){ev&&ev.stopPropagation();SELECTED_MONTHS=new Set();renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();}
 
 /* ══ STATS with Working Days ══ */
 function renderStats(){
   const bq=vendorBqSalesRows(),bp=vendorBpRows();
   const bqCS=bq.reduce((s,r)=>s+r.sales_cs,0),bqEX=bq.reduce((s,r)=>s+r.exvat,0);
   const bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
-  const avgCS=bqCS/6,avgEX=bqEX/6;
+  const _mn=activeMonthCount();const avgCS=bqCS/_mn,avgEX=bqEX/_mn;
   const wd=getWDStats();
   // Pro-rata expected = avg * (elapsed WD / total WD)
   const expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
@@ -527,7 +545,9 @@ function renderStats(){
 
 /* ══ LINE CHART SVG ══ */
 function renderLineChart(){
-  const{historyLabels,currentLabel}=getPeriodLabels();
+  const{currentLabel}=getPeriodLabels();
+  const historyLabels=getActiveHistoryMonths();
+  const showCur=isCurrentMonthActive();
   const WHs=['W1','W2','W3','W4'];
   const WHColors={W1:'#C9A84C',W2:'#3498DB',W3:'#E74C3C',W4:'#27AE60'};
 
@@ -543,9 +563,10 @@ function renderLineChart(){
   const curWH={};WHs.forEach(w=>curWH[w]=0);
   bp.forEach(r=>{const ws=(r.ws||'').toUpperCase().trim();if(WHs.includes(ws))curWH[ws]+=r.exvat;});
 
-  const allM=[...historyLabels,currentLabel];
-  const n=allM.length;
-  const series=WHs.map(wh=>({wh,color:WHColors[wh],data:[...historyLabels.map(l=>byMonthWH[l]?.[wh]||0),curWH[wh]]}));
+  const allM=showCur?[...historyLabels,currentLabel]:[...historyLabels];
+  if(allM.length===0){$('lineChartWrap').innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px">เลือกอย่างน้อย 1 เดือนจาก dropdown 📅</div>';const lg=document.getElementById('whLegend');if(lg)lg.innerHTML='';return;}
+  const n=Math.max(2,allM.length);
+  const series=WHs.map(wh=>({wh,color:WHColors[wh],data:showCur?[...historyLabels.map(l=>byMonthWH[l]?.[wh]||0),curWH[wh]]:historyLabels.map(l=>byMonthWH[l]?.[wh]||0)}));
   const maxVal=Math.max(1,...series.flatMap(s=>s.data));
 
   const W=700,H=220,PL=65,PR=20,PT=20,PB=45;
@@ -557,14 +578,14 @@ function renderLineChart(){
   const fmtAx=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':fmtInt(v);
   const ylabels=[0,0.5,1].map(r=>`<text x="${PL-6}" y="${(PT+cH-r*cH+4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${fmtAx(maxVal*r)}</text>`).join('');
   const xLabels=allM.map((m,i)=>{
-    const x=xp(i).toFixed(1),isCur=i===n-1;
+    const x=xp(i).toFixed(1),isCur=showCur&&i===allM.length-1;
     const label=m.split('/')[1]+'/'+m.split('/')[0].substring(2);
     return`<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10" fill="${isCur?'var(--gold)':'var(--muted)'}" font-weight="${isCur?'700':'400'}">${label}${isCur?' ★':''}</text>${isCur?`<line x1="${x}" y1="${PT}" x2="${x}" y2="${PT+cH}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`:''}`;
   }).join('');
 
   const paths=series.map(s=>{
     const d=s.data.map((v,i)=>`${i===0?'M':'L'}${xp(i).toFixed(1)},${yv(v).toFixed(1)}`).join(' ');
-    const dots=s.data.map((v,i)=>`<circle cx="${xp(i).toFixed(1)}" cy="${yv(v).toFixed(1)}" r="${i===n-1?5:3.5}" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`).join('');
+    const dots=s.data.map((v,i)=>`<circle cx="${xp(i).toFixed(1)}" cy="${yv(v).toFixed(1)}" r="${showCur&&i===s.data.length-1?5:3.5}" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`).join('');
     return`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}`;
   }).join('');
 
@@ -598,7 +619,7 @@ function _buildAgg(bqRows,bpRows,key){
   return Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
 }
 function _drillTr(r,hl,wd,expandKey,canExpand,indent){
-  const avgCS=r.bqCS/6,avgEX=r.bqEX/6,expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
+  const _mn=activeMonthCount();const avgCS=r.bqCS/_mn,avgEX=r.bqEX/_mn,expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
   const rCS=expCS>0?(r.bpCS/expCS*100):0,rEX=expEX>0?(r.bpEX/expEX*100):0;
   const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
   const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
@@ -613,7 +634,7 @@ function _drillTr(r,hl,wd,expandKey,canExpand,indent){
   return`<tr ${bg}>${nc}${mcCS}<td class="num">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td>${mcEX}<td class="num">${fmtInt(avgEX)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
 }
 function _drillFoot(tot,totM,hl,wd,count){
-  const aCS=tot.bqCS/6,aEX=tot.bqEX/6,eCS=aCS*wd.rate,eEX=aEX*wd.rate;
+  const _mn=activeMonthCount();const aCS=tot.bqCS/_mn,aEX=tot.bqEX/_mn,eCS=aCS*wd.rate,eEX=aEX*wd.rate;
   const rCS=eCS>0?(tot.bpCS/eCS*100):0,rEX=eEX>0?(tot.bpEX/eEX*100):0;
   const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
   const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
@@ -623,7 +644,7 @@ function _drillFoot(tot,totM,hl,wd,count){
 }
 
 function renderDrill(){
-  const{historyLabels:hl}=getPeriodLabels();
+  const hl=getActiveHistoryMonths();
   const bp=vendorBpRows(),bq=vendorBqSalesRows();
   const wd=getWDStats();
   const isFlat=DRILL.level==='all_products';
@@ -899,7 +920,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;window.setChannel=setChannel;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;window.setChannel=setChannel;window.toggleMonthFilter=toggleMonthFilter;window.toggleMonth=toggleMonth;window.monthFilterAll=monthFilterAll;window.monthFilterNone=monthFilterNone;
 window.onload=checkSession;
 </script>
 </body>
