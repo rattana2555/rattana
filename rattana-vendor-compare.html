@@ -337,6 +337,7 @@ const fmt=n=>(Number(n)||0).toLocaleString('th-TH',{maximumFractionDigits:0});
 const fmtInt=n=>(Math.round(Number(n)||0)).toLocaleString('th-TH');
 const escHtml=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const normVendor=s=>String(s||'').replace(/\s+/g,' ').trim();
+const normWH=s=>{const x=String(s||'').trim().toUpperCase();if(/^W[1-4]$/.test(x))return x;if(/^[1-4]$/.test(x))return'W'+x;const m=x.match(/W\s*([1-4])/);if(m)return'W'+m[1];const m2=x.match(/(?:WAREHOUSE|WH|คลัง)\s*([1-4])/);if(m2)return'W'+m2[1];return'';};
 const normKey=s=>String(s||'').toLowerCase().replace(/[\s().,-]/g,'');
 
 function showSpinner(msg='Loading...'){$('spinnerMsg').textContent=msg;$('spinner').classList.add('show');}
@@ -418,7 +419,7 @@ async function initApp(){
   }finally{hideSpinner();setLoading(false);}
 }
 async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
-async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:(r['WS']||r['WH']||'').trim().toUpperCase()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
+async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||'')})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
 /* parseCsv to raw arrays (no header conversion) */
 function parseCsvArrays(text){
   if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
@@ -460,7 +461,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.
 async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};await loadVendorData();}
 async function loadVendorData(){
   if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
-  try{const ck='bq_sales_'+SELECTED_VENDOR;let bq=cacheGet(ck);if(!bq){bq=await bqCall('sales',{vendor:SELECTED_VENDOR,months:6});bq=bq.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht),wh:(r.wh||r.WH||'').trim().toUpperCase()}));cacheSet(ck,bq);}BQ_SALES_ROWS=bq;renderAll();showToast('โหลดเรียบร้อย','success');}
+  try{const ck='bq_sales_'+SELECTED_VENDOR;let bq=cacheGet(ck);if(!bq){bq=await bqCall('sales',{vendor:SELECTED_VENDOR,months:6});console.log('[BQ raw sample]',bq.slice(0,3));console.log('[BQ keys]',bq.length>0?Object.keys(bq[0]):'no data');bq=bq.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht),wh:normWH(r.wh||r.WH||r.warehouse||r.Warehouse||r.WS||r.ws)}));cacheSet(ck,bq);}BQ_SALES_ROWS=bq;console.log('[BQ unique WH values]',[...new Set(BQ_SALES_ROWS.map(r=>r.wh))]);console.log('[BQ unique months]',[...new Set(BQ_SALES_ROWS.map(r=>r.month_year))].sort());renderAll();showToast('โหลดเรียบร้อย','success');}
   catch(e){showToast('โหลดไม่สำเร็จ: '+e.message,'error');}finally{hideSpinner();}
 }
 
