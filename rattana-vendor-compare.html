@@ -110,6 +110,9 @@ body.dark .badge-gold{color:var(--gold-light)}
 .tbl .month-col{display:none}
 
 .tbl.expanded .month-col{display:table-cell}
+.tbl .month-ex{background:rgba(46,204,113,.06);color:#1d6f3d}
+.tbl thead th.month-ex{background:rgba(46,204,113,.18)}
+.tbl tfoot td.month-ex{background:rgba(46,204,113,.10);font-weight:700}
 /* Product name truncate */
 .prod-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .prod-name:hover{overflow:visible;white-space:normal;background:var(--card-bg);position:relative;z-index:10;box-shadow:var(--shadow-md);border-radius:4px;padding:2px 4px;margin:-2px -4px}
@@ -587,22 +590,24 @@ function _drillTr(r,hl,wd,expandKey,canExpand,indent){
   const rCS=expCS>0?(r.bpCS/expCS*100):0,rEX=expEX>0?(r.bpEX/expEX*100):0;
   const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
   const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
-  const mc=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
+  const mcCS=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
+  const mcEX=hl.map(l=>`<td class="num month-col month-ex">${fmtInt(r.months[l]?.ex||0)}</td>`).join('');
   const isExp=canExpand&&!!EXPANDED[expandKey];
   const pd=indent*20;
   let nc;
   if(canExpand){const sk=escHtml(expandKey).replace(/'/g,"\\'");nc=`<td style="padding-left:${pd+10}px"><span onclick="toggleExpand('${sk}',event)" style="cursor:pointer;display:inline-block;margin-right:6px;transition:transform .15s;transform:rotate(${isExp?90:0}deg);color:var(--gold);font-size:10px">▶</span><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
   else{nc=`<td style="padding-left:${pd+32}px"><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
   const bg=indent===1?'style="background:rgba(52,152,219,.04)"':indent===2?'style="background:rgba(201,168,76,.04)"':'';
-  return`<tr ${bg}>${nc}${mc}<td class="num">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td><td class="num">${fmtInt(avgEX)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
+  return`<tr ${bg}>${nc}${mcCS}${mcEX}<td class="num">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td><td class="num">${fmtInt(avgEX)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
 }
 function _drillFoot(tot,totM,hl,wd,count){
   const aCS=tot.bqCS/6,aEX=tot.bqEX/6,eCS=aCS*wd.rate,eEX=aEX*wd.rate;
   const rCS=eCS>0?(tot.bpCS/eCS*100):0,rEX=eEX>0?(tot.bpEX/eEX*100):0;
   const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
   const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
-  const mc=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]?.cs||0)}</td>`).join('');
-  $('drillTfoot').innerHTML=`<tr><td>รวมทั้งหมด (${count})</td>${mc}<td class="num">${fmtInt(aCS)}</td><td class="num">${fmtInt(tot.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td><td class="num">${fmtInt(aEX)}</td><td class="num">${fmtInt(tot.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
+  const mcCS=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]?.cs||0)}</td>`).join('');
+  const mcEX=hl.map(l=>`<td class="num month-col month-ex">${fmtInt(totM[l]?.ex||0)}</td>`).join('');
+  $('drillTfoot').innerHTML=`<tr><td>รวมทั้งหมด (${count})</td>${mcCS}${mcEX}<td class="num">${fmtInt(aCS)}</td><td class="num">${fmtInt(tot.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td><td class="num">${fmtInt(aEX)}</td><td class="num">${fmtInt(tot.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
 }
 
 function renderDrill(){
@@ -620,8 +625,9 @@ function renderDrill(){
   $('drillTbl').classList.toggle('expanded',MONTHS_EXPANDED);
   $('toggleMonths').textContent=MONTHS_EXPANDED?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';
 
-  const monCols=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l}">${ms}<br>CS</th>`;}).join('');
-  $('drillThead').innerHTML=`<th>${isFlat?'สินค้า':'Cat Brand / Pack / สินค้า'}</th>${monCols}<th class="num th-avg">AVG<br>CS</th><th class="num th-cur">เดือนนี้<br>CS</th><th class="num">CS%</th><th class="num th-avg">AVG<br>EXVat</th><th class="num th-cur">เดือนนี้<br>EXVat ฿</th><th class="num">EXVat%</th>`;
+  const monColsCS=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l} CS">${ms}<br>CS</th>`;}).join('');
+  const monColsEX=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon month-ex" title="${l} EXVat">${ms}<br>EXVat</th>`;}).join('');
+  $('drillThead').innerHTML=`<th>${isFlat?'สินค้า':'Cat Brand / Pack / สินค้า'}</th>${monColsCS}${monColsEX}<th class="num th-avg">AVG<br>CS</th><th class="num th-cur">เดือนนี้<br>CS</th><th class="num">CS%</th><th class="num th-avg">AVG<br>EXVat</th><th class="num th-cur">เดือนนี้<br>EXVat ฿</th><th class="num">EXVat%</th>`;
 
   if(isFlat){
     // Flat paginated all-products list
