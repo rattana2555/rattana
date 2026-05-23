@@ -294,6 +294,26 @@ body.dark .spinner-box{background:var(--card-bg)}
             </div>
           </div>
         </div>
+        <!-- Stores distribution -->
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span class="gold-bar"></span>📍 การกระจายร้านค้า — จำนวนร้านที่ซื้อ (Unique Customer)</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" id="toggleStoresMonths" onclick="toggleStoresMonthCols()">📅 แสดง 6 เดือน</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="storesContent">
+              <div class="tbl-wrap">
+                <table class="tbl" id="storesTbl">
+                  <thead><tr id="storesThead"></tr></thead>
+                  <tbody id="storesTbody"></tbody>
+                  <tfoot id="storesTfoot"></tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -406,7 +426,7 @@ function enterApp(){$('loginScreen').style.display='none';$('appScreen').style.d
 function logout(){if(!confirm('ออกจากระบบ?'))return;localStorage.removeItem('rattanaUser');location.reload();}
 
 /* ══ APP STATE ══ */
-let VENDORS=[],BQ_SALES_ROWS=[],BQ_TREND_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[],SELLIN_ALL_ROWS=[],SELECTED_VENDOR=null;
+let VENDORS=[],BQ_SALES_ROWS=[],BQ_TREND_ROWS=[],BQ_STORES_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[],SELLIN_ALL_ROWS=[],SELECTED_VENDOR=null;
 let DRILL={level:'brand',brand:null,pack:null};
 let MONTHS_EXPANDED=false;
 let SELECTED_CHANNEL='ALL';
@@ -435,7 +455,7 @@ async function initApp(){
   }finally{hideSpinner();setLoading(false);}
 }
 async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
-async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
+async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim(),customer_code:String(r['Customer_Code']||r['customer_code']||r['Customer Code']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
 /* parseCsv to raw arrays (no header conversion) */
 function parseCsvArrays(text){
   if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
@@ -478,21 +498,22 @@ async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').text
 async function loadVendorData(){
   if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
   try{
-    const ck='bq_sales_'+SELECTED_VENDOR,ckT='bq_trend_'+SELECTED_VENDOR;
-    let bq=cacheGet(ck),tr=cacheGet(ckT);
+    const ck='bq_sales_'+SELECTED_VENDOR,ckT='bq_trend_'+SELECTED_VENDOR,ckS='bq_stores_'+SELECTED_VENDOR;
+    let bq=cacheGet(ck),tr=cacheGet(ckT),st=cacheGet(ckS);
     const fetchSales=bq?Promise.resolve(bq):bqCall('sales',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,channel:(r.channel||'').trim(),sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht)})));
     const fetchTrend=tr?Promise.resolve(tr):bqCall('trend',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),wh:normWH(r.wh),channel:(r.channel||'').trim(),exvat:pNum(r.exvat),sales_cs:pNum(r.sales_cs)})));
-    [bq,tr]=await Promise.all([fetchSales,fetchTrend]);
-    cacheSet(ck,bq);cacheSet(ckT,tr);
-    BQ_SALES_ROWS=bq;BQ_TREND_ROWS=tr;
-    console.log('[Trend rows]',tr.length,'sample:',tr.slice(0,3));
+    const fetchStores=st?Promise.resolve(st):bqCall('stores',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({level:r.level||'',month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand||'',cat_pack:r.cat_pack||'',product_name:r.product_name||'',channel:(r.channel||'').trim(),stores:pNum(r.stores)}))).catch(e=>{console.warn('[stores] fetch failed',e);return[];});
+    [bq,tr,st]=await Promise.all([fetchSales,fetchTrend,fetchStores]);
+    cacheSet(ck,bq);cacheSet(ckT,tr);if(st&&st.length)cacheSet(ckS,st);
+    BQ_SALES_ROWS=bq;BQ_TREND_ROWS=tr;BQ_STORES_ROWS=st||[];
+    console.log('[Trend rows]',tr.length,'| Stores rows:',(st||[]).length);
     renderAll();showToast('โหลดเรียบร้อย','success');
   }
   catch(e){showToast('โหลดไม่สำเร็จ: '+e.message,'error');}finally{hideSpinner();}
 }
 
 /* ══ RENDER ALL ══ */
-function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderChannelChips();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderSellIn();renderStock();}
+function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderChannelChips();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();renderSellIn();renderStock();}
 function _chKey(s){return String(s||'').toLowerCase().trim();}
 function _chMatch(r){return SELECTED_CHANNEL==='ALL'||_chKey(r.channel)===_chKey(SELECTED_CHANNEL);}
 function _monthMatch(my){const{currentLabel}=getPeriodLabels();if(my===currentLabel)return true;return !SELECTED_MONTHS||SELECTED_MONTHS.has(my);}
@@ -508,9 +529,9 @@ function setChannel(c){SELECTED_CHANNEL=c;renderAll();}
 function renderMonthFilterLabel(){const{historyLabels,currentLabel}=getPeriodLabels();const total=historyLabels.length+1;const count=SELECTED_MONTHS?SELECTED_MONTHS.size:total;const lbl=$('monthFilterLabel');if(!lbl)return;if(count===total)lbl.textContent='เดือน: ทั้งหมด (6+ปัจจุบัน)';else if(SELECTED_MONTHS&&SELECTED_MONTHS.size===1)lbl.textContent='เดือน: เฉพาะปัจจุบัน';else lbl.textContent=`เดือน: ${count}/${total}`;}
 function renderMonthFilterList(){const{historyLabels,currentLabel}=getPeriodLabels();const all=[...historyLabels,currentLabel];const sel=SELECTED_MONTHS||new Set(all);const list=$('monthFilterList');if(!list)return;list.innerHTML=all.map(l=>{const isCur=l===currentLabel;const checked=isCur||sel.has(l)?'checked':'';const disabled=isCur?'disabled':'';const disp=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<label ${isCur?'style="opacity:.85;cursor:default;background:rgba(201,168,76,.06)" title="เดือนปัจจุบันต้องแสดงเสมอ"':''}><input type="checkbox" ${checked} ${disabled} onchange="toggleMonth('${l}')"/>${disp}${isCur?' <span style="color:var(--gold);font-size:11px;margin-left:auto;font-weight:600">★ ปัจจุบัน</span>':''}</label>`;}).join('');}
 function toggleMonthFilter(ev){ev&&ev.stopPropagation();const p=$('monthFilterPanel');if(!p)return;const open=p.classList.toggle('open');if(open)renderMonthFilterList();}
-function toggleMonth(m){const{historyLabels,currentLabel}=getPeriodLabels();if(m===currentLabel)return;const all=[...historyLabels,currentLabel];if(!SELECTED_MONTHS)SELECTED_MONTHS=new Set(all);if(SELECTED_MONTHS.has(m))SELECTED_MONTHS.delete(m);else SELECTED_MONTHS.add(m);if(SELECTED_MONTHS.size===all.length)SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();}
-function monthFilterAll(ev){ev&&ev.stopPropagation();SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();}
-function monthFilterNone(ev){ev&&ev.stopPropagation();const{currentLabel}=getPeriodLabels();SELECTED_MONTHS=new Set([currentLabel]);renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();}
+function toggleMonth(m){const{historyLabels,currentLabel}=getPeriodLabels();if(m===currentLabel)return;const all=[...historyLabels,currentLabel];if(!SELECTED_MONTHS)SELECTED_MONTHS=new Set(all);if(SELECTED_MONTHS.has(m))SELECTED_MONTHS.delete(m);else SELECTED_MONTHS.add(m);if(SELECTED_MONTHS.size===all.length)SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();}
+function monthFilterAll(ev){ev&&ev.stopPropagation();SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();}
+function monthFilterNone(ev){ev&&ev.stopPropagation();const{currentLabel}=getPeriodLabels();SELECTED_MONTHS=new Set([currentLabel]);renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();}
 
 /* ══ STATS with Working Days ══ */
 function renderStats(){
@@ -713,9 +734,130 @@ function renderDrillPager(page,totalPages,total){
   pe.innerHTML=html;
 }
 
-function toggleExpand(key,ev){ev&&ev.stopPropagation();EXPANDED[key]=!EXPANDED[key];renderDrill();}
+function toggleExpand(key,ev){ev&&ev.stopPropagation();EXPANDED[key]=!EXPANDED[key];renderDrill();renderStores();}
 function drillPage(p){DRILL_PAGE=p;renderDrill();}
-function setDrill(level,brand,pack){DRILL={level,brand,pack};DRILL_PAGE=0;renderDrill();}
+function setDrill(level,brand,pack){DRILL={level,brand,pack};DRILL_PAGE=0;renderDrill();renderStores();}
+
+/* ══ STORES DISTRIBUTION ══ */
+let STORES_EXPANDED_MONTHS=false;
+function toggleStoresMonthCols(){STORES_EXPANDED_MONTHS=!STORES_EXPANDED_MONTHS;const t=$('storesTbl');if(t)t.classList.toggle('expanded',STORES_EXPANDED_MONTHS);const b=$('toggleStoresMonths');if(b)b.textContent=STORES_EXPANDED_MONTHS?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';}
+// BQ stores rows: {level: 'brand'|'pack'|'product', month_year, cat_brand, cat_pack, product_name, channel, stores}
+// Channel filter: BQ has rows with channel='' (ALL) and channel=X (per channel). We use channel=='' when SELECTED_CHANNEL=ALL else match exact.
+function _storesRowMatchCh(r){
+  if(SELECTED_CHANNEL==='ALL')return !r.channel; // empty channel = total
+  return _chKey(r.channel)===_chKey(SELECTED_CHANNEL);
+}
+function _storesBqMap(level){
+  // returns: name → month → stores  (name = brand or pack or product)
+  const out={};
+  BQ_STORES_ROWS.forEach(r=>{
+    if(r.level!==level)return;
+    if(!_storesRowMatchCh(r))return;
+    if(!_monthMatch(r.month_year))return;
+    let key;
+    if(level==='brand')key=r.cat_brand||'(ไม่ระบุ)';
+    else if(level==='pack')key=(r.cat_brand||'(ไม่ระบุ)')+'::'+(r.cat_pack||'(ไม่ระบุ)');
+    else key=(r.cat_brand||'(ไม่ระบุ)')+'::'+(r.cat_pack||'(ไม่ระบุ)')+'::'+(r.product_name||'(ไม่ระบุ)');
+    if(!out[key])out[key]={months:{},total:0};
+    out[key].months[r.month_year]=(out[key].months[r.month_year]||0)+r.stores;
+    out[key].total+=r.stores;
+  });
+  return out;
+}
+function _bpUniqStores(rows,filterFn){
+  // group filtered BP rows → unique customer_code count
+  const set=new Set();
+  rows.forEach(r=>{if(filterFn(r)&&r.customer_code)set.add(r.customer_code);});
+  return set.size;
+}
+function _storesAgg(level,parentBrand,parentPack){
+  // build agg list at given level filtered by parent (when expanding)
+  const bqMap=_storesBqMap(level);
+  const bp=vendorBpRows();
+  const out=[];
+  const hl=getActiveHistoryMonths();
+  // Iterate BQ keys + BP-only entries
+  const keys=new Set(Object.keys(bqMap));
+  // Add BP-only keys
+  bp.forEach(r=>{
+    let key;
+    const b=r.cat_brand||'(ไม่ระบุ)',p=r.cat_pack||'(ไม่ระบุ)',n=r.product_name||'(ไม่ระบุ)';
+    if(level==='brand')key=b;
+    else if(level==='pack'){if(parentBrand&&b!==parentBrand)return;key=b+'::'+p;}
+    else{if(parentBrand&&b!==parentBrand)return;if(parentPack&&p!==parentPack)return;key=b+'::'+p+'::'+n;}
+    keys.add(key);
+  });
+  keys.forEach(key=>{
+    // Parse key
+    const parts=key.split('::');
+    let displayName,filterFn;
+    if(level==='brand'){displayName=parts[0];filterFn=r=>(r.cat_brand||'(ไม่ระบุ)')===parts[0];}
+    else if(level==='pack'){displayName=parts[1];if(parentBrand&&parts[0]!==parentBrand)return;filterFn=r=>(r.cat_brand||'(ไม่ระบุ)')===parts[0]&&(r.cat_pack||'(ไม่ระบุ)')===parts[1];}
+    else{displayName=parts[2];if(parentBrand&&parts[0]!==parentBrand)return;if(parentPack&&parts[1]!==parentPack)return;filterFn=r=>(r.cat_brand||'(ไม่ระบุ)')===parts[0]&&(r.cat_pack||'(ไม่ระบุ)')===parts[1]&&(r.product_name||'(ไม่ระบุ)')===parts[2];}
+    const months={};
+    hl.forEach(l=>{months[l]=bqMap[key]?.months[l]||0;});
+    const bqTotal=hl.reduce((s,l)=>s+(months[l]||0),0);
+    const bpStores=_bpUniqStores(bp,filterFn);
+    out.push({key,name:displayName,brand:parts[0],pack:parts[1]||'',product:parts[2]||'',months,bqTotal,bpStores});
+  });
+  return out.sort((a,b)=>b.bqTotal-a.bqTotal);
+}
+function _storesTr(r,hl,expandKey,canExpand,indent){
+  const _mn=activeMonthCount();
+  const avg=r.bqTotal/_mn;
+  const expAvg=avg; // for stores, pro-rata doesn't really apply — just compare current to AVG
+  const ratio=expAvg>0?(r.bpStores/expAvg*100):0;
+  const cls=ratio>=100?'cmp-up':(ratio<80?'cmp-down':'cmp-neutral');
+  const mc=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]||0)}</td>`).join('');
+  const isExp=canExpand&&!!EXPANDED['ST::'+expandKey];
+  const pd=indent*20;
+  let nc;
+  if(canExpand){const sk=escHtml('ST::'+expandKey).replace(/'/g,"\\'");nc=`<td style="padding-left:${pd+10}px"><span onclick="toggleExpand('${sk}',event)" style="cursor:pointer;display:inline-block;margin-right:6px;transition:transform .15s;transform:rotate(${isExp?90:0}deg);color:var(--gold);font-size:10px">▶</span><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  else{nc=`<td style="padding-left:${pd+32}px"><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  const bg=indent===1?'style="background:rgba(52,152,219,.04)"':indent===2?'style="background:rgba(201,168,76,.04)"':'';
+  return`<tr ${bg}>${nc}${mc}<td class="num">${fmtInt(avg)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpStores)}</td><td class="num"><span class="cmp-arr ${cls}">${ratio.toFixed(0)}%</span></td></tr>`;
+}
+function renderStores(){
+  if(!SELECTED_VENDOR)return;
+  const wrap=$('storesContent');if(!wrap)return;
+  const hl=getActiveHistoryMonths();
+  const monCols=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l}">${ms}<br>ร้าน</th>`;}).join('');
+  const thead=`<th>Cat Brand / Pack / สินค้า</th>${monCols}<th class="num th-avg">AVG<br>ร้าน</th><th class="num th-cur">เดือนนี้<br>ร้าน</th><th class="num">%</th>`;
+  const th=$('storesThead');if(th)th.innerHTML=thead;
+  // Build accordion
+  const brands=_storesAgg('brand');
+  let html='';
+  let tBq=0,tBp=0;const totM={};hl.forEach(l=>totM[l]=0);
+  // For grand-total BP we need unique customer codes across the WHOLE vendor (regardless of which brand)
+  const bpAll=vendorBpRows();
+  const grandBp=new Set();bpAll.forEach(r=>{if(r.customer_code)grandBp.add(r.customer_code);});
+  // grandBq per month — use brand-level rows summed (note: cross-brand customer may double-count; this is an approximation)
+  brands.forEach(brand=>{
+    tBq+=brand.bqTotal;
+    hl.forEach(l=>{totM[l]+=brand.months[l]||0;});
+    html+=_storesTr(brand,hl,brand.key,true,0);
+    if(EXPANDED['ST::'+brand.key]){
+      const packs=_storesAgg('pack',brand.brand);
+      for(const pack of packs){
+        html+=_storesTr(pack,hl,pack.key,true,1);
+        if(EXPANDED['ST::'+pack.key]){
+          const prods=_storesAgg('product',pack.brand,pack.pack);
+          for(const prod of prods)html+=_storesTr(prod,hl,prod.key,false,2);
+        }
+      }
+    }
+  });
+  const tb=$('storesTbody');if(tb)tb.innerHTML=html||`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;
+  // Footer: grand total using vendor-wide unique sets
+  const _mn=activeMonthCount();
+  const grandAvg=tBq/_mn;
+  const grandRatio=grandAvg>0?(grandBp.size/grandAvg*100):0;
+  const cls=grandRatio>=100?'cmp-up':(grandRatio<80?'cmp-down':'cmp-neutral');
+  const mcFoot=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]||0)}</td>`).join('');
+  const tf=$('storesTfoot');if(tf)tf.innerHTML=`<tr><td>รวมทั้งหมด (${brands.length})</td>${mcFoot}<td class="num">${fmtInt(grandAvg)}</td><td class="num">${fmtInt(grandBp.size)}</td><td class="num"><span class="cmp-arr ${cls}">${grandRatio.toFixed(0)}%</span></td></tr>`;
+  // Sync expanded class
+  const t=$('storesTbl');if(t)t.classList.toggle('expanded',STORES_EXPANDED_MONTHS);
+}
 
 /* ══ SELL-IN ══ */
 function renderSellIn(){
@@ -913,14 +1055,14 @@ function pickStockVendor(stockVendor){
 document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');$('tab-'+btn.dataset.tab).classList.add('active');});});
 const DARK_KEY='rattanaDark';if(localStorage.getItem(DARK_KEY)==='1')document.body.classList.add('dark');
 $('btnDark').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem(DARK_KEY,document.body.classList.contains('dark')?'1':'0');});
-$('btnRefresh').addEventListener('click',async()=>{const b=$('btnRefresh');b.disabled=true;['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));if(SELECTED_VENDOR){localStorage.removeItem('bq_sales_'+SELECTED_VENDOR);localStorage.removeItem('bq_trend_'+SELECTED_VENDOR);}await initApp();if(SELECTED_VENDOR)await loadVendorData();b.disabled=false;});
+$('btnRefresh').addEventListener('click',async()=>{const b=$('btnRefresh');b.disabled=true;['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));if(SELECTED_VENDOR){localStorage.removeItem('bq_sales_'+SELECTED_VENDOR);localStorage.removeItem('bq_trend_'+SELECTED_VENDOR);localStorage.removeItem('bq_stores_'+SELECTED_VENDOR);}await initApp();if(SELECTED_VENDOR)await loadVendorData();b.disabled=false;});
 $('btnCfg').addEventListener('click',()=>{$('cfgBqUrl').value=CFG.bqProxyUrl||'';$('cfgBpId').value=CFG.bpId||'';$('cfgBpTab').value=CFG.bpTab||'';$('cfgStockId').value=CFG.stockId||'';$('cfgStockTab').value=CFG.stockTab||'';$('cfgClaudeId').value=CFG.claudeId||'';$('cfgClaudeTab').value=CFG.claudeTab||'';$('cfgModal').classList.add('open');});
 function closeCfg(){$('cfgModal').classList.remove('open');}
 async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgBpId').value.trim(),bpTab:$('cfgBpTab').value.trim()||'BP',stockId:$('cfgStockId').value.trim(),stockTab:$('cfgStockTab').value.trim()||'Product_Detail',claudeId:$('cfgClaudeId').value.trim(),claudeTab:$('cfgClaudeTab').value.trim()||'sell in'};saveCfgObj(CFG);['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));closeCfg();showToast('บันทึกแล้ว','success');await initApp();}
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;window.setChannel=setChannel;window.toggleMonthFilter=toggleMonthFilter;window.toggleMonth=toggleMonth;window.monthFilterAll=monthFilterAll;window.monthFilterNone=monthFilterNone;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;window.setChannel=setChannel;window.toggleMonthFilter=toggleMonthFilter;window.toggleMonth=toggleMonth;window.monthFilterAll=monthFilterAll;window.monthFilterNone=monthFilterNone;window.toggleStoresMonthCols=toggleStoresMonthCols;
 window.onload=checkSession;
 </script>
 </body>
