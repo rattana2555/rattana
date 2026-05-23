@@ -392,7 +392,7 @@ function enterApp(){$('loginScreen').style.display='none';$('appScreen').style.d
 function logout(){if(!confirm('ออกจากระบบ?'))return;localStorage.removeItem('rattanaUser');location.reload();}
 
 /* ══ APP STATE ══ */
-let VENDORS=[],BQ_SALES_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[],SELLIN_ALL_ROWS=[],SELECTED_VENDOR=null;
+let VENDORS=[],BQ_SALES_ROWS=[],BQ_TREND_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[],SELLIN_ALL_ROWS=[],SELECTED_VENDOR=null;
 let DRILL={level:'brand',brand:null,pack:null};
 let MONTHS_EXPANDED=false;
 
@@ -461,7 +461,17 @@ document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.
 async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};await loadVendorData();}
 async function loadVendorData(){
   if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
-  try{const ck='bq_sales_'+SELECTED_VENDOR;let bq=cacheGet(ck);if(!bq){bq=await bqCall('sales',{vendor:SELECTED_VENDOR,months:6});console.log('[BQ raw sample]',bq.slice(0,3));console.log('[BQ keys]',bq.length>0?Object.keys(bq[0]):'no data');bq=bq.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht),wh:normWH(r.wh||r.WH||r.warehouse||r.Warehouse||r.WS||r.ws)}));cacheSet(ck,bq);}BQ_SALES_ROWS=bq;console.log('[BQ unique WH values]',[...new Set(BQ_SALES_ROWS.map(r=>r.wh))]);console.log('[BQ unique months]',[...new Set(BQ_SALES_ROWS.map(r=>r.month_year))].sort());renderAll();showToast('โหลดเรียบร้อย','success');}
+  try{
+    const ck='bq_sales_'+SELECTED_VENDOR,ckT='bq_trend_'+SELECTED_VENDOR;
+    let bq=cacheGet(ck),tr=cacheGet(ckT);
+    const fetchSales=bq?Promise.resolve(bq):bqCall('sales',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht)})));
+    const fetchTrend=tr?Promise.resolve(tr):bqCall('trend',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),wh:normWH(r.wh),exvat:pNum(r.exvat),sales_cs:pNum(r.sales_cs)})));
+    [bq,tr]=await Promise.all([fetchSales,fetchTrend]);
+    cacheSet(ck,bq);cacheSet(ckT,tr);
+    BQ_SALES_ROWS=bq;BQ_TREND_ROWS=tr;
+    console.log('[Trend rows]',tr.length,'sample:',tr.slice(0,3));
+    renderAll();showToast('โหลดเรียบร้อย','success');
+  }
   catch(e){showToast('โหลดไม่สำเร็จ: '+e.message,'error');}finally{hideSpinner();}
 }
 
@@ -506,20 +516,11 @@ function renderLineChart(){
   const WHs=['W1','W2','W3','W4'];
   const WHColors={W1:'#C9A84C',W2:'#3498DB',W3:'#E74C3C',W4:'#27AE60'};
 
-  // BQ history: EXVat per WH per month
+  // BQ history: EXVat per WH per month (from dedicated trend endpoint)
   const byMonthWH={};
   historyLabels.forEach(l=>{byMonthWH[l]={};WHs.forEach(w=>byMonthWH[l][w]=0);});
-  // Debug: log what months BQ actually returned
-  const _bqMonths=[...new Set(BQ_SALES_ROWS.map(r=>r.month_year))];
-  console.log('[Chart] BQ months in data:',_bqMonths);
-  console.log('[Chart] Expected historyLabels:',historyLabels);
-  BQ_SALES_ROWS.forEach(r=>{
-    const wh=(r.wh||'').toUpperCase().trim();
-    // Robust normalization: handle YYYY-MM, YYYY/MM, YYYY-MM-DD, full timestamp, etc.
-    let my=String(r.month_year||'').trim();
-    const dm=my.match(/(\d{4})[-\/\.](\d{1,2})/);
-    if(dm)my=`${dm[1]}/${dm[2].padStart(2,'0')}`;
-    if(byMonthWH[my]&&WHs.includes(wh))byMonthWH[my][wh]+=r.exvat;
+  BQ_TREND_ROWS.forEach(r=>{
+    if(byMonthWH[r.month_year]&&WHs.includes(r.wh))byMonthWH[r.month_year][r.wh]+=r.exvat;
   });
 
   // BP current month: EXVat per WS
@@ -873,7 +874,7 @@ function pickStockVendor(stockVendor){
 document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');$('tab-'+btn.dataset.tab).classList.add('active');});});
 const DARK_KEY='rattanaDark';if(localStorage.getItem(DARK_KEY)==='1')document.body.classList.add('dark');
 $('btnDark').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem(DARK_KEY,document.body.classList.contains('dark')?'1':'0');});
-$('btnRefresh').addEventListener('click',async()=>{const b=$('btnRefresh');b.disabled=true;['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));if(SELECTED_VENDOR)localStorage.removeItem('bq_sales_'+SELECTED_VENDOR);await initApp();if(SELECTED_VENDOR)await loadVendorData();b.disabled=false;});
+$('btnRefresh').addEventListener('click',async()=>{const b=$('btnRefresh');b.disabled=true;['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));if(SELECTED_VENDOR){localStorage.removeItem('bq_sales_'+SELECTED_VENDOR);localStorage.removeItem('bq_trend_'+SELECTED_VENDOR);}await initApp();if(SELECTED_VENDOR)await loadVendorData();b.disabled=false;});
 $('btnCfg').addEventListener('click',()=>{$('cfgBqUrl').value=CFG.bqProxyUrl||'';$('cfgBpId').value=CFG.bpId||'';$('cfgBpTab').value=CFG.bpTab||'';$('cfgStockId').value=CFG.stockId||'';$('cfgStockTab').value=CFG.stockTab||'';$('cfgClaudeId').value=CFG.claudeId||'';$('cfgClaudeTab').value=CFG.claudeTab||'';$('cfgModal').classList.add('open');});
 function closeCfg(){$('cfgModal').classList.remove('open');}
 async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgBpId').value.trim(),bpTab:$('cfgBpTab').value.trim()||'BP',stockId:$('cfgStockId').value.trim(),stockTab:$('cfgStockTab').value.trim()||'Product_Detail',claudeId:$('cfgClaudeId').value.trim(),claudeTab:$('cfgClaudeTab').value.trim()||'sell in'};saveCfgObj(CFG);['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));closeCfg();showToast('บันทึกแล้ว','success');await initApp();}
