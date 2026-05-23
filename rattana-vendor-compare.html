@@ -110,9 +110,13 @@ body.dark .badge-gold{color:var(--gold-light)}
 .tbl .month-col{display:none}
 
 .tbl.expanded .month-col{display:table-cell}
-.tbl .month-ex{background:rgba(46,204,113,.06);color:#1d6f3d}
-.tbl thead th.month-ex{background:rgba(46,204,113,.18)}
-.tbl tfoot td.month-ex{background:rgba(46,204,113,.10);font-weight:700}
+.channel-chips{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px 0 16px;align-items:center}
+.chip{padding:5px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:14px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip.active{background:var(--gold);color:#fff;border-color:var(--gold);font-weight:600;box-shadow:0 1px 3px rgba(201,168,76,.4)}
+.tbl tbody td.month-ex{background:rgba(46,204,113,.06);color:#1d6f3d}
+.tbl thead th.month-ex{background:rgba(46,204,113,.25);color:#fff}
+.tbl tfoot td.month-ex{background:rgba(46,204,113,.10);font-weight:700;color:#1d6f3d}
 /* Product name truncate */
 .prod-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .prod-name:hover{overflow:visible;white-space:normal;background:var(--card-bg);position:relative;z-index:10;box-shadow:var(--shadow-md);border-radius:4px;padding:2px 4px;margin:-2px -4px}
@@ -241,6 +245,7 @@ body.dark .spinner-box{background:var(--card-bg)}
       </div>
     </div>
   </div>
+  <div id="channelChips" class="channel-chips" style="display:none"></div>
 
   <div class="content">
     <div class="tab-pane active" id="tab-overview">
@@ -398,6 +403,7 @@ function logout(){if(!confirm('ออกจากระบบ?'))return;localSto
 let VENDORS=[],BQ_SALES_ROWS=[],BQ_TREND_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[],SELLIN_ALL_ROWS=[],SELECTED_VENDOR=null;
 let DRILL={level:'brand',brand:null,pack:null};
 let MONTHS_EXPANDED=false;
+let SELECTED_CHANNEL='ALL';
 
 /* ══ BQ PROXY ══ */
 async function bqCall(action,params={}){
@@ -422,7 +428,7 @@ async function initApp(){
   }finally{hideSpinner();setLoading(false);}
 }
 async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
-async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||'')})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
+async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
 /* parseCsv to raw arrays (no header conversion) */
 function parseCsvArrays(text){
   if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
@@ -461,14 +467,14 @@ function renderVendorList(){const ul=$('vendorList');if(!VENDORS.length){ul.inne
 function filterVendorList(q){const ql=q.toLowerCase();document.querySelectorAll('#vendorList li').forEach(li=>{const name=(li.querySelector('.vname')?.textContent||'').toLowerCase();li.style.display=name.includes(ql)?'':'none';});}
 function toggleVendorDD(){const p=$('vendorPanel');const open=p.classList.contains('open');document.querySelectorAll('.dd-panel').forEach(x=>x.classList.remove('open'));if(!open){p.classList.add('open');setTimeout(()=>$('vendorSearch').focus(),50);}}
 document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-panel').forEach(p=>p.classList.remove('open'));});
-async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};await loadVendorData();}
+async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};SELECTED_CHANNEL='ALL';await loadVendorData();}
 async function loadVendorData(){
   if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
   try{
     const ck='bq_sales_'+SELECTED_VENDOR,ckT='bq_trend_'+SELECTED_VENDOR;
     let bq=cacheGet(ck),tr=cacheGet(ckT);
-    const fetchSales=bq?Promise.resolve(bq):bqCall('sales',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht)})));
-    const fetchTrend=tr?Promise.resolve(tr):bqCall('trend',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),wh:normWH(r.wh),exvat:pNum(r.exvat),sales_cs:pNum(r.sales_cs)})));
+    const fetchSales=bq?Promise.resolve(bq):bqCall('sales',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,channel:(r.channel||'').trim(),sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht)})));
+    const fetchTrend=tr?Promise.resolve(tr):bqCall('trend',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),wh:normWH(r.wh),channel:(r.channel||'').trim(),exvat:pNum(r.exvat),sales_cs:pNum(r.sales_cs)})));
     [bq,tr]=await Promise.all([fetchSales,fetchTrend]);
     cacheSet(ck,bq);cacheSet(ckT,tr);
     BQ_SALES_ROWS=bq;BQ_TREND_ROWS=tr;
@@ -479,12 +485,18 @@ async function loadVendorData(){
 }
 
 /* ══ RENDER ALL ══ */
-function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderStats();renderLineChart();renderDrill();renderSellIn();renderStock();}
-function vendorBpRows(){return BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR);}
+function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderChannelChips();renderStats();renderLineChart();renderDrill();renderSellIn();renderStock();}
+function _chMatch(r){return SELECTED_CHANNEL==='ALL'||(r.channel||'')===SELECTED_CHANNEL;}
+function vendorBpRows(){return BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR&&_chMatch(r));}
+function vendorBqSalesRows(){return BQ_SALES_ROWS.filter(_chMatch);}
+function vendorBqTrendRows(){return BQ_TREND_ROWS.filter(_chMatch);}
+function getAvailableChannels(){const s=new Set();BQ_TREND_ROWS.forEach(r=>{if(r.channel)s.add(r.channel);});BP_ALL_ROWS.filter(r=>r.cat_vendor===SELECTED_VENDOR).forEach(r=>{if(r.channel)s.add(r.channel);});return[...s].sort();}
+function renderChannelChips(){const wrap=$('channelChips');if(!wrap)return;const chs=getAvailableChannels();if(!chs.length){wrap.style.display='none';return;}wrap.style.display='flex';wrap.innerHTML=`<span style="font-size:12px;color:var(--muted);align-self:center;margin-right:4px">Channel:</span><button class="chip ${SELECTED_CHANNEL==='ALL'?'active':''}" onclick="setChannel('ALL')">ทั้งหมด</button>`+chs.map(c=>`<button class="chip ${SELECTED_CHANNEL===c?'active':''}" onclick="setChannel('${escHtml(c).replace(/'/g,"\\'")}')">${escHtml(c)}</button>`).join('');}
+function setChannel(c){SELECTED_CHANNEL=c;renderAll();}
 
 /* ══ STATS with Working Days ══ */
 function renderStats(){
-  const bq=BQ_SALES_ROWS,bp=vendorBpRows();
+  const bq=vendorBqSalesRows(),bp=vendorBpRows();
   const bqCS=bq.reduce((s,r)=>s+r.sales_cs,0),bqEX=bq.reduce((s,r)=>s+r.exvat,0);
   const bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
   const avgCS=bqCS/6,avgEX=bqEX/6;
@@ -522,7 +534,7 @@ function renderLineChart(){
   // BQ history: EXVat per WH per month (from dedicated trend endpoint)
   const byMonthWH={};
   historyLabels.forEach(l=>{byMonthWH[l]={};WHs.forEach(w=>byMonthWH[l][w]=0);});
-  BQ_TREND_ROWS.forEach(r=>{
+  vendorBqTrendRows().forEach(r=>{
     if(byMonthWH[r.month_year]&&WHs.includes(r.wh))byMonthWH[r.month_year][r.wh]+=r.exvat;
   });
 
@@ -612,7 +624,7 @@ function _drillFoot(tot,totM,hl,wd,count){
 
 function renderDrill(){
   const{historyLabels:hl}=getPeriodLabels();
-  const bp=vendorBpRows(),bq=BQ_SALES_ROWS;
+  const bp=vendorBpRows(),bq=vendorBqSalesRows();
   const wd=getWDStats();
   const isFlat=DRILL.level==='all_products';
 
@@ -887,7 +899,7 @@ async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgB
 window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
 
 /* ══ BOOT ══ */
-window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;window.setChannel=setChannel;
 window.onload=checkSession;
 </script>
 </body>
