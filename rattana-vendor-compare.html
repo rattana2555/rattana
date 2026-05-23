@@ -609,12 +609,19 @@ function renderLineChart(){
     const dots=s.data.map((v,i)=>`<circle cx="${xp(i).toFixed(1)}" cy="${yv(v).toFixed(1)}" r="${showCur&&i===s.data.length-1?5:3.5}" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`).join('');
     return`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}`;
   }).join('');
+  // Value labels above each dot (skip zeros), with white halo so they read on top of any line/grid
+  const labels=series.map(s=>s.data.map((v,i)=>{
+    if(!v||v<=0)return'';
+    const x=xp(i).toFixed(1),y=(yv(v)-9).toFixed(1);
+    const txt=fmtAx(v);
+    return`<text x="${x}" y="${y}" text-anchor="middle" font-size="10" font-weight="700" fill="${s.color}" stroke="#fff" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${txt}</text>`;
+  }).join('')).join('');
 
   $('lineChartWrap').innerHTML=`
     <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
       ${grids}${ylabels}
       <text x="${PL-6}" y="${PT-6}" text-anchor="end" font-size="9" fill="var(--muted)" font-weight="600">฿</text>
-      ${xLabels}${paths}
+      ${xLabels}${paths}${labels}
     </svg>
   `;
   const leg=document.getElementById('whLegend');
