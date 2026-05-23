@@ -100,11 +100,51 @@ body.dark .badge-gold{color:var(--gold-light)}
 .tbl tbody tr:nth-child(even) td:first-child{background:var(--row-alt);}
 .tbl tbody tr:hover td:first-child{background:rgba(201,168,76,.07);}
 .tbl tfoot td:first-child{background:linear-gradient(to right,rgba(201,168,76,.25),rgba(201,168,76,.1));}
-/* Mobile card view for drill table */
+/* ═══ MOBILE-FIRST RESPONSIVE ═══ */
 @media(max-width:639px){
+  /* Tables: sticky first column + compact */
   .tbl{min-width:340px}
-  .tbl thead th,.tbl tbody td,.tbl tfoot td{padding:7px 8px;font-size:11px}
-  .prod-name{max-width:120px}
+  .tbl thead th,.tbl tbody td,.tbl tfoot td{padding:7px 6px;font-size:11px}
+  .prod-name{max-width:110px}
+  .tbl thead th:first-child,.tbl tbody td:first-child,.tbl tfoot td:first-child{
+    position:sticky;left:0;z-index:5;box-shadow:2px 0 4px -2px rgba(0,0,0,.15);min-width:130px;max-width:130px}
+  .tbl thead th:first-child{background:var(--navy);color:#fff}
+  .tbl tbody td:first-child{background:var(--card-bg)}
+  .tbl tbody tr:nth-child(even) td:first-child{background:var(--row-alt)}
+  /* Bigger touch targets */
+  .chip{padding:8px 14px;font-size:13px;min-height:34px;display:inline-flex;align-items:center}
+  .btn-sm{padding:7px 12px;font-size:12px;min-height:34px}
+  .channel-chips{padding:10px 12px 4px;gap:8px}
+  .channel-chips>span:first-child{display:none}
+  .month-filter-panel{min-width:200px}
+  .month-filter-panel label{padding:9px 12px;font-size:14px;min-height:38px}
+  .month-filter-panel input[type=checkbox]{width:18px;height:18px}
+  /* Card head: stack better */
+  .card-head{padding:10px 12px;gap:6px}
+  .card-head h3{font-size:13px;flex:1 1 100%}
+  .card-head>div{flex:1 1 100%}
+  .card-body{padding:10px}
+  /* Filter bar */
+  .filter-bar{padding:8px 12px;top:56px}
+  .filter-bar .vendor-area{min-width:100%}
+  /* Stat cards */
+  .stat-card{padding:10px 12px}
+  .stat-card .s-label{font-size:10px}
+  .stat-card .s-value{font-size:18px}
+  .stat-card .s-sub{font-size:10px}
+  /* Vendor dropdown panel: full-width sheet-like */
+  .dd-panel{position:fixed!important;left:8px;right:8px;top:auto;bottom:8px;max-height:60vh;width:auto;border-radius:14px}
+  /* Chart text bigger */
+  .chart-wrap svg text{font-size:11px!important}
+  /* Hide month-EX columns on mobile by default to avoid clutter; user can still toggle */
+  .tbl .month-ex{font-size:10px}
+  /* Breadcrumb */
+  .breadcrumb{padding:6px 10px;font-size:11px}
+}
+@media(max-width:480px){
+  .tbl thead th:first-child,.tbl tbody td:first-child,.tbl tfoot td:first-child{min-width:110px;max-width:110px}
+  .prod-name{max-width:90px}
+  .stat-card .s-value{font-size:16px}
 }
 /* Month columns - hidden by default */
 .tbl .month-col{display:none}
