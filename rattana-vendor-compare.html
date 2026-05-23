@@ -473,7 +473,7 @@ async function initApp(){
   }finally{hideSpinner();setLoading(false);}
 }
 async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
-async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim(),customer_code:String(r['Customer_Code']||r['customer_code']||r['Customer Code']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
+async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CSxValue']||r['Sales_CS_x_Value']||r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim(),customer_code:String(r['Customer_Code']||r['customer_code']||r['Customer Code']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
 /* parseCsv to raw arrays (no header conversion) */
 function parseCsvArrays(text){
   if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
@@ -522,6 +522,11 @@ async function loadVendorData(){
     const fetchTrend=tr?Promise.resolve(tr):bqCall('trend',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),wh:normWH(r.wh),channel:(r.channel||'').trim(),exvat:pNum(r.exvat),sales_cs:pNum(r.sales_cs)})));
     const fetchStores=st?Promise.resolve(st):bqCall('stores',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({level:r.level||'',month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand||'',cat_pack:r.cat_pack||'',product_name:r.product_name||'',channel:(r.channel||'').trim(),stores:pNum(r.stores)}))).catch(e=>{console.warn('[stores] fetch failed',e);return[];});
     [bq,tr,st]=await Promise.all([fetchSales,fetchTrend,fetchStores]);
+    // Special-case: CP Food Store sends Sales_CS in kg → /1000 to convert to tonnes
+    if(_isCPVendor(SELECTED_VENDOR)){
+      bq=bq.map(r=>({...r,sales_cs:r.sales_cs/1000}));
+      tr=tr.map(r=>({...r,sales_cs:r.sales_cs/1000}));
+    }
     cacheSet(ck,bq);cacheSet(ckT,tr);if(st&&st.length)cacheSet(ckS,st);
     BQ_SALES_ROWS=bq;BQ_TREND_ROWS=tr;BQ_STORES_ROWS=st||[];
     console.log('[Trend rows]',tr.length,'| Stores rows:',(st||[]).length);
@@ -538,6 +543,8 @@ function _monthMatch(my){const{currentLabel}=getPeriodLabels();if(my===currentLa
 function getActiveHistoryMonths(){const{historyLabels}=getPeriodLabels();return !SELECTED_MONTHS?historyLabels:historyLabels.filter(l=>SELECTED_MONTHS.has(l));}
 function isCurrentMonthActive(){return true;}
 function activeMonthCount(){return Math.max(1,getActiveHistoryMonths().length);}
+const CP_VENDOR_KEY='บจกซพฟู้ดสโตร์'; // normKey of 'บจก.ซี.พี.ฟู้ดสโตร์'
+function _isCPVendor(v){return v&&normKey(v).includes('ซพฟู้ดสโตร์');}
 function vendorBpRows(){
   if(!isCurrentMonthActive())return[];
   const sk=normKey(SELECTED_VENDOR);
@@ -545,14 +552,15 @@ function vendorBpRows(){
   let rows=BP_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk);
   // 2) fallback: substring match (handles invisible chars, trailing garbage)
   if(!rows.length){rows=BP_ALL_ROWS.filter(r=>{const rk=normKey(r.cat_vendor);return rk&&(sk.includes(rk)||rk.includes(sk));});}
-  // Debug log if still empty
   if(!rows.length&&BP_ALL_ROWS.length){
     const samples=[...new Set(BP_ALL_ROWS.map(r=>r.cat_vendor))].slice(0,8);
     console.warn('[BP MATCH FAIL] selected="'+SELECTED_VENDOR+'" sk="'+sk+'"');
-    console.warn('[BP samples]',samples);
-    console.warn('[BP sample normKeys]',samples.map(normKey));
+    console.warn('[BP samples]',samples);console.warn('[BP sample normKeys]',samples.map(normKey));
   }
-  return rows.filter(_chMatch);
+  rows=rows.filter(_chMatch);
+  // CP Food Store: divide sales_cs by 1000 (kg → tonne)
+  if(_isCPVendor(SELECTED_VENDOR))rows=rows.map(r=>({...r,sales_cs:r.sales_cs/1000}));
+  return rows;
 }
 function vendorBqSalesRows(){return BQ_SALES_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
 function vendorBqTrendRows(){return BQ_TREND_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
