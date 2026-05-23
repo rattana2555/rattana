@@ -100,51 +100,29 @@ body.dark .badge-gold{color:var(--gold-light)}
 .tbl tbody tr:nth-child(even) td:first-child{background:var(--row-alt);}
 .tbl tbody tr:hover td:first-child{background:rgba(201,168,76,.07);}
 .tbl tfoot td:first-child{background:linear-gradient(to right,rgba(201,168,76,.25),rgba(201,168,76,.1));}
-/* ═══ MOBILE-FIRST RESPONSIVE ═══ */
+/* ═══ MOBILE RESPONSIVE — safe minimal ═══ */
 @media(max-width:639px){
-  /* Tables: sticky first column + compact */
-  .tbl{min-width:340px}
-  .tbl thead th,.tbl tbody td,.tbl tfoot td{padding:7px 6px;font-size:11px}
-  .prod-name{max-width:110px}
-  .tbl thead th:first-child,.tbl tbody td:first-child,.tbl tfoot td:first-child{
-    position:sticky;left:0;z-index:5;box-shadow:2px 0 4px -2px rgba(0,0,0,.15);min-width:130px;max-width:130px}
-  .tbl thead th:first-child{background:var(--navy);color:#fff}
-  .tbl tbody td:first-child{background:var(--card-bg)}
-  .tbl tbody tr:nth-child(even) td:first-child{background:var(--row-alt)}
+  .tbl{min-width:auto}
+  .tbl thead th,.tbl tbody td,.tbl tfoot td{padding:8px 7px;font-size:11.5px}
+  .prod-name{max-width:130px}
   /* Bigger touch targets */
-  .chip{padding:8px 14px;font-size:13px;min-height:34px;display:inline-flex;align-items:center}
-  .btn-sm{padding:7px 12px;font-size:12px;min-height:34px}
-  .channel-chips{padding:10px 12px 4px;gap:8px}
-  .channel-chips>span:first-child{display:none}
-  .month-filter-panel{min-width:200px}
-  .month-filter-panel label{padding:9px 12px;font-size:14px;min-height:38px}
-  .month-filter-panel input[type=checkbox]{width:18px;height:18px}
-  /* Card head: stack better */
-  .card-head{padding:10px 12px;gap:6px}
-  .card-head h3{font-size:13px;flex:1 1 100%}
-  .card-head>div{flex:1 1 100%}
-  .card-body{padding:10px}
-  /* Filter bar */
-  .filter-bar{padding:8px 12px;top:56px}
-  .filter-bar .vendor-area{min-width:100%}
+  .chip{padding:7px 12px;font-size:12.5px;min-height:32px;line-height:1.2;display:inline-flex;align-items:center}
+  .btn-sm{padding:7px 11px;font-size:12px;min-height:32px}
+  .channel-chips{padding:8px 12px 4px;gap:6px}
+  .month-filter-panel{min-width:180px}
+  .month-filter-panel label{padding:9px 12px;font-size:13.5px;min-height:36px}
+  .month-filter-panel input[type=checkbox]{width:17px;height:17px}
+  /* Card head wraps cleaner */
+  .card-head{padding:11px 12px;gap:8px}
+  .card-head h3{font-size:13px}
+  .card-body{padding:10px 8px}
   /* Stat cards */
-  .stat-card{padding:10px 12px}
-  .stat-card .s-label{font-size:10px}
+  .stat-card{padding:11px 13px}
+  .stat-card .s-label{font-size:10.5px}
   .stat-card .s-value{font-size:18px}
-  .stat-card .s-sub{font-size:10px}
-  /* Vendor dropdown panel: full-width sheet-like */
-  .dd-panel{position:fixed!important;left:8px;right:8px;top:auto;bottom:8px;max-height:60vh;width:auto;border-radius:14px}
-  /* Chart text bigger */
-  .chart-wrap svg text{font-size:11px!important}
-  /* Hide month-EX columns on mobile by default to avoid clutter; user can still toggle */
-  .tbl .month-ex{font-size:10px}
-  /* Breadcrumb */
-  .breadcrumb{padding:6px 10px;font-size:11px}
-}
-@media(max-width:480px){
-  .tbl thead th:first-child,.tbl tbody td:first-child,.tbl tfoot td:first-child{min-width:110px;max-width:110px}
-  .prod-name{max-width:90px}
-  .stat-card .s-value{font-size:16px}
+  .stat-card .s-sub{font-size:10.5px}
+  /* Chart text */
+  .chart-wrap svg text{font-size:11px}
 }
 /* Month columns - hidden by default */
 .tbl .month-col{display:none}
@@ -560,7 +538,22 @@ function _monthMatch(my){const{currentLabel}=getPeriodLabels();if(my===currentLa
 function getActiveHistoryMonths(){const{historyLabels}=getPeriodLabels();return !SELECTED_MONTHS?historyLabels:historyLabels.filter(l=>SELECTED_MONTHS.has(l));}
 function isCurrentMonthActive(){return true;}
 function activeMonthCount(){return Math.max(1,getActiveHistoryMonths().length);}
-function vendorBpRows(){if(!isCurrentMonthActive())return[];const sk=normKey(SELECTED_VENDOR);return BP_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk&&_chMatch(r));}
+function vendorBpRows(){
+  if(!isCurrentMonthActive())return[];
+  const sk=normKey(SELECTED_VENDOR);
+  // 1) exact normalized match
+  let rows=BP_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk);
+  // 2) fallback: substring match (handles invisible chars, trailing garbage)
+  if(!rows.length){rows=BP_ALL_ROWS.filter(r=>{const rk=normKey(r.cat_vendor);return rk&&(sk.includes(rk)||rk.includes(sk));});}
+  // Debug log if still empty
+  if(!rows.length&&BP_ALL_ROWS.length){
+    const samples=[...new Set(BP_ALL_ROWS.map(r=>r.cat_vendor))].slice(0,8);
+    console.warn('[BP MATCH FAIL] selected="'+SELECTED_VENDOR+'" sk="'+sk+'"');
+    console.warn('[BP samples]',samples);
+    console.warn('[BP sample normKeys]',samples.map(normKey));
+  }
+  return rows.filter(_chMatch);
+}
 function vendorBqSalesRows(){return BQ_SALES_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
 function vendorBqTrendRows(){return BQ_TREND_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
 function getAvailableChannels(){const map=new Map();const collect=r=>{if(!r.channel)return;const k=_chKey(r.channel);if(!map.has(k))map.set(k,String(r.channel).trim());};const sk=normKey(SELECTED_VENDOR);BQ_TREND_ROWS.forEach(collect);BP_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk).forEach(collect);return[...map.values()].sort((a,b)=>a.localeCompare(b));}
