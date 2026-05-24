@@ -543,8 +543,8 @@ function _monthMatch(my){const{currentLabel}=getPeriodLabels();if(my===currentLa
 function getActiveHistoryMonths(){const{historyLabels}=getPeriodLabels();return !SELECTED_MONTHS?historyLabels:historyLabels.filter(l=>SELECTED_MONTHS.has(l));}
 function isCurrentMonthActive(){return true;}
 function activeMonthCount(){return Math.max(1,getActiveHistoryMonths().length);}
-const CP_VENDOR_KEY='บจกซพฟู้ดสโตร์'; // normKey of 'บจก.ซี.พี.ฟู้ดสโตร์'
-function _isCPVendor(v){return v&&normKey(v).includes('ซพฟู้ดสโตร์');}
+// normKey('บจก.ซี.พี.ฟู้ดสโตร์') = 'บจกซีพีฟู้ดสโตร์'
+function _isCPVendor(v){if(!v)return false;const k=normKey(v);return k.includes('ฟู้ดสโตร์')||k.includes('cpfoodstore');}
 function vendorBpRows(){
   if(!isCurrentMonthActive())return[];
   const sk=normKey(SELECTED_VENDOR);
@@ -896,12 +896,22 @@ function renderStores(){
     }
   });
   const tb=$('storesTbody');if(tb)tb.innerHTML=html||`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;
-  // Footer: grand total using vendor-wide unique sets
+  // Footer: vendor-wide unique count per month (from BQ level='vendor') — fallback to brand-sum if not available
+  const vendorM={};
+  BQ_STORES_ROWS.forEach(r=>{
+    if(r.level!=='vendor')return;
+    if(!_storesRowMatchCh(r))return;
+    if(!_monthMatch(r.month_year))return;
+    vendorM[r.month_year]=r.stores; // single row per (month, channel-mode)
+  });
+  const useVendor=Object.keys(vendorM).length>0;
+  const finalTotM=useVendor?vendorM:totM;
+  const finalTBq=useVendor?hl.reduce((s,l)=>s+(vendorM[l]||0),0):tBq;
   const _mn=activeMonthCount();
-  const grandAvg=tBq/_mn;
+  const grandAvg=finalTBq/_mn;
   const grandRatio=grandAvg>0?(grandBp.size/grandAvg*100):0;
   const cls=grandRatio>=100?'cmp-up':(grandRatio<80?'cmp-down':'cmp-neutral');
-  const mcFoot=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]||0)}</td>`).join('');
+  const mcFoot=hl.map(l=>`<td class="num month-col">${fmtInt(finalTotM[l]||0)}</td>`).join('');
   const tf=$('storesTfoot');if(tf)tf.innerHTML=`<tr><td>รวมทั้งหมด (${brands.length})</td>${mcFoot}<td class="num">${fmtInt(grandAvg)}</td><td class="num">${fmtInt(grandBp.size)}</td><td class="num"><span class="cmp-arr ${cls}">${grandRatio.toFixed(0)}%</span></td></tr>`;
   // Sync expanded class
   const t=$('storesTbl');if(t)t.classList.toggle('expanded',STORES_EXPANDED_MONTHS);
