@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana สินค้ายังไม่ขาย v4.6</title>
+<title>Rattana สินค้ายังไม่ขาย v4.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
 <style>
 /* ── Design Tokens ── */
@@ -193,7 +193,7 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
       <div class="l-divider"></div>
       <div class="l-foot">เฉพาะพนักงาน <b>Rattana</b> ที่ลงทะเบียนแล้วเท่านั้น<br>มีปัญหา? ติดต่อผู้ดูแลระบบ</div>
     </div>
-    <div class="l-ver" id="loginVer">Rattana สินค้ายังไม่ขาย v4.6 · 2026</div>
+    <div class="l-ver" id="loginVer">Rattana สินค้ายังไม่ขาย v4.7 · 2026</div>
   </div>
 </div>
 
@@ -304,29 +304,32 @@ const AUTH_CONFIG = {
   usersSheetName: 'Sheet1'   // ← เปลี่ยนจาก 'Rattana Users for apps'
 };
 
-// Product master list — ชีท PDDT (ใช้ชื่อชีทเท่านั้น ไม่ใช้ gid เพราะ gid=654974441 เป็น dashboard)
-const PRODUCT_SHEET_ID   = '1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8';
+// Product master list — ชีท PDDT (new sheet with IB W1/W2/W3/W4/C4 columns)
+const PRODUCT_SHEET_ID   = '16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I';
 const PRODUCT_SHEET_NAME = 'PDDT';
 
 // Sales data — ชีท BP (gid=429808572 ว่างเปล่า ใช้ชื่อชีทแทน)
 const SALES_SHEET_ID   = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
 const SALES_SHEET_NAME = 'BP';
 
-const APP_VERSION = 'v4.6';
-const SESSION_KEY = 'rtn_unsold_v46'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
+const APP_VERSION = 'v4.7';
+const SESSION_KEY = 'rtn_unsold_v47'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 /* ═══════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════ */
-let currentUser    = null;   // { name, email, role, sellerName, picture }
-let allProducts    = [];     // master product names
-let salesByProduct = {};     // productName -> { totalBaht, sellers, sellerBaht, catBU, catType, catBrand }
-let myProducts     = new Set();  // products current seller HAS sold
-let allSellers     = [];     // sorted list of all seller names in sales data
-let categoryOptions = [];    // Cat_BU unique values
-let selectedSeller = null;   // null = show current user's data; string = specific seller
-let dataMonth      = '';     // label like "พฤษภาคม 2026"
+let currentUser       = null;   // { name, email, role, sellerName, picture, warehouse }
+let allProducts       = [];     // master product names (all from PDDT)
+let allProductRows    = [];     // full PDDT rows with IB columns (for warehouse filter)
+let allUsersData      = [];     // all users rows for warehouse lookup on seller change
+let warehouseProducts = new Set(); // products in current seller's warehouse (filtered by IB)
+let salesByProduct    = {};     // productName -> { totalBaht, sellers, sellerBaht, catType, catBrand }
+let myProducts        = new Set();  // products current seller HAS sold
+let allSellers        = [];     // sorted list of all seller names in sales data
+let categoryOptions   = [];     // Cat_Type unique values
+let selectedSeller    = null;   // null = show current user's data; string = specific seller
+let dataMonth         = '';     // label like "พฤษภาคม 2026"
 
 /* ═══════════════════════════════════════════
    UTILITIES
@@ -496,6 +499,7 @@ async function handleGoogleLogin(response) {
       }
     }
     const users     = csvToObjects(usersText);
+    allUsersData    = users; // เก็บไว้ใช้ตอนเปลี่ยนเซลล์
 
     // Find user by email (search all columns)
     let userRow = null;
@@ -509,8 +513,9 @@ async function handleGoogleLogin(response) {
     const roleRaw    = userRow['User Role'] || userRow['Role'] || userRow['role'] || userRow['บทบาท'] || userRow['ระดับ'] || '1';
     const role       = parseInt(roleRaw) || 1;
     const sellerName = stripKhun(name); // strip "คุณ " prefix for matching Sale NO ROO
+    const warehouse  = (userRow['คลังส่ง'] || userRow['Warehouse'] || userRow['คลัง'] || '').trim();
 
-    currentUser = { name, email, role, sellerName, picture: payload.picture || '' };
+    currentUser = { name, email, role, sellerName, picture: payload.picture || '', warehouse };
     saveSession(currentUser);
     spinner.style.display = 'none';
     showMainApp();
@@ -549,22 +554,30 @@ async function loadData() {
   document.getElementById('productGrid').innerHTML = '';
 
   try {
-    /* 1 ── Product master list (PRIMARY — 12,000+ items) */
-    allProducts = [];
-    // PDDT sheet — ใช้ชื่อชีทเท่านั้น (gid=654974441 คือ dashboard ไม่ใช่ product list)
+    /* 1 ── Product master list (PDDT — full rows for IB warehouse filtering) */
+    allProducts    = [];
+    allProductRows = [];
     const productUrls = [
-      gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME, range: 'A:A' }),
+      gvizUrl(PRODUCT_SHEET_ID, { sheet: PRODUCT_SHEET_NAME }),
       `https://docs.google.com/spreadsheets/d/${PRODUCT_SHEET_ID}/export?format=csv&sheet=${encodeURIComponent(PRODUCT_SHEET_NAME)}`,
     ];
     let productLoaded = false;
     for (const url of productUrls) {
       try {
         const txt  = await fetchCSV(url);
-        const rows = parseCSV(txt);
-        const names = rows
-          .map(r => (r[0] || '').trim())
-          .filter(v => v && !/^(product|สินค้า|รายการ|ชื่อ|name|product_name)/i.test(v));
-        if (names.length > 50) { allProducts = names; productLoaded = true; break; }
+        const rows = csvToObjects(txt);
+        if (rows.length > 50) {
+          allProductRows = rows;
+          // Find product name column: try Product_Name → ชื่อสินค้า → first column
+          const firstRow   = rows[0] || {};
+          const headers    = Object.keys(firstRow);
+          const nameCol    = headers.find(h => /product.?name/i.test(h) || /ชื่อสินค้า/.test(h)) || headers[0] || '';
+          allProducts      = rows
+            .map(r => (r[nameCol] || r[headers[0]] || '').trim())
+            .filter(v => v && !/^(product|สินค้า|รายการ|ชื่อ|name|product_name)/i.test(v));
+          productLoaded = true;
+          break;
+        }
       } catch { continue; }
     }
     if (!productLoaded) {
@@ -677,6 +690,53 @@ function computeMyProducts() {
   for (const [prod, data] of Object.entries(salesByProduct)) {
     if (data.sellers.has(seller)) myProducts.add(prod);
   }
+  computeWarehouseProducts();
+}
+
+/* หาคลังของเซลล์ปัจจุบัน (จาก allUsersData ถ้าเป็น selectedSeller) */
+function getSellerWarehouse() {
+  if (selectedSeller && selectedSeller !== currentUser?.sellerName) {
+    for (const u of allUsersData) {
+      const n = stripKhun(u['ชื่อ - สกุล'] || u['ชื่อ'] || '');
+      if (n === selectedSeller) return (u['คลังส่ง'] || u['Warehouse'] || u['คลัง'] || '').trim();
+    }
+  }
+  return currentUser?.warehouse || '';
+}
+
+/* กรองสินค้าตาม IB ของคลัง */
+function isInWarehouse(row, wh) {
+  const w = (wh || '').toUpperCase().trim();
+  if (!w) return true; // ไม่รู้คลัง → แสดงทั้งหมด
+  const ib1 = (row['IB W1'] || '').trim();
+  const ib2 = (row['IB W2'] || '').trim();
+  const ib3 = (row['IB W3'] || '').trim();
+  const ib4 = (row['IB W4'] || '').trim();
+  const ibc = (row['IB C4'] || '').trim();
+  if (w === 'W1') return !!ib1;
+  if (w === 'W2') return !!ib2;
+  if (w === 'W3') return !!ib3;
+  if (w === 'W4') return !!ib4 || !!ibc; // W4 หรือ C4 ไม่ว่าง
+  if (w === 'C4') return !!ibc;
+  return true; // คลังอื่น → แสดงทั้งหมด
+}
+
+function computeWarehouseProducts() {
+  const wh = getSellerWarehouse();
+  warehouseProducts = new Set();
+  if (allProductRows.length === 0) {
+    // fallback: ถ้าโหลด PDDT ไม่ได้ → ใช้ทุก product ใน salesByProduct
+    Object.keys(salesByProduct).forEach(p => warehouseProducts.add(p));
+    return;
+  }
+  const firstRow = allProductRows[0] || {};
+  const headers  = Object.keys(firstRow);
+  const nameCol  = headers.find(h => /product.?name/i.test(h) || /ชื่อสินค้า/.test(h)) || headers[0] || '';
+  for (const row of allProductRows) {
+    const prod = (row[nameCol] || row[headers[0]] || '').trim();
+    if (!prod) continue;
+    if (isInWarehouse(row, wh)) warehouseProducts.add(prod);
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -746,11 +806,12 @@ function filterDD(input, listId) {
    HERO STATS
 ═══════════════════════════════════════════ */
 function updateHeroStats() {
-  // total = Product sheet count (or sales count if fallback)
-  // sold  = products I've sold (in myProducts)
-  // unsold = everything else
-  const total  = allProducts.length;
-  const sold   = allProducts.filter(p => myProducts.has(p)).length;
+  // total = สินค้าในคลังของเซลล์นี้ (warehouseProducts)
+  // sold  = สินค้าที่ขายแล้ว ∩ warehouseProducts
+  // unsold = total - sold
+  const whArr  = [...warehouseProducts];
+  const total  = warehouseProducts.size || allProducts.length;
+  const sold   = whArr.filter(p => myProducts.has(p)).length;
   const unsold = total - sold;
 
   document.getElementById('stTotal').textContent  = fmtNum(total);
@@ -791,9 +852,11 @@ function render() {
   const catVal  = document.getElementById('catFilter')?.value || '';
   const sortVal = document.getElementById('fsort')?.value || 'pop';
 
-  // วน loop จาก salesByProduct (ชื่อตรงกัน 100% กับ BP data)
-  // แสดงสินค้าที่มีคนอื่นขายในเดือนนี้ แต่ seller ที่เลือกยังไม่ได้ขาย
+  // วน loop จาก salesByProduct
+  // แสดงสินค้าที่: (1) อยู่ในคลังของเซลล์นี้ (IB ไม่ว่าง) AND (2) ยังไม่ขายในเดือนนี้
+  const useWhFilter = warehouseProducts.size > 0;
   let products = Object.keys(salesByProduct).filter(prod => {
+    if (useWhFilter && !warehouseProducts.has(prod)) return false; // ไม่อยู่ในคลัง → ซ่อน
     if (myProducts.has(prod)) return false;            // ขายแล้ว → ซ่อน
     const sp = salesByProduct[prod];
     if (catVal && !sp.catType.has(catVal)) return false; // category filter
