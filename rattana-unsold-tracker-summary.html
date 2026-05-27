@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana สินค้ายังไม่ขาย v4.5</title>
+<title>Rattana สินค้ายังไม่ขาย v4.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
 <style>
 /* ── Design Tokens ── */
@@ -193,7 +193,7 @@ body.dark .error-box{background:#3a1a17;color:#ff8a7e;border-color:#c0392b}
       <div class="l-divider"></div>
       <div class="l-foot">เฉพาะพนักงาน <b>Rattana</b> ที่ลงทะเบียนแล้วเท่านั้น<br>มีปัญหา? ติดต่อผู้ดูแลระบบ</div>
     </div>
-    <div class="l-ver" id="loginVer">Rattana สินค้ายังไม่ขาย v4.5 · 2026</div>
+    <div class="l-ver" id="loginVer">Rattana สินค้ายังไม่ขาย v4.6 · 2026</div>
   </div>
 </div>
 
@@ -312,8 +312,8 @@ const PRODUCT_SHEET_NAME = 'PDDT';
 const SALES_SHEET_ID   = '1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE';
 const SALES_SHEET_NAME = 'BP';
 
-const APP_VERSION = 'v4.5';
-const SESSION_KEY = 'rtn_unsold_v45'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
+const APP_VERSION = 'v4.6';
+const SESSION_KEY = 'rtn_unsold_v46'; // เปลี่ยน key → force re-login เพื่อดึง role ใหม่
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 /* ═══════════════════════════════════════════
@@ -658,9 +658,9 @@ function processSalesData(rows, hasProductList = false) {
   }
   // (ถ้า hasProductList = true, allProducts ถูก set ไว้แล้วใน loadData)
 
-  /* ── Category options (Cat_BU) ── */
+  /* ── Category options (Cat_Type) ── */
   const buSet = new Set();
-  Object.values(salesByProduct).forEach(d => d.catBU.forEach(c => buSet.add(c)));
+  Object.values(salesByProduct).forEach(d => d.catType.forEach(c => buSet.add(c)));
   categoryOptions = [...buSet].filter(Boolean).sort();
 
   /* ── All sellers ── */
@@ -796,7 +796,7 @@ function render() {
   let products = Object.keys(salesByProduct).filter(prod => {
     if (myProducts.has(prod)) return false;            // ขายแล้ว → ซ่อน
     const sp = salesByProduct[prod];
-    if (catVal && !sp.catBU.has(catVal)) return false; // category filter
+    if (catVal && !sp.catType.has(catVal)) return false; // category filter
     if (srch && !prod.toLowerCase().includes(srch)) return false; // search filter
     return true;
   });
@@ -837,11 +837,11 @@ function render() {
   // Render cards
   grid.innerHTML = '';
   products.forEach((prod, i) => {
-    const data = salesByProduct[prod] || { totalBaht: 0, sellers: new Set(), catBU: new Set() };
+    const data = salesByProduct[prod] || { totalBaht: 0, sellers: new Set(), catType: new Set() };
     const tier = getStarTier(data.totalBaht, allBahtDesc);
     const stars = '🌟'.repeat(tier);
     const tierClass = ['t0','t3','t2','t1'][tier] || 't0';
-    const catLabels = [...data.catBU].slice(0,2).join(', ') || '-';
+    const catLabels = [...data.catType].slice(0,2).join(', ') || '-';
     const sellerCount = data.sellers.size;
 
     const card = document.createElement('div');
