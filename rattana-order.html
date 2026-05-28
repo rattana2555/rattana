@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rattana Order v1.2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0d1b3e;--navy-mid:#1a2f5e;--navy-light:#243b73;
+  --gold:#c9a84c;--gold-light:#e8c86a;
+  --success:#2ecc71;--danger:#e74c3c;--warning:#f39c12;--info:#3498db;
+  --bg:#f4f6fb;--text:#0d1b3e;--card-bg:#ffffff;--border:#dde3f0;--muted:#6b7896;
+  --radius-sm:8px;--radius-md:12px;--radius-lg:16px;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 24px rgba(13,27,62,.12);--shadow-gold:0 4px 12px rgba(201,168,76,.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;min-height:100dvh;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-overflow-scrolling:touch}
+button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,textarea,select{font-family:inherit;font-size:16px}
+.hidden{display:none!important}
+.screen{min-height:100dvh;display:flex;flex-direction:column;padding-bottom:64px;background:var(--bg)}
+
+/* ── Hero Banner ── */
+.hero{background:linear-gradient(160deg,#060e20 0%,#0d1b3e 45%,#12284d 100%);padding:24px 16px 32px;position:relative;overflow:hidden;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end}
+.hero::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 24px,rgba(255,255,255,.035) 24px,rgba(255,255,255,.035) 25px),repeating-linear-gradient(90deg,transparent,transparent 32px,rgba(255,255,255,.035) 32px,rgba(255,255,255,.035) 33px);z-index:0}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,var(--card-bg));z-index:1}
+.hero-inner{position:relative;z-index:2}
+.hero-logo-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.hero-logo-img{width:56px;height:56px;object-fit:contain;border-radius:8px}
+.hero-title{color:#fff;font-size:22px;font-weight:700;line-height:1.35}
+.hero-sub{color:rgba(255,255,255,.8);font-size:13px;margin-top:4px}
+
+/* ── Login body ── */
+.login-body{background:var(--card-bg);padding:20px 16px 24px;flex:1}
+.phone-field{margin:12px 0 8px}
+.phone-input{width:100%;height:50px;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:0 14px;font-size:16px;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s}
+.phone-input:focus{border-color:var(--navy)}
+.phone-input::placeholder{color:var(--muted)}
+.reg-hint{text-align:center;font-size:13px;color:var(--muted);margin:8px 0 16px;cursor:pointer}
+.reg-hint span{color:var(--navy);font-weight:600;text-decoration:underline}
+.btn-main{width:100%;height:52px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-main:hover{opacity:.88}
+.btn-main:active{opacity:.75}
+.btn-main:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Divider ── */
+.sect-gap{height:8px;background:var(--bg)}
+
+/* ── Contact Block ── */
+.contact-block{background:var(--card-bg);padding:20px 16px}
+.contact-title{font-size:16px;font-weight:700;margin-bottom:14px}
+.contact-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.contact-icon-ring{width:44px;height:44px;border-radius:50%;background:rgba(13,27,62,.07);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.contact-info{flex:1}
+.contact-info .name{font-size:14px;font-weight:600}
+.contact-info .tel{font-size:13px;color:var(--muted)}
+.contact-actions{display:flex;gap:8px}
+.action-circle{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:var(--card-bg);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:background .15s}
+.action-circle:hover{background:var(--bg)}
+.alert-red{color:var(--danger);font-size:13px;font-weight:600;margin:10px 0 14px}
+.hours-text{font-size:20px;font-weight:700;line-height:1.3;margin:4px 0 12px}
+.area-text{font-size:13px;color:var(--muted);line-height:2}
+.area-label{font-size:13px;color:var(--muted);margin-bottom:4px}
+
+/* ── Bottom Nav ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card-bg);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;cursor:pointer;color:var(--muted);font-size:11px;font-weight:600;border:none;background:transparent;font-family:inherit;gap:2px;transition:color .15s}
+.nav-btn.active{color:var(--navy)}
+.nav-icon{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav-btn.active .nav-icon-home{fill:var(--navy)}
+
+/* ── Page Header ── */
+.page-header{background:var(--navy);color:#fff;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));text-align:center;font-size:18px;font-weight:700;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:150;display:flex;align-items:center}
+.page-header-title{flex:1;text-align:center}
+.header-icon-btn{background:transparent;border:none;color:#fff;cursor:pointer;padding:4px 8px;font-size:20px;display:flex;align-items:center}
+
+/* ── Back Button ── */
+.back-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;font-size:14px;cursor:pointer;background:var(--card-bg);color:var(--text);font-family:inherit;margin:14px 16px;transition:background .15s}
+.back-pill:hover{background:var(--bg)}
+
+/* ── Register Form ── */
+.form-wrap{background:var(--card-bg);padding:0 16px 24px;flex:1}
+.welcome-tag{color:var(--navy);font-size:13px;font-weight:600;margin:0 0 4px}
+.form-title{font-size:24px;font-weight:700;margin-bottom:20px}
+.f-label{font-size:14px;font-weight:600;display:block;margin-bottom:6px}
+.f-label .req{color:var(--danger);margin-left:3px;font-size:12px}
+.f-input{width:100%;height:50px;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:0 14px;font-size:16px;font-family:inherit;color:var(--text);background:var(--card-bg);outline:none;transition:border-color .15s;margin-bottom:14px;display:block}
+.f-input:focus{border-color:var(--navy)}
+.f-input::placeholder{color:var(--muted)}
+textarea.f-input{height:80px;padding:12px 14px;resize:none}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mb0{margin-bottom:0}
+
+/* ── Dropdown ── */
+.dd{position:relative;width:100%;margin-bottom:14px}
+.dd-trigger{width:100%;min-height:50px;padding:12px 14px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'Sarabun',sans-serif;font-size:16px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s}
+.dd-trigger.open{border-color:var(--navy);border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.dd-trigger .placeholder{color:var(--muted)}
+.dd-panel{position:absolute;top:100%;left:0;right:0;background:var(--card-bg);border:1.5px solid var(--navy);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);z-index:600;box-shadow:0 8px 24px rgba(0,0,0,.15);display:flex;flex-direction:column;max-height:260px}
+.dd-search{padding:10px 14px;font-size:16px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);outline:none;font-family:'Sarabun',sans-serif;flex-shrink:0}
+.dd-list{overflow-y:auto;flex:1;list-style:none;padding:4px 0}
+.dd-list li{padding:10px 14px;cursor:pointer;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dd-list li:hover{background:rgba(13,27,62,.06)}
+.dd-list li.empty{color:var(--muted);cursor:default;font-style:italic;font-size:13px}
+
+/* ── Confirm Screen ── */
+.confirm-body{background:var(--card-bg);padding:20px 16px;flex:1}
+.confirm-phone{color:var(--navy);font-size:14px;font-weight:600;margin-bottom:4px}
+.confirm-name{font-size:22px;font-weight:700;margin-bottom:4px;line-height:1.3}
+.confirm-addr{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.note-box{background:#fff8e1;border-left:4px solid var(--warning);padding:12px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:20px}
+.note-box p{color:var(--danger);font-size:13px;font-weight:500;line-height:1.5}
+.note-title{font-size:15px;font-weight:700;margin-bottom:8px}
+
+/* ── App / Order Screen ── */
+.app-bar{background:var(--navy);color:#fff;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);position:sticky;top:0;z-index:150}
+.app-bar-title{font-size:18px;font-weight:700}
+.ham-btn{background:transparent;border:none;color:#fff;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:5px}
+.ham-line{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
+.cart-fab{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:20px;padding:6px 12px;color:#fff;cursor:pointer;font-family:inherit;font-size:13px;display:flex;align-items:center;gap:6px;position:relative}
+.cart-badge{background:var(--gold);color:var(--navy);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;min-width:20px;text-align:center}
+
+/* ── Category Tabs ── */
+.cat-bar{display:flex;overflow-x:auto;background:var(--card-bg);border-bottom:2px solid var(--border);scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-btn{flex-shrink:0;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:inherit;transition:all .15s}
+.cat-btn.active{color:var(--navy);border-bottom-color:var(--gold);background:rgba(201,168,76,.07)}
+
+/* ── Products ── */
+.products-wrap{flex:1;overflow-y:auto;padding-bottom:8px}
+.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
+@media(min-width:480px){.product-grid{grid-template-columns:repeat(3,1fr)}}
+.prod-card{background:var(--card-bg);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm);border:1px solid var(--border);cursor:pointer;transition:box-shadow .15s}
+.prod-card:hover{box-shadow:var(--shadow-md)}
+.prod-img{width:100%;aspect-ratio:1;background:linear-gradient(135deg,#eef1fa,#dde3f0);display:flex;align-items:center;justify-content:center;font-size:36px}
+.prod-body{padding:10px}
+.prod-name{font-size:12px;font-weight:600;margin-bottom:4px;line-height:1.35;min-height:32px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.prod-unit{font-size:11px;color:var(--muted);margin-bottom:6px}
+.prod-price{font-size:14px;font-weight:700;color:var(--navy)}
+.prod-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.add-btn{width:30px;height:30px;background:var(--navy);color:#fff;border:none;border-radius:50%;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qty-row{display:flex;align-items:center;gap:6px}
+.qty-btn{width:26px;height:26px;border:1.5px solid var(--border);border-radius:50%;background:var(--card-bg);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center}
+
+/* ── Empty / Loading States ── */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--muted);text-align:center}
+.state-icon{font-size:40px;margin-bottom:12px}
+.state-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+.state-sub{font-size:13px}
+.retry-btn{margin-top:16px;padding:10px 24px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* ── Cart Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.65);z-index:900;align-items:flex-end;justify-content:center;padding:0;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card-bg);border-radius:var(--radius-lg) var(--radius-lg) 0 0;width:100%;max-height:85dvh;overflow-y:auto;border-top:4px solid var(--gold);animation:slideUp .22s ease}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card-bg);z-index:10}
+.modal-head h3{font-size:17px;font-weight:700}
+.modal-close{background:transparent;border:none;font-size:24px;color:var(--muted);cursor:pointer;padding:0 8px;line-height:1}
+.modal-body{padding:16px 20px}
+.cart-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.cart-item:last-child{border-bottom:none}
+.cart-item-info{flex:1}
+.cart-item-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.cart-item-price{font-size:13px;color:var(--muted)}
+.cart-total{background:var(--bg);border-radius:var(--radius-md);padding:14px 16px;margin:16px 0 0;display:flex;justify-content:space-between;align-items:center}
+.cart-total-label{font-size:14px;font-weight:600}
+.cart-total-num{font-size:20px;font-weight:700;color:var(--navy)}
+.modal-foot{padding:12px 20px 20px}
+
+/* ── Spinner ── */
+#spinner{display:none;position:fixed;inset:0;background:rgba(13,27,62,.6);align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)}
+#spinner.show{display:flex}
+.spin-box{background:#fff;border-radius:var(--radius-lg);padding:32px 40px;text-align:center;border-top:4px solid var(--gold);min-width:200px}
+.spin-ring{width:48px;height:48px;border:5px solid #dde3f0;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+.spin-msg{font-size:14px;color:var(--muted)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:max(80px,calc(70px + env(safe-area-inset-bottom)));right:16px;padding:12px 18px;border-radius:var(--radius-md);color:#fff;z-index:9999;animation:slideIn .3s ease;font-weight:500;box-shadow:var(--shadow-lg);max-width:88vw;font-size:14px;font-family:'Sarabun',sans-serif}
+.toast-success{background:var(--success)}
+.toast-error{background:var(--danger)}
+.toast-info{background:var(--navy-mid);border-left:3px solid var(--gold)}
+.toast-warn{background:var(--warning);color:var(--navy)}
+
+/* ── GPS Button ── */
+.gps-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.btn-gps{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+.btn-gps:hover{opacity:.85}
+.btn-gps:active{opacity:.7}
+.btn-gps.loading{opacity:.6;cursor:wait}
+.btn-gps.got{background:#1a7a4a}
+.gps-result{font-size:12px;color:#1a7a4a;font-weight:600;flex:1;min-width:0;word-break:break-all}
+.gps-optional{font-size:11px;color:var(--muted);display:block;margin-bottom:6px}
+/* ── Version tag ── */
+.ver-tag{font-size:11px;color:rgba(255,255,255,.4);position:absolute;top:max(10px,env(safe-area-inset-top));right:12px;z-index:3}
+
+/* ── Animations ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- ════════ SPINNER ════════ -->
+<div id="spinner">
+  <div class="spin-box">
+    <div class="spin-ring"></div>
+    <p class="spin-msg" id="spinMsg">กำลังโหลด...</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ LOGIN SCREEN ════════════════════════════════ -->
+<div id="loginScreen" class="screen">
+  <div class="hero">
+    <span class="ver-tag">v1.2</span>
+    <div class="hero-inner">
+      <div class="hero-logo-row">
+        <img class="hero-logo-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAIAAAC2BqGFAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH6AUcCBMkIBBbggAAIABJREFUeNrsvXm0XUd95/up2vs857xJV5ItybZky3jCxhgwBgKEOQOBJJ0OoRMIkA6QpJMQEtJppzvdnU5n3uk0Deld+y0SnJAwOCYhBgd7AoMnbHlGsmVLsqWrO5w9VNXv/aP22efcK0kYiJf3rb5wJZ1z9t5n716/36/29/et2kKe6fKXH+RMl2e6POUXYKbLUyZNl2e6POXSVE6ZSVO6TOSUVVO6TOY0TemaJi1pS5qmWVqapmlaNaFqapqSZaqktmpqpqxqSlXTqqmFqplqWqaqqqmqmqmaqmpqqU1amk2bmqZq2lRN06qqaWtam..." alt="Rattana" onerror="this.style.display='none'">
+        <div>
+          <div class="hero-title">กรอกเบอร์โทรเพื่อเข้า<br>ระบบ</div>
+        </div>
+      </div>
+      <div class="hero-sub">สมาชิกกรอกเบอร์เพื่อเข้าสู่ระบบ</div>
+    </div>
+  </div>
+
+  <div class="login-body">
+    <div class="phone-field">
+      <input type="tel" id="loginPhone" class="phone-input" placeholder="ไม่ต้องใส่เครื่องหมาย -" maxlength="10" inputmode="numeric" autocomplete="tel">
+    </div>
+    <p class="reg-hint">กดลงทะเบียน กรณียังไม่เคยสมัครสมาชิก — <span onclick="goRegister()">ลงทะเบียน</span></p>
+    <button class="btn-main" onclick="doLogin()">เข้าสู่ระบบ</button>
+  </div>
+
+  <div class="sect-gap"></div>
+  <div class="contact-block" id="loginContact"></div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active">
+      <svg class="nav-icon nav-icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      หน้าหลัก
+    </button>
+    <button class="nav-btn" onclick="toProfile()">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ REGISTER SCREEN ════════════════════════════════ -->
+<div id="registerScreen" class="screen hidden">
+  <div class="page-header">
+    <span class="page-header-title">หน้าหลัก</span>
+  </div>
+
+  <div style="background:var(--card-bg);flex:1">
+    <button class="back-pill" onclick="showScreen('loginScreen')">← เป็นสมาชิกอยู่แล้ว</button>
+
+    <div class="form-wrap" style="padding-top:0">
+      <p class="welcome-tag">ยินดีต้อนรับ</p>
+      <h2 class="form-title">กรุณาลงทะเบียน</h2>
+
+      <label class="f-label">ชื่อร้านค้า หรือชื่อ-นามสกุล</label>
+      <input type="text" id="regName" class="f-input" placeholder="ชื่อร้านค้า หรือชื่อ-นามสกุล">
+
+      <label class="f-label">เบอร์โทรศัพท์ <span class="req">จำเป็น</span></label>
+      <input type="tel" id="regPhone" class="f-input" placeholder="ไม่ต้องใส่เครื่องหมาย -" maxlength="10" inputmode="numeric">
+
+      <div class="row-2">
+        <div>
+          <label class="f-label">เลขที่</label>
+          <input type="text" id="regHouseNo" class="f-input mb0" placeholder="บ้านเลขที่">
+        </div>
+        <div>
+          <label class="f-label">หมู่</label>
+          <input type="text" id="regMoo" class="f-input mb0" placeholder="หมู่">
+        </div>
+      </div>
+      <div style="height:14px"></div>
+
+      <label class="f-label">ที่อยู่ ตำบล อำเภอ จังหวัด <span class="req">จำเป็น</span></label>
+      <div class="dd" id="addrDD">
+        <button type="button" class="dd-trigger" id="addrTrigger" onclick="toggleDD('addrDD')">
+          <span id="addrLabel" class="placeholder">เลือกบางอย่าง</span>
+          <span>▾</span>
+        </button>
+        <div class="dd-panel hidden" id="addrPanel">
+          <input type="text" class="dd-search" id="addrSearch" placeholder="🔍 ค้นหา..." oninput="filterAddr(this)" autocomplete="off">
+          <ul class="dd-list" id="addrList"></ul>
+        </div>
+      </div>
+
+      <label class="f-label">ปีเกิด (ปีพ.ศ.)</label>
+      <input type="number" id="regYear" class="f-input" placeholder="พุทธศักราช" min="2450" max="2560">
+
+      <label class="f-label">เดือนเกิด</label>
+      <div class="dd" id="monthDD">
+        <button type="button" class="dd-trigger" id="monthTrigger" onclick="toggleDD('monthDD')">
+          <span id="monthLabel" class="placeholder">—</span>
+          <span>▾</span>
+        </button>
+        <div class="dd-panel hidden" id="monthPanel">
+          <ul class="dd-list" id="monthList" style="max-height:220px"></ul>
+        </div>
+      </div>
+
+      <label class="f-label">วันเกิด</label>
+      <input type="number" id="regDay" class="f-input" placeholder="วันที่เกิด" min="1" max="31">
+
+      <label class="f-label">หมายเหตุ</label>
+      <textarea id="regNote" class="f-input" placeholder="เช่น ขอใบกำกับภาษี ร้านปิดวันพุธ หรืออื่นๆ (ถ้ามี)"></textarea>
+
+      <label class="f-label">ตำแหน่ง GPS</label>
+      <span class="gps-optional">(ไม่บังคับ — กดเพื่อแชร์ตำแหน่งร้านให้ทีมส่งสินค้า)</span>
+      <div class="gps-row">
+        <button type="button" class="btn-gps" id="gpsBtn" onclick="getGPS()">
+          📍 กดรับตำแหน่ง
+        </button>
+        <span class="gps-result hidden" id="gpsResult"></span>
+      </div>
+
+      <button class="btn-main" onclick="doRegister()">ลงทะเบียน</button>
+    </div>
+
+    <div class="sect-gap"></div>
+    <div class="contact-block" id="regContact"></div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active">
+      <svg class="nav-icon nav-icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      หน้าหลัก
+    </button>
+    <button class="nav-btn">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ CONFIRM SCREEN ════════════════════════════════ -->
+<div id="confirmScreen" class="screen hidden">
+  <div class="page-header">
+    <span class="page-header-title">หน้าหลัก</span>
+  </div>
+
+  <div class="confirm-body">
+    <p class="confirm-phone" id="cPhone"></p>
+    <h2 class="confirm-name" id="cName"></h2>
+    <p class="confirm-addr" id="cAddr"></p>
+
+    <p class="note-title">หมายเหตุ</p>
+    <div class="note-box">
+      <p>❗ หากลูกค้าสั่งซื้อสินค้าหลังจากเวลา 8.00 น.ของวันที่สั่งซื้อ ขออนุญาตส่งสินค้ารอบสัปดาห์ถัดไป</p>
+    </div>
+
+    <button class="btn-main" onclick="enterApp()">เข้าสู่ระบบ</button>
+  </div>
+
+  <div class="sect-gap"></div>
+  <div class="contact-block" id="confirmContact"></div>
+
+  <div class="bottom-nav">
+    <button class="nav-btn active">
+      <svg class="nav-icon nav-icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      หน้าหลัก
+    </button>
+    <button class="nav-btn">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ APP / ORDER SCREEN ════════════════════════════════ -->
+<div id="appScreen" class="hidden" style="min-height:100dvh;display:flex;flex-direction:column;padding-bottom:64px">
+  <div class="app-bar">
+    <button class="ham-btn" onclick="showUserMenu()"><span class="ham-line"></span><span class="ham-line"></span><span class="ham-line"></span></button>
+    <span class="app-bar-title">สั่งสินค้า</span>
+    <button class="cart-fab" onclick="openCart()">
+      🛒 <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+  </div>
+
+  <div class="cat-bar" id="catBar">
+    <button class="cat-btn active" data-cat="all" onclick="filterCat(this)">ทั้งหมด</button>
+    <button class="cat-btn" data-cat="water" onclick="filterCat(this)">น้ำดื่ม</button>
+    <button class="cat-btn" data-cat="beer" onclick="filterCat(this)">เบียร์</button>
+    <button class="cat-btn" data-cat="bplus" onclick="filterCat(this)">Bplus Thaibev</button>
+    <button class="cat-btn" data-cat="spirit" onclick="filterCat(this)">สุรา</button>
+    <button class="cat-btn" data-cat="other" onclick="filterCat(this)">อื่นๆ</button>
+  </div>
+
+  <!-- Products area -->
+  <div class="products-wrap" id="productsArea">
+    <div class="state-box">
+      <div class="state-icon">⏳</div>
+      <p class="state-title">กำลังโหลดสินค้า...</p>
+      <p class="state-sub">กรุณารอสักครู่</p>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active">
+      <svg class="nav-icon nav-icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      หน้าหลัก
+    </button>
+    <button class="nav-btn" onclick="toProfile()">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ CART MODAL ════════════════════════════════ -->
+<div class="modal-overlay" id="cartModal" onclick="if(event.target===this)closeCart()">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>🛒 ตะกร้าสินค้า</h3>
+      <button class="modal-close" onclick="closeCart()">×</button>
+    </div>
+    <div class="modal-body" id="cartBody"></div>
+    <div class="modal-foot">
+      <button class="btn-main" onclick="placeOrder()">ยืนยันการสั่งซื้อ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════ CONFIG ════════════════════
+const SHEET_ID = '16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I';
+const SHEET_NAME = 'PDDT';
+const BPLUS_KEYWORDS = ['bplus','thaibev','ไทยเบฟ','bev'];
+// ⚙️ วาง URL ของ Apps Script ที่ Deploy แล้วตรงนี้
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznpbtCfoH5Xap5Wgq7d1UeWr44p3NJkaNSdQGWUNCBfyLIKuwecKD80HAVgwnycvyheg/exec';
+
+// ════════════════════ STATE ════════════════════
+let currentUser = null;
+let allProducts = [];
+let filteredProducts = [];
+let cart = {}; // { productKey: { name, price, qty } }
+let addressData = [];
+let selAddr = null;
+let selMonth = null;
+let selGPS = null;   // { lat, lng, accuracy }
+let currentCat = 'all';
+
+// ════════════════════ INIT ════════════════════
+window.addEventListener('load', () => {
+  buildContactHTML();
+  loadAddresses();
+  buildMonthList();
+  checkSession();
+  document.getElementById('loginPhone').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+  document.getElementById('loginPhone').addEventListener('input', function(){ this.value=this.value.replace(/\D/g,''); });
+});
+
+function checkSession(){
+  try {
+    const raw = localStorage.getItem('rattanaOrderSession');
+    if (!raw) return;
+    const { user, exp } = JSON.parse(raw);
+    if (Date.now() < exp) { currentUser = user; switchToApp(); return; }
+    localStorage.removeItem('rattanaOrderSession');
+  } catch(e) {}
+}
+
+// ════════════════════ CONTACT HTML (shared) ════════════════════
+function buildContactHTML(){
+  const html = `
+    <div class="contact-title">ติดต่อสอบถาม</div>
+    <div class="contact-row">
+      <div class="contact-icon-ring">📞</div>
+      <div class="contact-info">
+        <div class="name">ฝ่ายขาย (สำนักงานใหญ่)</div>
+        <div class="tel">0803897765</div>
+      </div>
+      <div class="contact-actions">
+        <div class="action-circle" onclick="window.location='tel:0803897765'">📱</div>
+        <div class="action-circle" onclick="window.location='https://line.me'">💬</div>
+      </div>
+    </div>
+    <p class="alert-red">*โปรดชำระเงินหลังรับสินค้าแล้วเท่านั้น</p>
+    <div class="hours-text">วันจันทร์-วันเสาร์ 08.00 น. -<br>17.00 น.</div>
+    <div class="area-label" style="margin-top:12px">เขตพื้นที่ส่งสินค้า</div>
+    <div class="area-text">จ.สมุทรสงคราม<br>จ.ราชบุรี<br>จ.สมุทรสาคร<br>จ.นครปฐม<br>จ.กาญจนบุรี (อ.เมืองกาญจนบุรี, อ.ท่ามะกา)<br>จ.เพชรบุรี (อ.เมืองเพชรบุรี, อ.เขาย้อย, อ.บ้านแหลม, อ.ท่ายาง, อ.บ้านลาด, อ.แก่งกระจาน, อ.หนองหญ้าปล้อง)</div>
+  `;
+  ['loginContact','regContact','confirmContact'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+}
+
+// ════════════════════ THAI ADDRESS DATA ════════════════════
+const ADDR_INLINE = [
+  // สมุทรสงคราม
+  ["แม่กลอง","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],["ตลาดใหม่","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],
+  ["บางขันแตก","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],["ลาดใหญ่","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],
+  ["บ้านปรก","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],["บางแก้ว","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],
+  ["ท้ายหาด","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],["แหลมใหญ่","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],
+  ["คลองเขิน","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],["คลองโคน","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],
+  ["นางตะเคียน","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],["บางจะเกร็ง","เมืองสมุทรสงคราม","สมุทรสงคราม","75000"],
+  ["กระดังงา","บางคนที","สมุทรสงคราม","75120"],["บางคนที","บางคนที","สมุทรสงคราม","75120"],
+  ["บางพรม","บางคนที","สมุทรสงคราม","75120"],["บางกุ้ง","บางคนที","สมุทรสงคราม","75120"],
+  ["จอมปลวก","บางคนที","สมุทรสงคราม","75120"],["บางสะแก","บางคนที","สมุทรสงคราม","75120"],
+  ["ดอนมะโนรา","บางคนที","สมุทรสงคราม","75120"],["บางยี่รงค์","บางคนที","สมุทรสงคราม","75120"],
+  ["โรงหีบ","บางคนที","สมุทรสงคราม","75120"],["บ้านปราโมทย์","บางคนที","สมุทรสงคราม","75120"],
+  ["อัมพวา","อัมพวา","สมุทรสงคราม","75110"],["ท่าคา","อัมพวา","สมุทรสงคราม","75110"],
+  ["วัดประดู่","อัมพวา","สมุทรสงคราม","75110"],["เหมืองใหม่","อัมพวา","สมุทรสงคราม","75110"],
+  ["บางช้าง","อัมพวา","สมุทรสงคราม","75110"],["แควอ้อม","อัมพวา","สมุทรสงคราม","75110"],
+  ["ยี่สาร","อัมพวา","สมุทรสงคราม","75110"],["บางนางลี่","อัมพวา","สมุทรสงคราม","75110"],
+  ["ปลายโพงพาง","อัมพวา","สมุทรสงคราม","75110"],
+  // ราชบุรี
+  ["หน้าเมือง","เมืองราชบุรี","ราชบุรี","70000"],["เจดีย์หัก","เมืองราชบุรี","ราชบุรี","70000"],
+  ["ดอนตะโก","เมืองราชบุรี","ราชบุรี","70000"],["หนองกลางนา","เมืองราชบุรี","ราชบุรี","70000"],
+  ["ห้วยไผ่","เมืองราชบุรี","ราชบุรี","70000"],["คุ้งน้ำวน","เมืองราชบุรี","ราชบุรี","70000"],
+  ["คุ้งกระถิน","เมืองราชบุรี","ราชบุรี","70000"],["อ่างทอง","เมืองราชบุรี","ราชบุรี","70000"],
+  ["โคกหม้อ","เมืองราชบุรี","ราชบุรี","70000"],["สาริกา","เมืองราชบุรี","ราชบุรี","70000"],
+  ["หินกอง","เมืองราชบุรี","ราชบุรี","70000"],["เขาแร้ง","เมืองราชบุรี","ราชบุรี","70000"],
+  ["เกาะพลับพลา","เมืองราชบุรี","ราชบุรี","70000"],["หลุมดิน","เมืองราชบุรี","ราชบุรี","70000"],
+  ["บางป่า","เมืองราชบุรี","ราชบุรี","70000"],["พิกุลทอง","เมืองราชบุรี","ราชบุรี","70000"],
+  ["น้ำพุ","เมืองราชบุรี","ราชบุรี","70000"],["ดอนแร่","เมืองราชบุรี","ราชบุรี","70000"],
+  ["เตาปูน","เมืองราชบุรี","ราชบุรี","70000"],["ปากแรต","เมืองราชบุรี","ราชบุรี","70000"],
+  ["ดำเนินสะดวก","ดำเนินสะดวก","ราชบุรี","70130"],["ประสาทสิทธิ์","ดำเนินสะดวก","ราชบุรี","70130"],
+  ["ศรีสุราษฎร์","ดำเนินสะดวก","ราชบุรี","70130"],["ตาหลวง","ดำเนินสะดวก","ราชบุรี","70130"],
+  ["ดอนกรวย","ดำเนินสะดวก","ราชบุรี","70130"],["ท่านัด","ดำเนินสะดวก","ราชบุรี","70130"],
+  ["ขุนพิทักษ์","ดำเนินสะดวก","ราชบุรี","70130"],["บ้านไร่","ดำเนินสะดวก","ราชบุรี","70130"],
+  ["แพงพวย","ดำเนินสะดวก","ราชบุรี","70130"],["สี่หมื่น","ดำเนินสะดวก","ราชบุรี","70130"],
+  ["บางจาก","ดำเนินสะดวก","ราชบุรี","70130"],["ท่าผา","บ้านโป่ง","ราชบุรี","70110"],
+  ["กรับใหญ่","บ้านโป่ง","ราชบุรี","70110"],["บ้านโป่ง","บ้านโป่ง","ราชบุรี","70110"],
+  ["ดอนกระเบื้อง","บ้านโป่ง","ราชบุรี","70110"],["สวนกล้วย","บ้านโป่ง","ราชบุรี","70110"],
+  ["โพหัก","บ้านโป่ง","ราชบุรี","70110"],
+  // สมุทรสาคร
+  ["มหาชัย","เมืองสมุทรสาคร","สมุทรสาคร","74000"],["ท่าฉลอม","เมืองสมุทรสาคร","สมุทรสาคร","74000"],
+  ["โกรกกราก","เมืองสมุทรสาคร","สมุทรสาคร","74000"],["บ้านบ่อ","เมืองสมุทรสาคร","สมุทรสาคร","74000"],
+  ["บางโทรัด","เมืองสมุทรสาคร","สมุทรสาคร","74000"],["กาหลง","เมืองสมุทรสาคร","สมุทรสาคร","74000"],
+  ["นาดี","เมืองสมุทรสาคร","สมุทรสาคร","74000"],["ท่าจีน","เมืองสมุทรสาคร","สมุทรสาคร","74000"],
+  ["นาโคก","เมืองสมุทรสาคร","สมุทรสาคร","74000"],["พันท้ายนรสิงห์","เมืองสมุทรสาคร","สมุทรสาคร","74000"],
+  ["กระทุ่มแบน","กระทุ่มแบน","สมุทรสาคร","74110"],["ตลาดกระทุ่มแบน","กระทุ่มแบน","สมุทรสาคร","74110"],
+  ["ท่าไม้","กระทุ่มแบน","สมุทรสาคร","74110"],["สวนหลวง","กระทุ่มแบน","สมุทรสาคร","74110"],
+  ["บ้านแพ้ว","บ้านแพ้ว","สมุทรสาคร","74120"],["หลักสาม","บ้านแพ้ว","สมุทรสาคร","74120"],
+  ["เจ็ดริ้ว","บ้านแพ้ว","สมุทรสาคร","74120"],["คลองตัน","บ้านแพ้ว","สมุทรสาคร","74120"],
+  // นครปฐม
+  ["พระปฐมเจดีย์","เมืองนครปฐม","นครปฐม","73000"],["บางแขม","เมืองนครปฐม","นครปฐม","73000"],
+  ["พระประโทน","เมืองนครปฐม","นครปฐม","73000"],["ธรรมศาลา","เมืองนครปฐม","นครปฐม","73000"],
+  ["ตาก้อง","เมืองนครปฐม","นครปฐม","73000"],["วังตะกู","เมืองนครปฐม","นครปฐม","73000"],
+  ["กำแพงแสน","กำแพงแสน","นครปฐม","73140"],["ทุ่งขวาง","กำแพงแสน","นครปฐม","73140"],
+  // กรุงเทพ
+  ["พระนคร","พระนคร","กรุงเทพมหานคร","10200"],["ดุสิต","ดุสิต","กรุงเทพมหานคร","10300"],
+  ["บางรัก","บางรัก","กรุงเทพมหานคร","10500"],["ยานนาวา","ยานนาวา","กรุงเทพมหานคร","10120"],
+  ["สาทร","สาทร","กรุงเทพมหานคร","10120"],["บางกอกน้อย","บางกอกน้อย","กรุงเทพมหานคร","10700"],
+  ["บางกอกใหญ่","บางกอกใหญ่","กรุงเทพมหานคร","10600"],["คลองสาน","คลองสาน","กรุงเทพมหานคร","10600"],
+  ["ตลิ่งชัน","ตลิ่งชัน","กรุงเทพมหานคร","10170"],["ทวีวัฒนา","ทวีวัฒนา","กรุงเทพมหานคร","10170"],
+  ["บางแค","บางแค","กรุงเทพมหานคร","10160"],["บางบอน","บางบอน","กรุงเทพมหานคร","10150"],
+  ["ราษฎร์บูรณะ","ราษฎร์บูรณะ","กรุงเทพมหานคร","10140"],["ทุ่งครุ","ทุ่งครุ","กรุงเทพมหานคร","10140"],
+  ["จอมทอง","จอมทอง","กรุงเทพมหานคร","10150"],["บางนา","บางนา","กรุงเทพมหานคร","10260"],
+  ["ประเวศ","ประเวศ","กรุงเทพมหานคร","10250"],["คลองเตย","คลองเตย","กรุงเทพมหานคร","10110"],
+  ["วัฒนา","วัฒนา","กรุงเทพมหานคร","10110"],["พระโขนง","พระโขนง","กรุงเทพมหานคร","10260"],
+  ["สะพานสูง","สะพานสูง","กรุงเทพมหานคร","10240"],["บึงกุ่ม","บึงกุ่ม","กรุงเทพมหานคร","10240"],
+  ["ลาดพร้าว","ลาดพร้าว","กรุงเทพมหานคร","10230"],["วังทองหลาง","วังทองหลาง","กรุงเทพมหานคร","10310"],
+  ["ห้วยขวาง","ห้วยขวาง","กรุงเทพมหานคร","10310"],["ดินแดง","ดินแดง","กรุงเทพมหานคร","10400"],
+  ["ราชเทวี","ราชเทวี","กรุงเทพมหานคร","10400"],["ปทุมวัน","ปทุมวัน","กรุงเทพมหานคร","10330"],
+  ["บางเขน","บางเขน","กรุงเทพมหานคร","10220"],["จตุจักร","จตุจักร","กรุงเทพมหานคร","10900"],
+  ["บางซื่อ","บางซื่อ","กรุงเทพมหานคร","10800"],["ดอนเมือง","ดอนเมือง","กรุงเทพมหานคร","10210"],
+  ["หลักสี่","หลักสี่","กรุงเทพมหานคร","10210"],["ลาดกระบัง","ลาดกระบัง","กรุงเทพมหานคร","10520"],
+  ["มีนบุรี","มีนบุรี","กรุงเทพมหานคร","10510"],["หนองจอก","หนองจอก","กรุงเทพมหานคร","10530"],
+  ["สัมพันธวงศ์","สัมพันธวงศ์","กรุงเทพมหานคร","10100"],["คันนายาว","คันนายาว","กรุงเทพมหานคร","10230"],
+  // สุพรรณบุรี
+  ["ท่าพี่เลี้ยง","เมืองสุพรรณบุรี","สุพรรณบุรี","72000"],["รั้วใหญ่","เมืองสุพรรณบุรี","สุพรรณบุรี","72000"],
+  ["ทับตีเหล็ก","เมืองสุพรรณบุรี","สุพรรณบุรี","72000"],["ศาลาขาว","เมืองสุพรรณบุรี","สุพรรณบุรี","72000"],
+];
+
+async function loadAddresses(){
+  addressData = ADDR_INLINE;
+  renderAddrList(addressData);
+  // Try to get full Thailand address database
+  try {
+    const r = await fetch('https://raw.githubusercontent.com/earthchie/jquery.Thailand.js/master/jquery.Thailand.js/database/db.json');
+    if (r.ok){
+      const json = await r.json();
+      addressData = json.map(x=>[x.d,x.a,x.p,String(x.z||'')]);
+      renderAddrList(addressData);
+    }
+  } catch(e){ /* keep inline */ }
+}
+
+function renderAddrList(data){
+  const list = document.getElementById('addrList');
+  if (!list) return;
+  list.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  data.forEach((a,i)=>{
+    const label = `${a[0]},${a[1]},${a[2]}`;
+    const li = document.createElement('li');
+    li.textContent = label;
+    li.dataset.i = i;
+    li.onclick = () => {
+      selAddr = a;
+      const lbl = document.getElementById('addrLabel');
+      lbl.textContent = label;
+      lbl.classList.remove('placeholder');
+      closeDD('addrDD');
+    };
+    frag.appendChild(li);
+  });
+  list.appendChild(frag);
+}
+
+function filterAddr(inp){
+  const q = inp.value.replace(/\s/g,'').toLowerCase();
+  document.querySelectorAll('#addrList li').forEach(li=>{
+    li.style.display = li.textContent.replace(/,/g,'').toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ════════════════════ MONTHS ════════════════════
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+function buildMonthList(){
+  const list = document.getElementById('monthList');
+  if (!list) return;
+  MONTHS_TH.forEach((m,i)=>{
+    const li = document.createElement('li');
+    li.textContent = m;
+    li.onclick = ()=>{
+      selMonth = i+1;
+      const lbl = document.getElementById('monthLabel');
+      lbl.textContent = m;
+      lbl.classList.remove('placeholder');
+      closeDD('monthDD');
+    };
+    list.appendChild(li);
+  });
+}
+
+// ════════════════════ DROPDOWN HELPERS ════════════════════
+function toggleDD(wrapId){
+  const wrap = document.getElementById(wrapId);
+  const panel = wrap.querySelector('.dd-panel');
+  const trigger = wrap.querySelector('.dd-trigger');
+  const isOpen = !panel.classList.contains('hidden');
+  // Close all
+  document.querySelectorAll('.dd-panel').forEach(p=>p.classList.add('hidden'));
+  document.querySelectorAll('.dd-trigger').forEach(t=>t.classList.remove('open'));
+  if (!isOpen){
+    panel.classList.remove('hidden');
+    trigger.classList.add('open');
+    const srch = panel.querySelector('.dd-search');
+    if (srch){ srch.value=''; srch.focus(); filterAddr(srch); }
+  }
+}
+
+function closeDD(wrapId){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.querySelector('.dd-panel')?.classList.add('hidden');
+  wrap.querySelector('.dd-trigger')?.classList.remove('open');
+}
+
+document.addEventListener('click', e=>{
+  if (!e.target.closest('.dd')){
+    document.querySelectorAll('.dd-panel').forEach(p=>p.classList.add('hidden'));
+    document.querySelectorAll('.dd-trigger').forEach(t=>t.classList.remove('open'));
+  }
+});
+
+// ════════════════════ SCREEN NAVIGATION ════════════════════
+const SCREENS = ['loginScreen','registerScreen','confirmScreen'];
+
+function showScreen(id){
+  SCREENS.forEach(s=>{
+    const el = document.getElementById(s);
+    if (el) el.classList.toggle('hidden', s!==id);
+  });
+  document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('appScreen').style.display = '';
+  window.scrollTo(0,0);
+}
+
+function switchToApp(){
+  SCREENS.forEach(s=>document.getElementById(s)?.classList.add('hidden'));
+  const app = document.getElementById('appScreen');
+  app.classList.remove('hidden');
+  app.style.display = 'flex';
+  window.scrollTo(0,0);
+  loadProducts();
+}
+
+// ════════════════════ LOGIN ════════════════════
+function doLogin(){
+  const phone = document.getElementById('loginPhone').value.replace(/\D/g,'').trim();
+  if (!phone || phone.length < 9){ showToast('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง','error'); return; }
+  const users = getUsers();
+  const user = users.find(u=>u.phone===phone);
+  if (user){
+    currentUser = user;
+    showConfirm(user);
+  } else {
+    showToast('ไม่พบเบอร์นี้ กรุณาลงทะเบียน','info');
+    goRegister(phone);
+  }
+}
+
+function goRegister(phone=''){
+  showScreen('registerScreen');
+  if (phone) document.getElementById('regPhone').value = phone;
+}
+
+// ════════════════════ REGISTER ════════════════════
+function doRegister(){
+  const name    = document.getElementById('regName').value.trim();
+  const phone   = document.getElementById('regPhone').value.replace(/\D/g,'').trim();
+  const houseNo = document.getElementById('regHouseNo').value.trim();
+  const moo     = document.getElementById('regMoo').value.trim();
+  const year    = document.getElementById('regYear').value.trim();
+  const day     = document.getElementById('regDay').value.trim();
+  const note    = document.getElementById('regNote').value.trim();
+
+  if (!name)  { showToast('กรุณากรอกชื่อ-นามสกุล','error'); return; }
+  if (!phone || phone.length<9){ showToast('กรุณากรอกเบอร์โทรศัพท์','error'); return; }
+  if (!selAddr){ showToast('กรุณาเลือกที่อยู่','error'); return; }
+
+  const users = getUsers();
+  if (users.find(u=>u.phone===phone)){
+    showToast('เบอร์นี้ลงทะเบียนแล้ว กรุณาเข้าสู่ระบบ','warn');
+    showScreen('loginScreen');
+    return;
+  }
+
+  const user = {
+    name, phone, houseNo, moo,
+    tambon: selAddr ? selAddr[0] : '',
+    amphoe: selAddr ? selAddr[1] : '',
+    province: selAddr ? selAddr[2] : '',
+    zipcode: selAddr ? selAddr[3] : '',
+    birthYear: year, birthMonth: selMonth ? MONTHS_TH[selMonth-1] : '', birthDay: day, note,
+    lat: selGPS ? selGPS.lat : '',
+    lng: selGPS ? selGPS.lng : '',
+    createdAt: new Date().toISOString(),
+  };
+
+  // บันทึกไว้ใน localStorage ก่อน (ใช้ได้ทันที แม้ Sheets offline)
+  users.push(user);
+  localStorage.setItem('rattanaOrderUsers', JSON.stringify(users));
+  currentUser = user;
+
+  // ส่งไป Google Sheets ผ่าน Apps Script
+  saveToSheet(user);
+
+  showToast('ลงทะเบียนสำเร็จ 🎉','success');
+  setTimeout(()=>showConfirm(user), 400);
+}
+
+// ════════════════════ GPS LOCATION ════════════════════
+function getGPS(){
+  const btn = document.getElementById('gpsBtn');
+  const result = document.getElementById('gpsResult');
+  if (!navigator.geolocation){
+    showToast('เบราว์เซอร์นี้ไม่รองรับ GPS','error'); return;
+  }
+  btn.classList.add('loading');
+  btn.textContent = '⏳ กำลังระบุตำแหน่ง...';
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      selGPS = { lat, lng };
+      btn.classList.remove('loading');
+      btn.classList.add('got');
+      btn.textContent = '✅ ได้ตำแหน่งแล้ว';
+      result.textContent = `${lat}, ${lng}`;
+      result.classList.remove('hidden');
+      showToast('ได้ตำแหน่งแล้ว 📍','success');
+    },
+    err => {
+      btn.classList.remove('loading');
+      btn.textContent = '📍 กดรับตำแหน่ง';
+      const msgs = { 1:'ไม่อนุญาต GPS — กรุณาเปิดสิทธิ์', 2:'ไม่พบสัญญาณ GPS', 3:'หมดเวลา ลองอีกครั้ง' };
+      showToast(msgs[err.code]||'ไม่สามารถรับตำแหน่งได้','error');
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+// ════════════════════ SAVE TO GOOGLE SHEETS ════════════════════
+async function saveToSheet(user){
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) return; // ยังไม่ได้ตั้งค่า URL
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Apps Script ไม่ต้องการ preflight
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:    'register',
+        name:      user.name,
+        phone:     user.phone,
+        houseNo:   user.houseNo,
+        moo:       user.moo,
+        tambon:    user.tambon,
+        amphoe:    user.amphoe,
+        province:  user.province,
+        zipcode:   user.zipcode,
+        birthYear: user.birthYear,
+        birthMonth:user.birthMonth,
+        birthDay:  user.birthDay,
+        note:      user.note,
+        lat:       user.lat,
+        lng:       user.lng,
+      }),
+    });
+    // no-cors ไม่สามารถอ่าน response ได้ — ถือว่าสำเร็จถ้าไม่ throw
+  } catch(e){
+    console.warn('Sheet sync failed (offline?):', e.message);
+    // ข้อมูลอยู่ใน localStorage แล้ว — แสดงแค่ warn
+    showToast('บันทึกชั่วคราว ยังไม่ sync Sheets','warn');
+  }
+}
+
+function getUsers(){
+  try { return JSON.parse(localStorage.getItem('rattanaOrderUsers')||'[]'); }
+  catch(e){ return []; }
+}
+
+// ════════════════════ CONFIRM ════════════════════
+function showConfirm(user){
+  document.getElementById('cPhone').textContent = user.phone;
+  document.getElementById('cName').textContent = user.name;
+  const addrParts = [user.houseNo&&`${user.houseNo}`, user.moo&&`หมู่ ${user.moo}`, user.tambon, user.amphoe, user.province, user.zipcode].filter(Boolean);
+  document.getElementById('cAddr').textContent = addrParts.join(', ');
+  showScreen('confirmScreen');
+}
+
+function enterApp(){
+  localStorage.setItem('rattanaOrderSession', JSON.stringify({ user: currentUser, exp: Date.now() + 30*24*60*60*1000 }));
+  switchToApp();
+}
+
+// ════════════════════ PRODUCTS ════════════════════
+const PROD_EMOJI = { beer:'🍺', water:'💧', spirit:'🥃', bplus:'🟡', other:'📦' };
+
+async function loadProducts(){
+  const area = document.getElementById('productsArea');
+  area.innerHTML = `<div class="state-box"><div class="state-icon">⏳</div><p class="state-title">กำลังโหลดสินค้า...</p><p class="state-sub">กรุณารอสักครู่</p></div>`;
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const rows = parseCsv(text);
+    // Store all products
+    allProducts = rows.map((r,i)=>({...r, _idx:i, _key: `p${i}`}));
+    // Filter by warehouse
+    const wh = (currentUser?.warehouse||'W1').toUpperCase();
+    if (wh !== 'W1'){
+      allProducts = allProducts.filter(p=>{
+        const cat = String(p['หมวดหมู่']||p['Category']||p['cat']||'').toLowerCase();
+        return !BPLUS_KEYWORDS.some(k=>cat.includes(k));
+      });
+    }
+    // Build dynamic category tabs
+    buildCatTabs(allProducts);
+    filteredProducts = [...allProducts];
+    renderProducts(filteredProducts);
+  } catch(e){
+    area.innerHTML = `<div class="state-box"><div class="state-icon">⚠️</div><p class="state-title">ไม่สามารถโหลดสินค้าได้</p><p class="state-sub" style="color:var(--danger)">${e.message}</p><button class="retry-btn" onclick="loadProducts()">ลองใหม่</button></div>`;
+  }
+}
+
+function buildCatTabs(products){
+  const catBar = document.getElementById('catBar');
+  // Collect unique categories
+  const catSet = new Set();
+  products.forEach(p=>{
+    const c = String(p['หมวดหมู่']||p['Category']||'').trim();
+    if (c) catSet.add(c);
+  });
+  // Rebuild
+  catBar.innerHTML = `<button class="cat-btn active" data-cat="all" onclick="filterCat(this)">ทั้งหมด</button>`;
+  catSet.forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn';
+    btn.dataset.cat = c;
+    btn.textContent = c;
+    btn.onclick = function(){ filterCat(this); };
+    catBar.appendChild(btn);
+  });
+}
+
+function filterCat(btn){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentCat = btn.dataset.cat;
+  if (currentCat === 'all'){
+    filteredProducts = [...allProducts];
+  } else {
+    filteredProducts = allProducts.filter(p=>{
+      const cat = String(p['หมวดหมู่']||p['Category']||'').toLowerCase();
+      const btnCat = currentCat.toLowerCase();
+      return cat.includes(btnCat) || btnCat.includes(cat);
+    });
+  }
+  renderProducts(filteredProducts);
+}
+
+function renderProducts(products){
+  const area = document.getElementById('productsArea');
+  if (!products.length){
+    area.innerHTML = `<div class="state-box"><div class="state-icon">📦</div><p class="state-title">ไม่พบสินค้า</p></div>`;
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'product-grid';
+  products.forEach(p=>{
+    // Try common column names for name, price, unit
+    const name  = p['ชื่อสินค้า']||p['Product']||p['Name']||p['สินค้า']||Object.values(p).find(v=>v&&v.length>1)||'สินค้า';
+    const price = p['ราคาสมาชิก']||p['ราคา']||p['Price']||p['member_price']||'';
+    const unit  = p['หน่วย']||p['Unit']||p['unit']||'';
+    const cat   = String(p['หมวดหมู่']||p['Category']||'').toLowerCase();
+    const emoji = BPLUS_KEYWORDS.some(k=>cat.includes(k))?'🟡':cat.includes('น้ำ')||cat.includes('water')?'💧':cat.includes('เบียร์')||cat.includes('beer')?'🍺':cat.includes('สุรา')||cat.includes('spirit')?'🥃':'📦';
+    const key = p._key;
+    const qty = cart[key]?.qty || 0;
+
+    const card = document.createElement('div');
+    card.className = 'prod-card';
+    card.innerHTML = `
+      <div class="prod-img">${emoji}</div>
+      <div class="prod-body">
+        <div class="prod-name">${esc(name)}</div>
+        ${unit?`<div class="prod-unit">${esc(unit)}</div>`:''}
+        <div class="prod-footer">
+          ${price?`<div class="prod-price">${fmtPrice(price)}</div>`:'<div></div>'}
+          ${qty===0
+            ? `<button class="add-btn" onclick="addCart('${key}',\`${esc(name)}\`,\`${price}\`)">+</button>`
+            : `<div class="qty-row"><button class="qty-btn" onclick="changeQty('${key}',-1)">−</button><span class="qty-num">${qty}</span><button class="qty-btn" onclick="changeQty('${key}',1)">+</button></div>`
+          }
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+  area.innerHTML='';
+  area.appendChild(grid);
+}
+
+function fmtPrice(p){
+  const n = parseFloat(String(p).replace(/,/g,''));
+  return isNaN(n) ? esc(p) : n.toLocaleString('th-TH')+' ฿';
+}
+
+// ════════════════════ CART ════════════════════
+function addCart(key, name, price){
+  cart[key] = { name, price, qty:1 };
+  updateCartBadge();
+  renderProducts(filteredProducts);
+  showToast(`เพิ่ม ${name} ลงตะกร้าแล้ว 🛒`,'success');
+}
+
+function changeQty(key, delta){
+  if (!cart[key]) return;
+  cart[key].qty = Math.max(0, cart[key].qty + delta);
+  if (cart[key].qty === 0) delete cart[key];
+  updateCartBadge();
+  renderProducts(filteredProducts);
+}
+
+function updateCartBadge(){
+  const total = Object.values(cart).reduce((s,v)=>s+v.qty, 0);
+  document.getElementById('cartBadge').textContent = total;
+}
+
+function openCart(){
+  const items = Object.values(cart);
+  const body = document.getElementById('cartBody');
+  if (!items.length){
+    body.innerHTML = `<div class="state-box" style="padding:24px 0"><div class="state-icon">🛒</div><p class="state-title">ตะกร้าว่างเปล่า</p><p class="state-sub">เลือกสินค้าก่อนนะคะ</p></div>`;
+    document.getElementById('cartModal').classList.add('open');
+    return;
+  }
+  let total = 0;
+  const html = items.map(it=>{
+    const p = parseFloat(String(it.price).replace(/,/g,''))||0;
+    total += p * it.qty;
+    return `<div class="cart-item"><div class="cart-item-info"><div class="cart-item-name">${esc(it.name)}</div><div class="cart-item-price">${fmtPrice(it.price)} × ${it.qty}</div></div><div style="font-weight:700">${fmtPrice(p*it.qty)}</div></div>`;
+  }).join('');
+  body.innerHTML = html + `<div class="cart-total"><span class="cart-total-label">รวมทั้งหมด</span><span class="cart-total-num">${total.toLocaleString('th-TH')} ฿</span></div>`;
+  document.getElementById('cartModal').classList.add('open');
+}
+
+function closeCart(){ document.getElementById('cartModal').classList.remove('open'); }
+
+function placeOrder(){
+  if (!Object.keys(cart).length){ showToast('กรุณาเลือกสินค้า','warn'); return; }
+  const itemList = Object.values(cart).map(it=>`${it.name} × ${it.qty}`).join('\n');
+  closeCart();
+  showToast('ส่งคำสั่งซื้อเรียบร้อย! ✅ ทีมงานจะติดต่อกลับ','success');
+  cart = {};
+  updateCartBadge();
+  renderProducts(filteredProducts);
+}
+
+// ════════════════════ PROFILE ════════════════════
+function toProfile(){
+  if (!currentUser){ showToast('กรุณาเข้าสู่ระบบก่อน','info'); return; }
+  const u = currentUser;
+  const addr = [u.houseNo&&`บ้านเลขที่ ${u.houseNo}`, u.moo&&`หมู่ ${u.moo}`, u.tambon, u.amphoe, u.province, u.zipcode].filter(Boolean).join(' ');
+  const msg = `ข้อมูลสมาชิก\n─────────────\nชื่อ: ${u.name}\nเบอร์: ${u.phone}\nที่อยู่: ${addr}\nคลัง: ${u.warehouse||'W1'}\n\nออกจากระบบ?`;
+  if (confirm(msg)){
+    localStorage.removeItem('rattanaOrderSession');
+    currentUser = null;
+    showScreen('loginScreen');
+    document.getElementById('loginPhone').value='';
+  }
+}
+
+function showUserMenu(){
+  if (currentUser) toProfile();
+}
+
+// ════════════════════ CSV PARSER ════════════════════
+function parseCsv(text){
+  if (!text) return [];
+  if (text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[],cell='',inQ=false;
+  for (let i=0;i<text.length;i++){
+    const ch=text[i];
+    if (inQ){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else inQ=false;}else cell+=ch;}
+    else{if(ch==='"')inQ=true;else if(ch===','){row.push(cell);cell='';}else if(ch==='\r'){/*skip*/}else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell='';}else cell+=ch;}
+  }
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  if(!rows.length)return[];
+  const clean=s=>String(s||'').replace(/[​‌‍﻿]/g,'').replace(/ /g,' ').trim();
+  const headers=rows[0].map(clean);
+  return rows.slice(1).filter(r=>r.some(c=>clean(c))).map(r=>Object.fromEntries(headers.map((k,i)=>[k,clean(r[i])])));
+}
+
+// ════════════════════ UTILS ════════════════════
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showToast(msg, type='info'){
+  const t=document.createElement('div');
+  t.className=`toast toast-${type}`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+function showSpinner(msg='กำลังโหลด...'){ document.getElementById('spinMsg').textContent=msg; document.getElementById('spinner').classList.add('show'); }
+function hideSpinner(){ document.getElementById('spinner').classList.remove('show'); }
+</script>
+</body>
+</html>
