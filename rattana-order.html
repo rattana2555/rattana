@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Order v2.0</title>
+<title>Rattana Order v2.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -219,9 +219,6 @@ textarea.f-input{height:80px;padding:12px 14px;resize:none}
 .hist-qty{font-size:22px;font-weight:700;color:var(--navy);line-height:1}
 .hist-unit{font-size:12px;color:var(--muted);font-weight:600}
 .hist-orders{font-size:11px;color:var(--muted)}
-.hist-add-btn{margin-top:8px;width:100%;padding:6px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:opacity .15s}
-.hist-add-btn:hover{opacity:.85}
-.hist-add-btn.added{background:var(--success)}
 </style>
 </head>
 <body>
@@ -779,59 +776,30 @@ async function loadHistory(forceReload=false){
 function renderHistory(items){
   const area = document.getElementById('historyArea');
   if (!items || !items.length){
-    area.innerHTML=`<div class="state-box"><div class="state-icon">📋</div><p class="state-title">ไม่พบประวัติการซื้อ</p><p class="state-sub">ยังไม่มีข้อมูลใน BigQuery หรือ Customer_Code ไม่ตรง</p></div>`;
+    area.innerHTML=`<div class="state-box"><div class="state-icon">📋</div><p class="state-title">ไม่พบประวัติการซื้อ</p><p class="state-sub">ยังไม่มีข้อมูลใน BigQuery</p></div>`;
     return;
   }
   const grid = document.createElement('div');
   grid.className = 'hist-grid';
-
   items.forEach(item=>{
-    const barcode  = String(item.BarCode     || '').replace(/^BC-/i,'');
-    const rawName  = String(item.Product_Name|| '').trim();
-    const unit     = String(item.Unit        || '');
-    const totalQty = parseFloat(item.TotalQty || 0);
-    const numOrders= parseInt(item.NumOrders  || 0);
-
-    // พยายาม match กับสินค้าในชีท (ถ้า barcode ตรง)
-    const matched = allProducts.find(p=>{
-      const pb = String(p['BarCode']||p['บาร์โค้ด']||p['Barcode']||p['barcode']||'').replace(/^BC-/i,'');
-      return pb && pb === barcode;
-    });
-    const displayName = matched
-      ? (matched['ชื่อสินค้า']||matched['Product']||matched['Name']||rawName)
-      : (rawName || barcode || 'ไม่ทราบสินค้า');
-    const displayUnit = matched ? (matched['หน่วย']||matched['Unit']||unit) : unit;
-    const matchKey  = matched ? matched._key : null;
-
+    const name     = String(item.Product_Name || item.BarCode || '').trim() || 'ไม่ทราบสินค้า';
+    const unit     = String(item.Unit     || '');
+    const totalQty = parseFloat(item.TotalQty  || 0);
+    const numOrders= parseInt(item.NumOrders   || 0);
     const card = document.createElement('div');
     card.className = 'hist-card';
     card.innerHTML = `
-      <div class="hist-prod-name">${esc(displayName)}</div>
-      ${barcode ? `<div class="hist-barcode">🔖 ${esc(barcode)}</div>` : ''}
+      <div class="hist-prod-name">${esc(name)}</div>
       <div class="hist-qty-row">
         <span class="hist-qty">${totalQty.toLocaleString('th-TH')}</span>
-        <span class="hist-unit">${esc(displayUnit)}</span>
+        <span class="hist-unit">${esc(unit)}</span>
       </div>
       <div class="hist-orders">${numOrders} รายการสั่งซื้อ</div>
-      ${matchKey ? `<button class="hist-add-btn" onclick="histAddToCart('${matchKey}',\`${esc(displayName)}\`,this)">+ เพิ่มลงตะกร้า</button>` : ''}
     `;
     grid.appendChild(card);
   });
   area.innerHTML='';
   area.appendChild(grid);
-}
-
-function histAddToCart(key, name, btn){
-  const prod = allProducts.find(p=>p._key===key);
-  if (!prod) return;
-  const price = prod['ราคาสมาชิก']||prod['ราคา']||prod['Price']||'';
-  if (!cart[key]) cart[key] = { name, price, qty:0 };
-  cart[key].qty++;
-  updateCartBadge();
-  btn.textContent = '✅ เพิ่มแล้ว';
-  btn.classList.add('added');
-  setTimeout(()=>{ btn.textContent='+ เพิ่มลงตะกร้า'; btn.classList.remove('added'); }, 1500);
-  showToast(`เพิ่ม ${name} ลงตะกร้า 🛒`,'success');
 }
 
 // ════════════════════ LOGIN ════════════════════
