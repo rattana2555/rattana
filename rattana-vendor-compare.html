@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Rattana Vendor Compare v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --navy:#0d1b3e;--navy-mid:#1a2f5e;--navy-light:#243b73;
+  --gold:#c9a84c;--gold-light:#e8c86a;
+  --success:#2ecc71;--danger:#e74c3c;--warning:#f39c12;--info:#3498db;
+  --bg:#f4f6fb;--text:#0d1b3e;--card-bg:#ffffff;--border:#dde3f0;--muted:#6b7896;--row-alt:#fafbfd;
+  --radius-sm:6px;--radius-md:12px;--radius-lg:16px;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 24px rgba(13,27,62,.12);--shadow-gold:0 4px 12px rgba(201,168,76,.35);
+}
+body.dark{--bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;--border:#243b73;--muted:#8a98b8;--row-alt:#0f1830;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;min-height:100dvh;overflow-x:hidden;background:var(--bg);color:var(--text);transition:background .25s,color .25s;font-size:14px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,select,textarea{font-family:inherit;font-size:16px}
+header{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--gold);padding-top:max(12px,env(safe-area-inset-top))}
+.logo-text{font-weight:700;letter-spacing:1.5px;font-size:17px;color:#fff;flex:1}
+.logo-text span{color:var(--gold)}
+.ver-tag{font-size:10px;color:rgba(255,255,255,.55);font-weight:500;margin-left:6px}
+.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .15s}
+.icon-btn:hover{background:rgba(255,255,255,.12)}
+.user-chip{background:rgba(201,168,76,.18);color:#fff;border:1px solid rgba(201,168,76,.4);padding:6px 12px;border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;display:none}
+@media(min-width:640px){.user-chip{display:inline-flex;align-items:center;gap:6px}}
+.tab-nav{display:flex;background:var(--navy);border-bottom:3px solid var(--gold);padding:0 8px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:sticky;top:62px;z-index:99}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{background:transparent;border:none;color:rgba(255,255,255,.6);padding:12px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;flex-shrink:0;transition:all .18s;margin-bottom:-3px;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+.tab-btn:hover{color:#fff;background:rgba(255,255,255,.06)}
+.tab-btn.active{color:var(--navy);background:var(--gold);border-bottom-color:var(--gold);font-weight:700}
+.filter-bar{background:var(--card-bg);border-bottom:1px solid var(--border);padding:12px 16px;position:sticky;top:108px;z-index:90;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
+.filter-bar .vendor-area{flex:1;min-width:240px}
+.lbl{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px;display:block}
+.page{min-height:100dvh;display:flex;flex-direction:column}
+.content{flex:1;padding:12px;max-width:1400px;margin:0 auto;width:100%}
+@media(min-width:640px){.content{padding:16px}}
+.tab-pane{display:none;animation:fadeIn .25s ease}
+.tab-pane.active{display:block}
+.card{background:var(--card-bg);border-radius:var(--radius-md);border:1px solid var(--border);box-shadow:var(--shadow-md);margin-bottom:14px}
+.card-gold{border-top:3px solid var(--gold)}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);background:linear-gradient(to right,rgba(201,168,76,.07),transparent);flex-wrap:wrap;gap:8px}
+.card-head h3{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-head h3 .gold-bar{width:3px;height:16px;background:var(--gold);border-radius:2px}
+.card-body{padding:16px}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
+.stat-card{background:var(--card-bg);border-radius:var(--radius-md);padding:14px;border:1px solid var(--border);border-top:3px solid var(--gold)}
+.stat-card .s-label{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.stat-card .s-value{font-size:20px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat-card .s-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-card.danger{border-top-color:var(--danger)}.stat-card.danger .s-value{color:var(--danger)}
+.stat-card.success{border-top-color:var(--success)}.stat-card.success .s-value{color:var(--success)}
+.stat-card.warning{border-top-color:var(--warning)}.stat-card.warning .s-value{color:var(--warning)}
+.stat-card.info{border-top-color:var(--info)}
+@media(min-width:640px){.stat-card .s-value{font-size:24px}}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid transparent;min-height:40px;transition:opacity .15s,transform .1s}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-gold:hover{background:var(--gold-light)}
+.btn-outline{background:transparent;color:var(--text);border-color:var(--border)}
+.btn-sm{padding:5px 10px;font-size:12px;min-height:30px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-ok{background:#e8f7ee;color:#1e8449}
+.badge-warn{background:#fef3d7;color:#a87800}
+.badge-danger{background:#ffd5d0;color:#c0392b}
+.badge-info{background:#e3f0fd;color:#1a6fb8}
+.badge-gold{background:rgba(201,168,76,.18);color:var(--navy);border:1px solid rgba(201,168,76,.4)}
+body.dark .badge-gold{color:var(--gold-light)}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;min-width:560px}
+.tbl thead{background:var(--navy);color:#fff}
+.tbl thead th{padding:8px 10px;text-align:left;font-size:11px;font-weight:600;white-space:nowrap;border-bottom:2px solid var(--gold)}
+.tbl thead th.num{text-align:right}
+.tbl tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+.tbl tbody tr:nth-child(even){background:var(--row-alt)}
+.tbl tbody tr:hover{background:rgba(201,168,76,.07)}
+.tbl tbody tr.clickable{cursor:pointer}
+.tbl tbody tr.clickable:hover{background:rgba(201,168,76,.15)}
+.tbl td{padding:8px 10px;font-size:12px;vertical-align:middle}
+.tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
+.tbl .empty-row td{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+.tbl tfoot td{background:linear-gradient(to right,rgba(201,168,76,.18),rgba(201,168,76,.08));font-weight:700;padding:9px 10px;border-top:2px solid var(--gold);font-size:12px}
+.tbl tfoot td.num{text-align:right}
+/* ── Sticky first column (freeze product name on mobile scroll) ── */
+.tbl thead th:first-child,
+.tbl tbody td:first-child,
+.tbl tfoot td:first-child{
+  position:sticky;left:0;z-index:3;
+  background:var(--navy); /* header */
+}
+.tbl tbody td:first-child{background:var(--card-bg);}
+.tbl tbody tr:nth-child(even) td:first-child{background:var(--row-alt);}
+.tbl tbody tr:hover td:first-child{background:rgba(201,168,76,.07);}
+.tbl tfoot td:first-child{background:linear-gradient(to right,rgba(201,168,76,.25),rgba(201,168,76,.1));}
+/* ═══ MOBILE RESPONSIVE — safe minimal ═══ */
+@media(max-width:639px){
+  .tbl{min-width:auto}
+  .tbl thead th,.tbl tbody td,.tbl tfoot td{padding:8px 7px;font-size:11.5px}
+  .prod-name{max-width:130px}
+  /* Bigger touch targets */
+  .chip{padding:7px 12px;font-size:12.5px;min-height:32px;line-height:1.2;display:inline-flex;align-items:center}
+  .btn-sm{padding:7px 11px;font-size:12px;min-height:32px}
+  .channel-chips{padding:8px 12px 4px;gap:6px}
+  .month-filter-panel{min-width:180px}
+  .month-filter-panel label{padding:9px 12px;font-size:13.5px;min-height:36px}
+  .month-filter-panel input[type=checkbox]{width:17px;height:17px}
+  /* Card head wraps cleaner */
+  .card-head{padding:11px 12px;gap:8px}
+  .card-head h3{font-size:13px}
+  .card-body{padding:10px 8px}
+  /* Stat cards */
+  .stat-card{padding:11px 13px}
+  .stat-card .s-label{font-size:10.5px}
+  .stat-card .s-value{font-size:18px}
+  .stat-card .s-sub{font-size:10.5px}
+  /* Chart text */
+  .chart-wrap svg text{font-size:11px}
+}
+/* Month columns - hidden by default */
+.tbl .month-col{display:none}
+
+.tbl.expanded .month-col{display:table-cell}
+.channel-chips{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px 0 16px;align-items:center}
+.chip{padding:5px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:14px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip.active{background:var(--gold);color:#fff;border-color:var(--gold);font-weight:600;box-shadow:0 1px 3px rgba(201,168,76,.4)}
+.month-dd-wrap{position:relative;display:inline-block}
+.month-filter-panel{position:absolute;top:calc(100% + 4px);left:0;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);padding:6px;min-width:170px;z-index:1000;display:none}
+.month-filter-panel.open{display:block}
+.month-filter-panel label{display:flex;align-items:center;padding:6px 10px;cursor:pointer;font-size:13px;border-radius:4px;gap:8px;user-select:none}
+.month-filter-panel label:hover{background:rgba(201,168,76,.08)}
+.month-filter-panel input[type=checkbox]{margin:0;cursor:pointer;accent-color:var(--gold)}
+.tbl tbody td.month-ex{background:rgba(46,204,113,.06);color:#1d6f3d}
+.tbl thead th.month-ex{background:rgba(46,204,113,.25);color:#fff}
+.tbl tfoot td.month-ex{background:rgba(46,204,113,.10);font-weight:700;color:#1d6f3d}
+/* Product name truncate */
+.prod-name{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.prod-name:hover{overflow:visible;white-space:normal;background:var(--card-bg);position:relative;z-index:10;box-shadow:var(--shadow-md);border-radius:4px;padding:2px 4px;margin:-2px -4px}
+.breadcrumb{display:flex;align-items:center;gap:6px;padding:8px 12px;background:rgba(201,168,76,.08);border-radius:var(--radius-sm);margin-bottom:10px;flex-wrap:wrap;font-size:12px}
+.breadcrumb .crumb{cursor:pointer;color:var(--navy);font-weight:600;padding:3px 8px;border-radius:4px;transition:background .15s}
+.breadcrumb .crumb:hover{background:rgba(201,168,76,.2)}
+.breadcrumb .crumb.current{color:var(--gold);cursor:default}
+.breadcrumb .sep{color:var(--muted);font-size:11px}
+body.dark .breadcrumb .crumb{color:var(--gold-light)}
+
+/* ── Line Chart ── */
+.line-chart-wrap{width:100%;overflow-x:auto}
+.line-chart-wrap svg{display:block;width:100%;min-width:500px}
+.chart-legend{display:flex;gap:16px;justify-content:center;margin-top:10px;font-size:12px;color:var(--muted)}
+.chart-legend .lg-dot{width:28px;height:3px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:6px}
+
+/* Working day badge */
+.wd-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(52,152,219,.1);color:var(--info);border:1px solid rgba(52,152,219,.3);padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;margin-left:6px}
+
+.dd-wrap{position:relative;width:100%}
+.dd-trigger{width:100%;min-height:44px;padding:10px 14px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:14px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dd-trigger:hover{border-color:var(--gold)}
+.dd-arr{color:var(--muted);font-size:10px}
+.dd-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);z-index:500;box-shadow:var(--shadow-lg);max-height:320px;display:none;flex-direction:column}
+.dd-panel.open{display:flex}
+.dd-search{padding:10px 14px;font-size:15px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);outline:none;font-family:inherit}
+.dd-list{overflow-y:auto;flex:1;list-style:none;padding:4px 0;margin:0}
+.dd-list li{padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)}
+.dd-list li:last-child{border-bottom:none}
+.dd-list li:hover{background:var(--navy-light);color:#fff}
+.dd-list li.no-result{color:var(--muted);cursor:default;font-style:italic;text-align:center}
+.dd-list li.no-result:hover{background:transparent;color:var(--muted)}
+.vrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vamt{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0}
+.dd-list li:hover .vamt{color:rgba(255,255,255,.85)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.empty-state .ttl{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty-state .sub{font-size:13px}
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 50%,#0a1530 100%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:8000}
+.login-box{background:var(--card-bg);padding:40px 32px;border-radius:var(--radius-lg);border-top:4px solid var(--gold);box-shadow:var(--shadow-lg);max-width:380px;width:100%;text-align:center}
+.login-box h1{font-size:22px;letter-spacing:2px;color:var(--navy);margin-bottom:6px;font-weight:700}
+.login-box h1 span{color:var(--gold)}
+.login-box .subtitle{font-size:13px;color:var(--muted);margin-bottom:28px}
+.login-box .g_id_signin{display:flex;justify-content:center}
+.err{background:rgba(231,76,60,.1);color:var(--danger);padding:10px 14px;border-radius:var(--radius-sm);font-size:12px;margin-top:14px;display:none;border-left:3px solid var(--danger);text-align:left}
+.err.show{display:block}
+.spinner-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.55);align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)}
+.spinner-overlay.show{display:flex}
+.spinner-box{background:#fff;border-radius:var(--radius-lg);padding:28px 36px;text-align:center;border-top:4px solid var(--gold);min-width:220px;box-shadow:var(--shadow-lg)}
+body.dark .spinner-box{background:var(--card-bg)}
+.spinner-ring{width:42px;height:42px;border:4px solid #dde3f0;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+.toast{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:16px;padding:11px 18px;border-radius:var(--radius-md);color:#fff;z-index:9998;animation:slideIn .3s ease;font-weight:500;box-shadow:var(--shadow-lg);max-width:90vw;font-size:13px}
+.toast-success{background:var(--success)}.toast-error{background:var(--danger)}.toast-warning{background:var(--warning);color:var(--navy)}.toast-info{background:var(--navy-mid);border-left:3px solid var(--gold)}
+#backToTop{position:fixed;bottom:max(24px,calc(16px + env(safe-area-inset-bottom)));right:max(16px,calc(12px + env(safe-area-inset-right)));background:var(--gold);color:var(--navy);border-radius:50%;width:46px;height:46px;display:none;align-items:center;justify-content:center;box-shadow:var(--shadow-gold);z-index:90;font-size:18px;font-weight:700;cursor:pointer}
+#backToTop.show{display:flex}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.65);z-index:9000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card-bg);border-radius:var(--radius-lg);max-width:520px;width:100%;max-height:92dvh;overflow-y:auto;border-top:4px solid var(--gold);animation:slideUp .22s ease}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:15px;font-weight:700}
+.modal-close{background:transparent;border:none;font-size:22px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:var(--radius-sm);line-height:1}
+.modal-close:hover{color:var(--text);background:rgba(0,0,0,.06)}
+.modal-body{padding:18px}.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.3px;text-transform:uppercase}
+.field input{height:42px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
+.field input:focus{border-color:var(--gold)}
+.field .hint{font-size:11px;color:var(--muted);margin-top:2px}
+#loadingBar{position:fixed;top:0;left:0;height:3px;background:var(--gold);width:0;transition:width .4s;z-index:10000}
+.foot-info{text-align:center;font-size:11px;color:var(--muted);padding:18px 12px 24px;letter-spacing:.4px}
+.cmp-arr{display:inline-block;font-size:11px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:4px}
+.cmp-up{background:rgba(46,204,113,.15);color:var(--success)}
+.cmp-down{background:rgba(231,76,60,.15);color:var(--danger)}
+.cmp-neutral{background:rgba(107,120,150,.15);color:var(--muted)}
+/* month header colors */
+.th-mon{background:var(--navy-mid)!important;font-size:10px}
+.th-avg{background:#1a3a5e!important}
+.th-cur{background:#2a4a1e!important}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <h1>RATTANA <span>VENDOR</span></h1>
+    <div class="subtitle">เทียบยอดขาย Vendor — ย้อนหลัง 6 เดือน vs เดือนปัจจุบัน</div>
+    <div id="g_id_onload" data-client_id="909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com" data-callback="handleGoogleLogin" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-locale="th"></div>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="appScreen" class="page" style="display:none">
+  <header>
+    <div class="logo-text">RATTANA <span>VENDOR</span><span class="ver-tag">v3.0</span></div>
+    <button class="icon-btn" id="btnRefresh" title="รีเฟรช">⟳</button>
+    <button class="icon-btn" id="btnDark" title="โหมดมืด">◐</button>
+    <button class="icon-btn" id="btnCfg" title="ตั้งค่า">⚙</button>
+    <button class="user-chip" id="userChip" onclick="logout()" title="ออกจากระบบ"><span id="userNick">—</span></button>
+  </header>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="overview">📊 ภาพรวม</button>
+    <button class="tab-btn" data-tab="sellin">📥 ซื้อเข้า (Sell-In)</button>
+    <button class="tab-btn" data-tab="stock">📦 สต๊อก</button>
+  </div>
+
+  <div class="filter-bar">
+    <div class="vendor-area">
+      <span class="lbl">เลือก Vendor</span>
+      <div class="dd-wrap" id="vendorDD">
+        <button class="dd-trigger" onclick="toggleVendorDD()" type="button">
+          <span id="vendorLabel">— เลือก Vendor —</span>
+          <span class="dd-arr">▾</span>
+        </button>
+        <div class="dd-panel" id="vendorPanel">
+          <input class="dd-search" type="text" placeholder="🔍 ค้นหา vendor..." oninput="filterVendorList(this.value)" autocomplete="off" id="vendorSearch">
+          <ul class="dd-list" id="vendorList"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="channelChips" class="channel-chips" style="display:none"></div>
+
+  <div class="content">
+    <div class="tab-pane active" id="tab-overview">
+      <div id="ovEmpty" class="empty-state">
+        <div class="icon">🎯</div>
+        <div class="ttl">เลือก Vendor เพื่อดูข้อมูล</div>
+        <div class="sub">เปรียบเทียบยอดขาย CS กับ EXVat<br>ย้อนหลัง 6 เดือนจาก BigQuery vs เดือนปัจจุบันจาก BP</div>
+      </div>
+      <div id="ovContent" style="display:none">
+        <div class="stat-grid" id="statGrid"></div>
+        <!-- Line chart -->
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span class="gold-bar"></span>เทรนด์ 6 เดือน + เดือนปัจจุบัน</h3>
+            <span id="periodLbl" class="badge badge-gold"></span>
+          </div>
+          <div class="card-body">
+            <div class="line-chart-wrap" id="lineChartWrap"></div>
+            <div id="whLegend" class="chart-legend"></div>
+          </div>
+        </div>
+        <!-- Drill down -->
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span class="gold-bar"></span>ดูตามหมวด — คลิกเพื่อ Drill Down</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" onclick="setDrill('all_products',null,null)">📋 ทุกรายสินค้า</button>
+              <button class="btn btn-outline btn-sm" id="toggleMonths" onclick="toggleMonthCols()">📅 แสดง 6 เดือน</button>
+              <button class="btn btn-outline btn-sm" id="resetDrill" style="display:none">↑ ขึ้นหนึ่งระดับ</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="breadcrumb" id="breadcrumb"></div>
+            <div class="tbl-wrap">
+              <table class="tbl" id="drillTbl">
+                <thead><tr id="drillThead"></tr></thead>
+                <tbody id="drillTbody"></tbody>
+                <tfoot id="drillTfoot"></tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- Stores distribution -->
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span class="gold-bar"></span>📍 การกระจายร้านค้า — จำนวนร้านที่ซื้อ (Unique Customer)</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-outline btn-sm" id="toggleStoresMonths" onclick="toggleStoresMonthCols()">📅 แสดง 6 เดือน</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="storesContent">
+              <div class="tbl-wrap">
+                <table class="tbl" id="storesTbl">
+                  <thead><tr id="storesThead"></tr></thead>
+                  <tbody id="storesTbody"></tbody>
+                  <tfoot id="storesTfoot"></tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-sellin">
+      <div id="seEmpty" class="empty-state"><div class="icon">📥</div><div class="ttl">เลือก Vendor เพื่อดูยอดซื้อเข้า</div></div>
+      <div id="seContent" style="display:none"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-stock">
+      <div id="stEmpty" class="empty-state"><div class="icon">📦</div><div class="ttl">เลือก Vendor เพื่อดูสต๊อก</div></div>
+      <div id="stContent" style="display:none"></div>
+    </div>
+  </div>
+  <div class="foot-info">Rattana Vendor Compare · v3.0 · 2026-05-21</div>
+</div>
+
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div id="loadingBar"></div>
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner-box"><div class="spinner-ring"></div><p id="spinnerMsg">Loading...</p></div>
+</div>
+
+<div class="modal-overlay" id="cfgModal">
+  <div class="modal">
+    <div class="modal-head"><h3>ตั้งค่า — Data Sources</h3><button class="modal-close" onclick="closeCfg()">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>BigQuery Proxy URL</label><input id="cfgBqUrl" placeholder="https://script.google.com/macros/s/.../exec"><div class="hint">URL ของ Apps Script BQ Proxy Web App</div></div>
+      <div class="field"><label>BP Workbook ID</label><input id="cfgBpId"><div class="hint">อัพเดทตอนเปลี่ยนเดือน</div></div>
+      <div class="field"><label>BP Sheet Tab Name</label><input id="cfgBpTab" placeholder="BP"></div>
+      <div class="field"><label>Stock Sheet ID</label><input id="cfgStockId"></div>
+      <div class="field"><label>Stock Sheet Tab Name</label><input id="cfgStockTab" placeholder="Product_Detail"></div>
+      <div class="field"><label>Sell-In Sheet ID</label><input id="cfgClaudeId"></div>
+      <div class="field"><label>Sell-In Sheet Tab Name</label><input id="cfgClaudeTab" placeholder="sell in"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeCfg()">ยกเลิก</button>
+      <button class="btn btn-gold" onclick="saveCfg()">บันทึก & รีโหลด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ CONFIG ══ */
+const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
+const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
+const CFG_KEY='rattanaVendorCfg_v4';
+function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
+if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
+function saveCfgObj(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
+let CFG=loadCfg();
+
+/* ══ HELPERS ══ */
+const $=id=>document.getElementById(id);
+const fmt=n=>(Number(n)||0).toLocaleString('th-TH',{maximumFractionDigits:0});
+const fmtInt=n=>(Math.round(Number(n)||0)).toLocaleString('th-TH');
+const escHtml=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normVendor=s=>String(s||'').replace(/\s+/g,' ').trim();
+const normWH=s=>{const x=String(s||'').trim().toUpperCase();if(/^W[1-4]$/.test(x))return x;if(/^[1-4]$/.test(x))return'W'+x;const m=x.match(/W\s*([1-4])/);if(m)return'W'+m[1];const m2=x.match(/(?:WAREHOUSE|WH|คลัง)\s*([1-4])/);if(m2)return'W'+m2[1];return'';};
+const normKey=s=>String(s||'').toLowerCase().replace(/[\s().,-]/g,'');
+
+function showSpinner(msg='Loading...'){$('spinnerMsg').textContent=msg;$('spinner').classList.add('show');}
+function hideSpinner(){$('spinner').classList.remove('show');}
+function setLoading(on){$('loadingBar').style.width=on?'85%':'0';}
+function showToast(msg,type='info'){const t=document.createElement('div');t.className=`toast toast-${type}`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+function parseCsv(text){
+  if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  const rows=[];let row=[],cell='',inQuote=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];if(inQuote){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else inQuote=false;}else cell+=ch;}else{if(ch==='"')inQuote=true;else if(ch===','){row.push(cell);cell='';}else if(ch==='\r'){}else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell='';}else cell+=ch;}}
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  if(!rows.length)return[];
+  const clean=s=>String(s||'').replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim();
+  const headers=rows[0].map(clean);
+  return rows.slice(1).filter(r=>r.some(c=>clean(c))).map(r=>Object.fromEntries(headers.map((k,i)=>[k,clean(r[i])])));
+}
+async function fetchSheetCsv(sheetId,sheetName){
+  const url=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const res=await fetch(url);if(!res.ok)throw new Error('fetch sheet failed: '+res.status);
+  return parseCsv(await res.text());
+}
+const TTL=5*60*1000;
+const cacheGet=k=>{try{const i=JSON.parse(localStorage.getItem(k));return i&&Date.now()-i.ts<TTL?i.data:null;}catch{return null;}};
+const cacheSet=(k,d)=>{try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),data:d}));}catch{}};
+function pNum(s){if(s==null||s==='')return 0;let t=String(s).replace(/,/g,'').replace(/\\-/g,'-').replace(/\s/g,'');if(/^\(.+\)$/.test(t))t='-'+t.slice(1,-1);const n=parseFloat(t);return isNaN(n)?0:n;}
+function parseBpDate(s){if(!s)return null;const m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(!m)return null;return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]));}
+function getPeriodLabels(){const now=new Date(),year=now.getFullYear(),mon=now.getMonth()+1;const labels=[];for(let i=6;i>=1;i--){let m=mon-i,y=year;while(m<=0){m+=12;y-=1;}labels.push(`${y}/${String(m).padStart(2,'0')}`);}return{historyLabels:labels,currentLabel:`${year}/${String(mon).padStart(2,'0')}`};}
+
+/* ══ WORKING DAYS (Mon-Sat) ══ */
+function countWD(year,month,from,to){let c=0;for(let d=from;d<=to;d++){const dow=new Date(year,month-1,d).getDay();if(dow!==0)c++;}return c;}
+function getWDStats(){
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth()+1,d=now.getDate();
+  const dim=new Date(y,m,0).getDate();
+  const elapsed=countWD(y,m,1,d);
+  const total=countWD(y,m,1,dim);
+  return{elapsed,total,remaining:total-elapsed,rate:elapsed/total,day:d,dim};
+}
+
+/* ══ AUTH ══ */
+function decodeJwtPayload(token){const parts=String(token||'').split('.');if(parts.length<2)throw new Error('JWT invalid');let b64=parts[1].replace(/-/g,'+').replace(/_/g,'/');const pad=(4-b64.length%4)%4;if(pad)b64+='='.repeat(pad);const bin=atob(b64);const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return JSON.parse(new TextDecoder('utf-8').decode(bytes));}
+const normalizeEmail=s=>String(s||'').replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\s+/g,'').toLowerCase();
+let currentUser=null;
+function showLoginError(msg){const e=$('loginErr');e.textContent=msg;e.classList.add('show');}
+async function handleGoogleLogin(r){
+  showSpinner('กำลังตรวจสอบ...');
+  try{const email=normalizeEmail(decodeJwtPayload(r.credential).email);const users=await fetchSheetCsv(AUTH_CONFIG.usersSheetId,AUTH_CONFIG.usersSheetName);const user=users.find(u=>normalizeEmail(u['E-mail'])===email);if(!user){showLoginError('ไม่พบ Email นี้ในระบบ');return;}if(String(user['Status']||'').trim().toLowerCase()!=='active'){showLoginError('บัญชีถูกระงับ');return;}currentUser={email,name:user['ชื่อ - สกุล'],nickname:user['ชื่อเล่น'],role:parseInt(user['User Role'])||1};localStorage.setItem('rattanaUser',JSON.stringify({data:currentUser,exp:Date.now()+30*24*60*60*1000}));enterApp();}
+  catch(e){console.error(e);showLoginError('เกิดข้อผิดพลาด: '+e.message);}finally{hideSpinner();}
+}
+function checkSession(){try{const raw=localStorage.getItem('rattanaUser');if(!raw)return;const{data,exp}=JSON.parse(raw);if(Date.now()>exp){localStorage.removeItem('rattanaUser');return;}currentUser=data;enterApp();}catch{localStorage.removeItem('rattanaUser');}}
+function enterApp(){$('loginScreen').style.display='none';$('appScreen').style.display='flex';$('userChip').style.display='inline-flex';$('userNick').textContent=currentUser.nickname||currentUser.name||currentUser.email;initApp();}
+function logout(){if(!confirm('ออกจากระบบ?'))return;localStorage.removeItem('rattanaUser');location.reload();}
+
+/* ══ APP STATE ══ */
+let VENDORS=[],BQ_SALES_ROWS=[],BQ_TREND_ROWS=[],BQ_STORES_ROWS=[],BP_ALL_ROWS=[],STOCK_ALL_ROWS=[],SELLIN_ALL_ROWS=[],SELECTED_VENDOR=null;
+let DRILL={level:'brand',brand:null,pack:null};
+let MONTHS_EXPANDED=false;
+let SELECTED_CHANNEL='ALL';
+let SELECTED_MONTHS=null; // null = all months selected
+
+/* ══ BQ PROXY ══ */
+async function bqCall(action,params={}){
+  if(!CFG.bqProxyUrl)throw new Error('ยังไม่ได้ตั้งค่า BQ Proxy URL');
+  const u=new URL(CFG.bqProxyUrl);u.searchParams.set('action',action);Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  const res=await fetch(u.toString());if(!res.ok)throw new Error('BQ proxy http '+res.status);
+  const json=await res.json();if(!json.ok)throw new Error(json.error||'BQ proxy error');return json.data;
+}
+
+/* ══ LOAD ══ */
+async function initApp(){
+  showSpinner('กำลังโหลดข้อมูล...');setLoading(true);
+  try{
+    const[bp,stock,sellin,vendors]=await Promise.all([
+      loadBp().catch(e=>{showToast('โหลด BP ไม่สำเร็จ','warning');return[];}),
+      loadStock().catch(e=>{showToast('โหลด Stock ไม่สำเร็จ','warning');return[];}),
+      loadSellIn().catch(e=>{showToast('โหลด Sell-In ไม่สำเร็จ','warning');return[];}),
+      loadVendors().catch(e=>{showToast('โหลด Vendor list ไม่สำเร็จ — '+e.message,'warning');return[];}),
+    ]);
+    BP_ALL_ROWS=bp;STOCK_ALL_ROWS=stock;SELLIN_ALL_ROWS=sellin;VENDORS=vendors;
+    renderVendorList();showToast('โหลดข้อมูลเรียบร้อย','success');
+  }finally{hideSpinner();setLoading(false);}
+}
+async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
+async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CSxValue']||r['Sales_CS_x_Value']||r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim(),customer_code:String(r['Customer_Code']||r['customer_code']||r['Customer Code']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
+/* parseCsv to raw arrays (no header conversion) */
+function parseCsvArrays(text){
+  if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  const rows=[];let row=[],cell='',inQuote=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];if(inQuote){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else inQuote=false;}else cell+=ch;}else{if(ch==='"')inQuote=true;else if(ch===','){row.push(cell.replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim());cell='';}else if(ch==='\r'){}else if(ch==='\n'){row.push(cell.replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim());rows.push(row);row=[];cell='';}else cell+=ch;}}
+  if(cell.length||row.length){row.push(cell.replace(/[\u200B\u200C\u200D\uFEFF]/g,'').replace(/\u00A0/g,' ').trim());rows.push(row);}
+  return rows;
+}
+
+async function loadStock(){
+  const c=cacheGet('stock_rows');if(c)return c;
+  // Fetch by sheet name PDDT (same column layout: A=name, BF=vendor, BN-BR=main, BS-CE=extra)
+  const url=`https://docs.google.com/spreadsheets/d/${CFG.stockId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CFG.stockTab||'PDDT')}`;
+  const res=await fetch(url);
+  if(!res.ok)throw new Error('Stock fetch failed: '+res.status);
+  const rows=parseCsvArrays(await res.text());
+  if(rows.length<2)return[];
+  const hdrs=rows[0]; // header row
+  // Column indices (0-based)
+  const CI={name:0,vendor:57,bn:65,bo:66,bp:67,bq:68,br:69};
+  const mainCols=[65,66,67,68,69]; // BN-BR
+  const extraCols=[70,71,72,73,74,75,76,77,78,79,80,81,82]; // BS-CE
+  const r=rows.slice(1).filter(r=>r[CI.name]||r[CI.vendor]).map(r=>({
+    product_name:r[CI.name]||'',
+    cat_vendor:normVendor(r[CI.vendor]||''),
+    main_stock:mainCols.map(i=>({label:hdrs[i]||`col${i}`,val:pNum(r[i])})),
+    extra_stock:extraCols.map(i=>({label:hdrs[i]||`col${i}`,val:pNum(r[i])})).filter(s=>s.label),
+    main_total:mainCols.reduce((s,i)=>s+pNum(r[i]),0),
+  })).filter(r=>r.product_name&&r.cat_vendor);
+  cacheSet('stock_rows',r);return r;
+}
+async function loadSellIn(){const c=cacheGet('sellin_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.claudeId,CFG.claudeTab);const r=raw.map(r=>{const keys=Object.keys(r);return{vendor:normVendor(r[keys[0]]||''),cs:pNum(r[keys[1]]),baht:pNum(r[keys[2]])};}).filter(r=>r.vendor);cacheSet('sellin_rows',r);return r;}
+
+/* ══ VENDOR DROPDOWN ══ */
+function renderVendorList(){const ul=$('vendorList');if(!VENDORS.length){ul.innerHTML='<li class="no-result">ยังไม่มี vendor — ตั้งค่า BQ Proxy ที่ ⚙</li>';return;}const sorted=[...VENDORS].sort((a,b)=>b.exvat-a.exvat);ul.innerHTML=sorted.map(v=>`<li onclick="selectVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')"><div class="vrow"><span class="vname">${escHtml(v.vendor)}</span><span class="vamt">${fmtInt(v.exvat)} ฿</span></div></li>`).join('');}
+function filterVendorList(q){const ql=q.toLowerCase();document.querySelectorAll('#vendorList li').forEach(li=>{const name=(li.querySelector('.vname')?.textContent||'').toLowerCase();li.style.display=name.includes(ql)?'':'none';});}
+function toggleVendorDD(){const p=$('vendorPanel');const open=p.classList.contains('open');document.querySelectorAll('.dd-panel').forEach(x=>x.classList.remove('open'));if(!open){p.classList.add('open');setTimeout(()=>$('vendorSearch').focus(),50);}}
+document.addEventListener('click',e=>{if(!e.target.closest('.dd-wrap'))document.querySelectorAll('.dd-panel').forEach(p=>p.classList.remove('open'));if(!e.target.closest('.month-dd-wrap')){const mp=document.getElementById('monthFilterPanel');if(mp)mp.classList.remove('open');}});
+async function selectVendor(vendor){SELECTED_VENDOR=vendor;$('vendorLabel').textContent=vendor;$('vendorPanel').classList.remove('open');DRILL={level:'brand',brand:null,pack:null};MONTHS_EXPANDED=false;EXPANDED={};SELECTED_CHANNEL='ALL';SELECTED_MONTHS=null;await loadVendorData();}
+async function loadVendorData(){
+  if(!SELECTED_VENDOR)return;showSpinner('โหลดข้อมูล...');
+  try{
+    const ck='bq_sales_'+SELECTED_VENDOR,ckT='bq_trend_'+SELECTED_VENDOR,ckS='bq_stores_'+SELECTED_VENDOR;
+    let bq=cacheGet(ck),tr=cacheGet(ckT),st=cacheGet(ckS);
+    const fetchSales=bq?Promise.resolve(bq):bqCall('sales',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand,cat_pack:r.cat_pack,product_name:r.product_name,product_code:r.product_code,channel:(r.channel||'').trim(),sales_cs:pNum(r.sales_cs),free_cs:pNum(r.free_cs),exvat:pNum(r.exvat),total_baht:pNum(r.total_baht)})));
+    const fetchTrend=tr?Promise.resolve(tr):bqCall('trend',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),wh:normWH(r.wh),channel:(r.channel||'').trim(),exvat:pNum(r.exvat),sales_cs:pNum(r.sales_cs)})));
+    const fetchStores=st?Promise.resolve(st):bqCall('stores',{vendor:SELECTED_VENDOR,months:6}).then(d=>d.map(r=>({level:r.level||'',month_year:(r.month_year||'').replace(/-/g,'/').slice(0,7),cat_brand:r.cat_brand||'',cat_pack:r.cat_pack||'',product_name:r.product_name||'',channel:(r.channel||'').trim(),stores:pNum(r.stores)}))).catch(e=>{console.warn('[stores] fetch failed',e);return[];});
+    [bq,tr,st]=await Promise.all([fetchSales,fetchTrend,fetchStores]);
+    // Special-case: CP Food Store sends Sales_CS in kg → /1000 to convert to tonnes
+    if(_isCPVendor(SELECTED_VENDOR)){
+      bq=bq.map(r=>({...r,sales_cs:r.sales_cs/1000}));
+      tr=tr.map(r=>({...r,sales_cs:r.sales_cs/1000}));
+    }
+    cacheSet(ck,bq);cacheSet(ckT,tr);if(st&&st.length)cacheSet(ckS,st);
+    BQ_SALES_ROWS=bq;BQ_TREND_ROWS=tr;BQ_STORES_ROWS=st||[];
+    console.log('[Trend rows]',tr.length,'| Stores rows:',(st||[]).length);
+    renderAll();showToast('โหลดเรียบร้อย','success');
+  }
+  catch(e){showToast('โหลดไม่สำเร็จ: '+e.message,'error');}finally{hideSpinner();}
+}
+
+/* ══ RENDER ALL ══ */
+function renderAll(){if(!SELECTED_VENDOR)return;$('ovEmpty').style.display='none';$('ovContent').style.display='block';$('seEmpty').style.display='none';$('seContent').style.display='block';$('stEmpty').style.display='none';$('stContent').style.display='block';renderChannelChips();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();renderSellIn();renderStock();}
+function _chKey(s){return String(s||'').toLowerCase().trim();}
+function _chMatch(r){return SELECTED_CHANNEL==='ALL'||_chKey(r.channel)===_chKey(SELECTED_CHANNEL);}
+function _monthMatch(my){const{currentLabel}=getPeriodLabels();if(my===currentLabel)return true;return !SELECTED_MONTHS||SELECTED_MONTHS.has(my);}
+function getActiveHistoryMonths(){const{historyLabels}=getPeriodLabels();return !SELECTED_MONTHS?historyLabels:historyLabels.filter(l=>SELECTED_MONTHS.has(l));}
+function isCurrentMonthActive(){return true;}
+function activeMonthCount(){return Math.max(1,getActiveHistoryMonths().length);}
+// normKey('บจก.ซี.พี.ฟู้ดสโตร์') = 'บจกซีพีฟู้ดสโตร์'
+function _isCPVendor(v){if(!v)return false;const k=normKey(v);return k.includes('ฟู้ดสโตร์')||k.includes('cpfoodstore');}
+function vendorBpRows(){
+  if(!isCurrentMonthActive())return[];
+  const sk=normKey(SELECTED_VENDOR);
+  // 1) exact normalized match
+  let rows=BP_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk);
+  // 2) fallback: substring match (handles invisible chars, trailing garbage)
+  if(!rows.length){rows=BP_ALL_ROWS.filter(r=>{const rk=normKey(r.cat_vendor);return rk&&(sk.includes(rk)||rk.includes(sk));});}
+  if(!rows.length&&BP_ALL_ROWS.length){
+    const samples=[...new Set(BP_ALL_ROWS.map(r=>r.cat_vendor))].slice(0,8);
+    console.warn('[BP MATCH FAIL] selected="'+SELECTED_VENDOR+'" sk="'+sk+'"');
+    console.warn('[BP samples]',samples);console.warn('[BP sample normKeys]',samples.map(normKey));
+  }
+  rows=rows.filter(_chMatch);
+  // CP Food Store: divide sales_cs by 1000 (kg → tonne)
+  if(_isCPVendor(SELECTED_VENDOR))rows=rows.map(r=>({...r,sales_cs:r.sales_cs/1000}));
+  return rows;
+}
+function vendorBqSalesRows(){return BQ_SALES_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
+function vendorBqTrendRows(){return BQ_TREND_ROWS.filter(r=>_chMatch(r)&&_monthMatch(r.month_year));}
+function getAvailableChannels(){const map=new Map();const collect=r=>{if(!r.channel)return;const k=_chKey(r.channel);if(!map.has(k))map.set(k,String(r.channel).trim());};const sk=normKey(SELECTED_VENDOR);BQ_TREND_ROWS.forEach(collect);BP_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk).forEach(collect);return[...map.values()].sort((a,b)=>a.localeCompare(b));}
+function renderChannelChips(){const wrap=$('channelChips');if(!wrap)return;const chs=getAvailableChannels();if(!chs.length){wrap.style.display='none';return;}wrap.style.display='flex';const isAct=c=>_chKey(c)===_chKey(SELECTED_CHANNEL);wrap.innerHTML=`<span style="font-size:12px;color:var(--muted);align-self:center;margin-right:4px">Channel:</span><button class="chip ${SELECTED_CHANNEL==='ALL'?'active':''}" onclick="setChannel('ALL')">ทั้งหมด</button>`+chs.map(c=>`<button class="chip ${isAct(c)?'active':''}" onclick="setChannel('${escHtml(c).replace(/'/g,"\\'")}')">${escHtml(c)}</button>`).join('')+`<span style="margin-left:10px;color:var(--border)">|</span><div class="month-dd-wrap"><button class="chip" onclick="toggleMonthFilter(event)">📅 <span id="monthFilterLabel">เดือน: ทั้งหมด</span> ▾</button><div class="month-filter-panel" id="monthFilterPanel"><div id="monthFilterList"></div><div style="display:flex;gap:4px;padding:6px 4px 2px;border-top:1px solid var(--border);margin-top:4px"><button class="btn btn-outline btn-sm" onclick="monthFilterAll(event)" style="flex:1;font-size:11px;padding:4px 8px">ทั้งหมด</button><button class="btn btn-outline btn-sm" onclick="monthFilterNone(event)" style="flex:1;font-size:11px;padding:4px 8px">ล้าง</button></div></div></div>`;renderMonthFilterLabel();}
+function setChannel(c){SELECTED_CHANNEL=c;renderAll();}
+function renderMonthFilterLabel(){const{historyLabels,currentLabel}=getPeriodLabels();const total=historyLabels.length+1;const count=SELECTED_MONTHS?SELECTED_MONTHS.size:total;const lbl=$('monthFilterLabel');if(!lbl)return;if(count===total)lbl.textContent='เดือน: ทั้งหมด (6+ปัจจุบัน)';else if(SELECTED_MONTHS&&SELECTED_MONTHS.size===1)lbl.textContent='เดือน: เฉพาะปัจจุบัน';else lbl.textContent=`เดือน: ${count}/${total}`;}
+function renderMonthFilterList(){const{historyLabels,currentLabel}=getPeriodLabels();const all=[...historyLabels,currentLabel];const sel=SELECTED_MONTHS||new Set(all);const list=$('monthFilterList');if(!list)return;list.innerHTML=all.map(l=>{const isCur=l===currentLabel;const checked=isCur||sel.has(l)?'checked':'';const disabled=isCur?'disabled':'';const disp=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<label ${isCur?'style="opacity:.85;cursor:default;background:rgba(201,168,76,.06)" title="เดือนปัจจุบันต้องแสดงเสมอ"':''}><input type="checkbox" ${checked} ${disabled} onchange="toggleMonth('${l}')"/>${disp}${isCur?' <span style="color:var(--gold);font-size:11px;margin-left:auto;font-weight:600">★ ปัจจุบัน</span>':''}</label>`;}).join('');}
+function toggleMonthFilter(ev){ev&&ev.stopPropagation();const p=$('monthFilterPanel');if(!p)return;const open=p.classList.toggle('open');if(open)renderMonthFilterList();}
+function toggleMonth(m){const{historyLabels,currentLabel}=getPeriodLabels();if(m===currentLabel)return;const all=[...historyLabels,currentLabel];if(!SELECTED_MONTHS)SELECTED_MONTHS=new Set(all);if(SELECTED_MONTHS.has(m))SELECTED_MONTHS.delete(m);else SELECTED_MONTHS.add(m);if(SELECTED_MONTHS.size===all.length)SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();}
+function monthFilterAll(ev){ev&&ev.stopPropagation();SELECTED_MONTHS=null;renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();}
+function monthFilterNone(ev){ev&&ev.stopPropagation();const{currentLabel}=getPeriodLabels();SELECTED_MONTHS=new Set([currentLabel]);renderMonthFilterList();renderMonthFilterLabel();renderStats();renderLineChart();renderDrill();renderStores();}
+
+/* ══ STATS with Working Days ══ */
+function renderStats(){
+  const bq=vendorBqSalesRows(),bp=vendorBpRows();
+  const bqCS=bq.reduce((s,r)=>s+r.sales_cs,0),bqEX=bq.reduce((s,r)=>s+r.exvat,0);
+  const bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
+  const _mn=activeMonthCount();const avgCS=bqCS/_mn,avgEX=bqEX/_mn;
+  const wd=getWDStats();
+  // Pro-rata expected = avg * (elapsed WD / total WD)
+  const expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
+  const csRatio=expCS>0?(bpCS/expCS*100):0;
+  const exRatio=expEX>0?(bpEX/expEX*100):0;
+  const{historyLabels,currentLabel}=getPeriodLabels();
+  $('periodLbl').textContent=`${historyLabels[0]} → ${currentLabel}`;
+  const cc=(r)=>r>=100?'cmp-up':(r<80?'cmp-down':'cmp-neutral');
+  const cs=(r)=>r>=100?'▲':'▼';
+  $('statGrid').innerHTML=`
+    <div class="stat-card info"><div class="s-label">AVG 6 เดือน — Sales CS</div><div class="s-value">${fmtInt(avgCS)}</div><div class="s-sub">รวม 6 เดือน ${fmtInt(bqCS)} CS</div></div>
+    <div class="stat-card info"><div class="s-label">AVG 6 เดือน — EXVat</div><div class="s-value">${fmtInt(avgEX)} ฿</div><div class="s-sub">รวม 6 เดือน ${fmtInt(bqEX)} ฿</div></div>
+    <div class="stat-card ${csRatio>=100?'success':(csRatio<80?'danger':'warning')}">
+      <div class="s-label">BP เดือนนี้ — Sales CS</div>
+      <div class="s-value">${fmtInt(bpCS)} <span class="cmp-arr ${cc(csRatio)}">${cs(csRatio)} ${csRatio.toFixed(0)}%</span></div>
+      <div class="s-sub">วันทำงาน ${wd.elapsed}/${wd.total} วัน · เป้า ${fmtInt(expCS)} CS</div>
+    </div>
+    <div class="stat-card ${exRatio>=100?'success':(exRatio<80?'danger':'warning')}">
+      <div class="s-label">BP เดือนนี้ — EXVat</div>
+      <div class="s-value">${fmtInt(bpEX)} ฿ <span class="cmp-arr ${cc(exRatio)}">${cs(exRatio)} ${exRatio.toFixed(0)}%</span></div>
+      <div class="s-sub">เทียบเป้า Pro-rata (จ-ส) ${fmtInt(expEX)} ฿</div>
+    </div>
+  `;
+}
+
+/* ══ LINE CHART SVG ══ */
+function renderLineChart(){
+  const{currentLabel}=getPeriodLabels();
+  const historyLabels=getActiveHistoryMonths();
+  const showCur=isCurrentMonthActive();
+  const WHs=['W1','W2','W3','W4'];
+  const WHColors={W1:'#C9A84C',W2:'#3498DB',W3:'#E74C3C',W4:'#27AE60'};
+
+  // BQ history: EXVat per WH per month (from dedicated trend endpoint)
+  const byMonthWH={};
+  historyLabels.forEach(l=>{byMonthWH[l]={};WHs.forEach(w=>byMonthWH[l][w]=0);});
+  vendorBqTrendRows().forEach(r=>{
+    if(byMonthWH[r.month_year]&&WHs.includes(r.wh))byMonthWH[r.month_year][r.wh]+=r.exvat;
+  });
+
+  // BP current month: EXVat per WS
+  const bp=vendorBpRows();
+  const curWH={};WHs.forEach(w=>curWH[w]=0);
+  bp.forEach(r=>{const ws=(r.ws||'').toUpperCase().trim();if(WHs.includes(ws))curWH[ws]+=r.exvat;});
+
+  const allM=showCur?[...historyLabels,currentLabel]:[...historyLabels];
+  if(allM.length===0){$('lineChartWrap').innerHTML='<div style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px">เลือกอย่างน้อย 1 เดือนจาก dropdown 📅</div>';const lg=document.getElementById('whLegend');if(lg)lg.innerHTML='';return;}
+  const n=Math.max(2,allM.length);
+  const series=WHs.map(wh=>({wh,color:WHColors[wh],data:showCur?[...historyLabels.map(l=>byMonthWH[l]?.[wh]||0),curWH[wh]]:historyLabels.map(l=>byMonthWH[l]?.[wh]||0)}));
+  const maxVal=Math.max(1,...series.flatMap(s=>s.data));
+
+  const W=700,H=220,PL=65,PR=20,PT=20,PB=45;
+  const cW=W-PL-PR,cH=H-PT-PB;
+  const xp=i=>PL+(i/(n-1))*cW;
+  const yv=v=>PT+cH-(v/maxVal)*cH;
+
+  const grids=[0,0.25,0.5,0.75,1].map(r=>{const y=(PT+cH-r*cH).toFixed(1);return`<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;}).join('');
+  const fmtAx=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'k':fmtInt(v);
+  const ylabels=[0,0.5,1].map(r=>`<text x="${PL-6}" y="${(PT+cH-r*cH+4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${fmtAx(maxVal*r)}</text>`).join('');
+  const xLabels=allM.map((m,i)=>{
+    const x=xp(i).toFixed(1),isCur=showCur&&i===allM.length-1;
+    const label=m.split('/')[1]+'/'+m.split('/')[0].substring(2);
+    return`<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10" fill="${isCur?'var(--gold)':'var(--muted)'}" font-weight="${isCur?'700':'400'}">${label}${isCur?' ★':''}</text>${isCur?`<line x1="${x}" y1="${PT}" x2="${x}" y2="${PT+cH}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`:''}`;
+  }).join('');
+
+  const paths=series.map(s=>{
+    const d=s.data.map((v,i)=>`${i===0?'M':'L'}${xp(i).toFixed(1)},${yv(v).toFixed(1)}`).join(' ');
+    const dots=s.data.map((v,i)=>`<circle cx="${xp(i).toFixed(1)}" cy="${yv(v).toFixed(1)}" r="${showCur&&i===s.data.length-1?5:3.5}" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`).join('');
+    return`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}`;
+  }).join('');
+  // Value labels above each dot (skip zeros), with white halo so they read on top of any line/grid
+  const labels=series.map(s=>s.data.map((v,i)=>{
+    if(!v||v<=0)return'';
+    const x=xp(i).toFixed(1),y=(yv(v)-9).toFixed(1);
+    const txt=fmtAx(v);
+    return`<text x="${x}" y="${y}" text-anchor="middle" font-size="10" font-weight="700" fill="${s.color}" stroke="#fff" stroke-width="3" paint-order="stroke" stroke-linejoin="round">${txt}</text>`;
+  }).join('')).join('');
+
+  $('lineChartWrap').innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+      ${grids}${ylabels}
+      <text x="${PL-6}" y="${PT-6}" text-anchor="end" font-size="9" fill="var(--muted)" font-weight="600">฿</text>
+      ${xLabels}${paths}${labels}
+    </svg>
+  `;
+  const leg=document.getElementById('whLegend');
+  if(leg)leg.innerHTML=WHs.map(wh=>`<span><span style="display:inline-block;vertical-align:middle;margin-right:6px;width:28px;height:3px;border-radius:2px;background:${WHColors[wh]}"></span>${wh}</span>`).join('');
+}
+
+/* ══ DRILL DOWN ══ */
+const PAGE_SIZE = 20;
+let DRILL_PAGE = 0;
+let EXPANDED = {}; // accordion: {brandName:bool, 'brand::pack':bool}
+
+function toggleMonthCols(){
+  MONTHS_EXPANDED=!MONTHS_EXPANDED;
+  $('drillTbl').classList.toggle('expanded',MONTHS_EXPANDED);
+  $('toggleMonths').textContent=MONTHS_EXPANDED?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';
+}
+
+/* ── helpers ── */
+function _buildAgg(bqRows,bpRows,key){
+  const agg={};
+  bqRows.forEach(r=>{const k=r[key]||'(ไม่ระบุ)';if(!agg[k])agg[k]={name:k,months:{},bqCS:0,bqEX:0,bpCS:0,bpEX:0};if(!agg[k].months[r.month_year])agg[k].months[r.month_year]={cs:0,ex:0};agg[k].months[r.month_year].cs+=r.sales_cs;agg[k].months[r.month_year].ex+=r.exvat;agg[k].bqCS+=r.sales_cs;agg[k].bqEX+=r.exvat;});
+  bpRows.forEach(r=>{const k=r[key]||'(ไม่ระบุ)';if(!agg[k])agg[k]={name:k,months:{},bqCS:0,bqEX:0,bpCS:0,bpEX:0};agg[k].bpCS+=r.sales_cs;agg[k].bpEX+=r.exvat;});
+  return Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
+}
+function _drillTr(r,hl,wd,expandKey,canExpand,indent){
+  const _mn=activeMonthCount();const avgCS=r.bqCS/_mn,avgEX=r.bqEX/_mn,expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
+  const rCS=expCS>0?(r.bpCS/expCS*100):0,rEX=expEX>0?(r.bpEX/expEX*100):0;
+  const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
+  const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
+  const mcCS=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
+  const mcEX=hl.map(l=>`<td class="num month-col month-ex">${fmtInt(r.months[l]?.ex||0)}</td>`).join('');
+  const isExp=canExpand&&!!EXPANDED[expandKey];
+  const pd=indent*20;
+  let nc;
+  if(canExpand){const sk=escHtml(expandKey).replace(/'/g,"\\'");nc=`<td style="padding-left:${pd+10}px"><span onclick="toggleExpand('${sk}',event)" style="cursor:pointer;display:inline-block;margin-right:6px;transition:transform .15s;transform:rotate(${isExp?90:0}deg);color:var(--gold);font-size:10px">▶</span><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  else{nc=`<td style="padding-left:${pd+32}px"><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  const bg=indent===1?'style="background:rgba(52,152,219,.04)"':indent===2?'style="background:rgba(201,168,76,.04)"':'';
+  return`<tr ${bg}>${nc}${mcCS}<td class="num">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td>${mcEX}<td class="num">${fmtInt(avgEX)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
+}
+function _drillFoot(tot,totM,hl,wd,count){
+  const _mn=activeMonthCount();const aCS=tot.bqCS/_mn,aEX=tot.bqEX/_mn,eCS=aCS*wd.rate,eEX=aEX*wd.rate;
+  const rCS=eCS>0?(tot.bpCS/eCS*100):0,rEX=eEX>0?(tot.bpEX/eEX*100):0;
+  const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
+  const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
+  const mcCS=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]?.cs||0)}</td>`).join('');
+  const mcEX=hl.map(l=>`<td class="num month-col month-ex">${fmtInt(totM[l]?.ex||0)}</td>`).join('');
+  $('drillTfoot').innerHTML=`<tr><td>รวมทั้งหมด (${count})</td>${mcCS}<td class="num">${fmtInt(aCS)}</td><td class="num">${fmtInt(tot.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td>${mcEX}<td class="num">${fmtInt(aEX)}</td><td class="num">${fmtInt(tot.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
+}
+
+function renderDrill(){
+  const hl=getActiveHistoryMonths();
+  const bp=vendorBpRows(),bq=vendorBqSalesRows();
+  const wd=getWDStats();
+  const isFlat=DRILL.level==='all_products';
+
+  // Breadcrumb
+  let crumb=`<span class="crumb ${!isFlat?'current':''}" onclick="setDrill('brand',null,null)">📦 ทุก Brand</span>`;
+  if(isFlat)crumb+=`<span class="sep">›</span><span class="crumb current">📋 ทุกรายสินค้า</span>`;
+  $('breadcrumb').innerHTML=crumb;
+  $('resetDrill').style.display=isFlat?'':'none';
+  $('resetDrill').onclick=()=>setDrill('brand',null,null);
+  $('drillTbl').classList.toggle('expanded',MONTHS_EXPANDED);
+  $('toggleMonths').textContent=MONTHS_EXPANDED?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';
+
+  const monColsCS=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l} CS">${ms}<br>CS</th>`;}).join('');
+  const monColsEX=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon month-ex" title="${l} EXVat">${ms}<br>EXVat</th>`;}).join('');
+  $('drillThead').innerHTML=`<th>${isFlat?'สินค้า':'Cat Brand / Pack / สินค้า'}</th>${monColsCS}<th class="num th-avg">AVG<br>CS</th><th class="num th-cur">เดือนนี้<br>CS</th><th class="num">CS%</th>${monColsEX}<th class="num th-avg">AVG<br>EXVat</th><th class="num th-cur">เดือนนี้<br>EXVat ฿</th><th class="num">EXVat%</th>`;
+
+  if(isFlat){
+    // Flat paginated all-products list
+    const all=_buildAgg(bq,bp,'product_name');
+    const tp=Math.max(1,Math.ceil(all.length/PAGE_SIZE));
+    if(DRILL_PAGE>=tp)DRILL_PAGE=tp-1;
+    const rows=all.slice(DRILL_PAGE*PAGE_SIZE,(DRILL_PAGE+1)*PAGE_SIZE);
+    if(!rows.length){$('drillTbody').innerHTML=`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;$('drillTfoot').innerHTML='';renderDrillPager(0,0,0);return;}
+    $('drillTbody').innerHTML=rows.map(r=>_drillTr(r,hl,wd,'',false,0)).join('');
+    const tot={bqCS:0,bqEX:0,bpCS:0,bpEX:0};const totM={};hl.forEach(l=>totM[l]={cs:0,ex:0});
+    all.forEach(r=>{tot.bqCS+=r.bqCS;tot.bqEX+=r.bqEX;tot.bpCS+=r.bpCS;tot.bpEX+=r.bpEX;hl.forEach(l=>{totM[l].cs+=r.months[l]?.cs||0;totM[l].ex+=r.months[l]?.ex||0;});});
+    _drillFoot(tot,totM,hl,wd,all.length);
+    renderDrillPager(DRILL_PAGE,tp,all.length);
+    return;
+  }
+
+  // ── Accordion brand view ──
+  const brands=_buildAgg(bq,bp,'cat_brand');
+  let html='';
+  let tBqCS=0,tBqEX=0,tBpCS=0,tBpEX=0;
+  const totM={};hl.forEach(l=>totM[l]={cs:0,ex:0});
+
+  for(const brand of brands){
+    tBqCS+=brand.bqCS;tBqEX+=brand.bqEX;tBpCS+=brand.bpCS;tBpEX+=brand.bpEX;
+    hl.forEach(l=>{totM[l].cs+=brand.months[l]?.cs||0;totM[l].ex+=brand.months[l]?.ex||0;});
+    html+=_drillTr(brand,hl,wd,brand.name,true,0);
+    if(EXPANDED[brand.name]){
+      const packs=_buildAgg(bq.filter(r=>r.cat_brand===brand.name),bp.filter(r=>r.cat_brand===brand.name),'cat_pack');
+      for(const pack of packs){
+        const pk=brand.name+'::'+pack.name;
+        html+=_drillTr(pack,hl,wd,pk,true,1);
+        if(EXPANDED[pk]){
+          const prods=_buildAgg(bq.filter(r=>r.cat_brand===brand.name&&r.cat_pack===pack.name),bp.filter(r=>r.cat_brand===brand.name&&r.cat_pack===pack.name),'product_name');
+          for(const prod of prods)html+=_drillTr(prod,hl,wd,'',false,2);
+        }
+      }
+    }
+  }
+  $('drillTbody').innerHTML=html||`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;
+  _drillFoot({bqCS:tBqCS,bqEX:tBqEX,bpCS:tBpCS,bpEX:tBpEX},totM,hl,wd,brands.length);
+  let pe=$('drillPager');if(pe)pe.innerHTML='';
+}
+
+function renderDrillPager(page,totalPages,total){
+  const start=page*PAGE_SIZE+1,end=Math.min((page+1)*PAGE_SIZE,total);
+  let html='';
+  if(totalPages>1){html=`<div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:10px 0;flex-wrap:wrap;font-size:13px"><button class="btn btn-outline btn-sm" onclick="drillPage(${page-1})" ${page===0?'disabled':''}>◀ ก่อนหน้า</button><span style="color:var(--muted)">${start}–${end} จาก ${total} รายการ &nbsp;|&nbsp; หน้า ${page+1}/${totalPages}</span><button class="btn btn-outline btn-sm" onclick="drillPage(${page+1})" ${page>=totalPages-1?'disabled':''}>ถัดไป ▶</button></div>`;}
+  let pe=$('drillPager');
+  if(!pe){pe=document.createElement('div');pe.id='drillPager';$('drillTbl').parentNode.appendChild(pe);}
+  pe.innerHTML=html;
+}
+
+function toggleExpand(key,ev){ev&&ev.stopPropagation();EXPANDED[key]=!EXPANDED[key];renderDrill();renderStores();}
+function drillPage(p){DRILL_PAGE=p;renderDrill();}
+function setDrill(level,brand,pack){DRILL={level,brand,pack};DRILL_PAGE=0;renderDrill();renderStores();}
+
+/* ══ STORES DISTRIBUTION ══ */
+let STORES_EXPANDED_MONTHS=false;
+function toggleStoresMonthCols(){STORES_EXPANDED_MONTHS=!STORES_EXPANDED_MONTHS;const t=$('storesTbl');if(t)t.classList.toggle('expanded',STORES_EXPANDED_MONTHS);const b=$('toggleStoresMonths');if(b)b.textContent=STORES_EXPANDED_MONTHS?'🔒 ซ่อนเดือน':'📅 แสดง 6 เดือน';}
+// BQ stores rows: {level: 'brand'|'pack'|'product', month_year, cat_brand, cat_pack, product_name, channel, stores}
+// Channel filter: BQ has rows with channel='' (ALL) and channel=X (per channel). We use channel=='' when SELECTED_CHANNEL=ALL else match exact.
+function _storesRowMatchCh(r){
+  if(SELECTED_CHANNEL==='ALL')return !r.channel; // empty channel = total
+  return _chKey(r.channel)===_chKey(SELECTED_CHANNEL);
+}
+function _storesBqMap(level){
+  // returns: name → month → stores  (name = brand or pack or product)
+  const out={};
+  BQ_STORES_ROWS.forEach(r=>{
+    if(r.level!==level)return;
+    if(!_storesRowMatchCh(r))return;
+    if(!_monthMatch(r.month_year))return;
+    let key;
+    if(level==='brand')key=r.cat_brand||'(ไม่ระบุ)';
+    else if(level==='pack')key=(r.cat_brand||'(ไม่ระบุ)')+'::'+(r.cat_pack||'(ไม่ระบุ)');
+    else key=(r.cat_brand||'(ไม่ระบุ)')+'::'+(r.cat_pack||'(ไม่ระบุ)')+'::'+(r.product_name||'(ไม่ระบุ)');
+    if(!out[key])out[key]={months:{},total:0};
+    out[key].months[r.month_year]=(out[key].months[r.month_year]||0)+r.stores;
+    out[key].total+=r.stores;
+  });
+  return out;
+}
+function _bpUniqStores(rows,filterFn){
+  // group filtered BP rows → unique customer_code count
+  const set=new Set();
+  rows.forEach(r=>{if(filterFn(r)&&r.customer_code)set.add(r.customer_code);});
+  return set.size;
+}
+function _storesAgg(level,parentBrand,parentPack){
+  // build agg list at given level filtered by parent (when expanding)
+  const bqMap=_storesBqMap(level);
+  const bp=vendorBpRows();
+  const out=[];
+  const hl=getActiveHistoryMonths();
+  // Iterate BQ keys + BP-only entries
+  const keys=new Set(Object.keys(bqMap));
+  // Add BP-only keys
+  bp.forEach(r=>{
+    let key;
+    const b=r.cat_brand||'(ไม่ระบุ)',p=r.cat_pack||'(ไม่ระบุ)',n=r.product_name||'(ไม่ระบุ)';
+    if(level==='brand')key=b;
+    else if(level==='pack'){if(parentBrand&&b!==parentBrand)return;key=b+'::'+p;}
+    else{if(parentBrand&&b!==parentBrand)return;if(parentPack&&p!==parentPack)return;key=b+'::'+p+'::'+n;}
+    keys.add(key);
+  });
+  keys.forEach(key=>{
+    // Parse key
+    const parts=key.split('::');
+    let displayName,filterFn;
+    if(level==='brand'){displayName=parts[0];filterFn=r=>(r.cat_brand||'(ไม่ระบุ)')===parts[0];}
+    else if(level==='pack'){displayName=parts[1];if(parentBrand&&parts[0]!==parentBrand)return;filterFn=r=>(r.cat_brand||'(ไม่ระบุ)')===parts[0]&&(r.cat_pack||'(ไม่ระบุ)')===parts[1];}
+    else{displayName=parts[2];if(parentBrand&&parts[0]!==parentBrand)return;if(parentPack&&parts[1]!==parentPack)return;filterFn=r=>(r.cat_brand||'(ไม่ระบุ)')===parts[0]&&(r.cat_pack||'(ไม่ระบุ)')===parts[1]&&(r.product_name||'(ไม่ระบุ)')===parts[2];}
+    const months={};
+    hl.forEach(l=>{months[l]=bqMap[key]?.months[l]||0;});
+    const bqTotal=hl.reduce((s,l)=>s+(months[l]||0),0);
+    const bpStores=_bpUniqStores(bp,filterFn);
+    out.push({key,name:displayName,brand:parts[0],pack:parts[1]||'',product:parts[2]||'',months,bqTotal,bpStores});
+  });
+  return out.sort((a,b)=>b.bqTotal-a.bqTotal);
+}
+function _storesTr(r,hl,expandKey,canExpand,indent){
+  const _mn=activeMonthCount();
+  const avg=r.bqTotal/_mn;
+  const expAvg=avg; // for stores, pro-rata doesn't really apply — just compare current to AVG
+  const ratio=expAvg>0?(r.bpStores/expAvg*100):0;
+  const cls=ratio>=100?'cmp-up':(ratio<80?'cmp-down':'cmp-neutral');
+  const mc=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]||0)}</td>`).join('');
+  const isExp=canExpand&&!!EXPANDED['ST::'+expandKey];
+  const pd=indent*20;
+  let nc;
+  if(canExpand){const sk=escHtml('ST::'+expandKey).replace(/'/g,"\\'");nc=`<td style="padding-left:${pd+10}px"><span onclick="toggleExpand('${sk}',event)" style="cursor:pointer;display:inline-block;margin-right:6px;transition:transform .15s;transform:rotate(${isExp?90:0}deg);color:var(--gold);font-size:10px">▶</span><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  else{nc=`<td style="padding-left:${pd+32}px"><span class="prod-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span></td>`;}
+  const bg=indent===1?'style="background:rgba(52,152,219,.04)"':indent===2?'style="background:rgba(201,168,76,.04)"':'';
+  return`<tr ${bg}>${nc}${mc}<td class="num">${fmtInt(avg)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpStores)}</td><td class="num"><span class="cmp-arr ${cls}">${ratio.toFixed(0)}%</span></td></tr>`;
+}
+function renderStores(){
+  if(!SELECTED_VENDOR)return;
+  const wrap=$('storesContent');if(!wrap)return;
+  const hl=getActiveHistoryMonths();
+  const monCols=hl.map(l=>{const ms=l.split('/')[1]+'/'+l.split('/')[0].substring(2);return`<th class="num month-col th-mon" title="${l}">${ms}<br>ร้าน</th>`;}).join('');
+  const thead=`<th>Cat Brand / Pack / สินค้า</th>${monCols}<th class="num th-avg">AVG<br>ร้าน</th><th class="num th-cur">เดือนนี้<br>ร้าน</th><th class="num">%</th>`;
+  const th=$('storesThead');if(th)th.innerHTML=thead;
+  // Build accordion
+  const brands=_storesAgg('brand');
+  let html='';
+  let tBq=0,tBp=0;const totM={};hl.forEach(l=>totM[l]=0);
+  // For grand-total BP we need unique customer codes across the WHOLE vendor (regardless of which brand)
+  const bpAll=vendorBpRows();
+  const grandBp=new Set();bpAll.forEach(r=>{if(r.customer_code)grandBp.add(r.customer_code);});
+  // grandBq per month — use brand-level rows summed (note: cross-brand customer may double-count; this is an approximation)
+  brands.forEach(brand=>{
+    tBq+=brand.bqTotal;
+    hl.forEach(l=>{totM[l]+=brand.months[l]||0;});
+    html+=_storesTr(brand,hl,brand.key,true,0);
+    if(EXPANDED['ST::'+brand.key]){
+      const packs=_storesAgg('pack',brand.brand);
+      for(const pack of packs){
+        html+=_storesTr(pack,hl,pack.key,true,1);
+        if(EXPANDED['ST::'+pack.key]){
+          const prods=_storesAgg('product',pack.brand,pack.pack);
+          for(const prod of prods)html+=_storesTr(prod,hl,prod.key,false,2);
+        }
+      }
+    }
+  });
+  const tb=$('storesTbody');if(tb)tb.innerHTML=html||`<tr class="empty-row"><td colspan="20">ไม่พบข้อมูล</td></tr>`;
+  // Footer: vendor-wide unique count per month (from BQ level='vendor') — fallback to brand-sum if not available
+  const vendorM={};
+  BQ_STORES_ROWS.forEach(r=>{
+    if(r.level!=='vendor')return;
+    if(!_storesRowMatchCh(r))return;
+    if(!_monthMatch(r.month_year))return;
+    vendorM[r.month_year]=r.stores; // single row per (month, channel-mode)
+  });
+  const useVendor=Object.keys(vendorM).length>0;
+  const finalTotM=useVendor?vendorM:totM;
+  const finalTBq=useVendor?hl.reduce((s,l)=>s+(vendorM[l]||0),0):tBq;
+  const _mn=activeMonthCount();
+  const grandAvg=finalTBq/_mn;
+  const grandRatio=grandAvg>0?(grandBp.size/grandAvg*100):0;
+  const cls=grandRatio>=100?'cmp-up':(grandRatio<80?'cmp-down':'cmp-neutral');
+  const mcFoot=hl.map(l=>`<td class="num month-col">${fmtInt(finalTotM[l]||0)}</td>`).join('');
+  const tf=$('storesTfoot');if(tf)tf.innerHTML=`<tr><td>รวมทั้งหมด (${brands.length})</td>${mcFoot}<td class="num">${fmtInt(grandAvg)}</td><td class="num">${fmtInt(grandBp.size)}</td><td class="num"><span class="cmp-arr ${cls}">${grandRatio.toFixed(0)}%</span></td></tr>`;
+  // Sync expanded class
+  const t=$('storesTbl');if(t)t.classList.toggle('expanded',STORES_EXPANDED_MONTHS);
+}
+
+/* ══ SELL-IN ══ */
+function renderSellIn(){
+  const sel=SELECTED_VENDOR;
+  const selK=normKey(sel);
+  let row=SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===selK)||SELLIN_ALL_ROWS.find(r=>selK.includes(normKey(r.vendor))||normKey(r.vendor).includes(selK));
+  if(!row){$('seContent').innerHTML=`<div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>ยอดซื้อเข้าเดือนนี้ (Sell-In)</h3></div><div class="card-body"><div class="empty-state" style="padding:30px 20px"><div class="icon">🔍</div><div class="ttl">ไม่พบข้อมูลซื้อเข้าของ vendor นี้</div></div></div></div>`;return;}
+  const bp=vendorBpRows(),bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
+  const sb=row.cs-bpCS,mb=row.baht-bpEX;
+  $('seContent').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card info"><div class="s-label">ซื้อเข้า — CS</div><div class="s-value">${fmtInt(row.cs)}</div></div>
+      <div class="stat-card info"><div class="s-label">ซื้อเข้า — บาท</div><div class="s-value">${fmtInt(row.baht)} ฿</div></div>
+      <div class="stat-card ${sb>=0?'success':'danger'}"><div class="s-label">ซื้อเข้า − ขายออก (CS)</div><div class="s-value">${fmtInt(sb)}</div><div class="s-sub">${sb>=0?'ซื้อมากกว่าขาย':'ขายมากกว่าซื้อ'}</div></div>
+      <div class="stat-card ${mb>=0?'success':'danger'}"><div class="s-label">ซื้อเข้า − ขายออก (฿)</div><div class="s-value">${fmtInt(mb)} ฿</div></div>
+    </div>
+    <div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>สรุปการเคลื่อนไหว — ${escHtml(sel)}</h3><span class="badge badge-gold">เดือนนี้</span></div><div class="card-body"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>รายการ</th><th class="num">CS</th><th class="num">บาท (EXVat)</th></tr></thead><tbody><tr><td>📥 ซื้อเข้า</td><td class="num" style="color:var(--info);font-weight:700">${fmtInt(row.cs)}</td><td class="num" style="color:var(--info);font-weight:700">${fmtInt(row.baht)}</td></tr><tr><td>📤 ขายออก (BP)</td><td class="num">${fmtInt(bpCS)}</td><td class="num">${fmtInt(bpEX)}</td></tr></tbody><tfoot><tr><td>💰 คงเหลือสุทธิ</td><td class="num" style="color:${sb>=0?'var(--success)':'var(--danger)'}">${fmtInt(sb)}</td><td class="num" style="color:${mb>=0?'var(--success)':'var(--danger)'}">${fmtInt(mb)}</td></tr></tfoot></table></div></div></div>
+  `;
+}
+
+/* ══ STOCK — improved matching + manual pick + pagination ══ */
+let STOCK_EXTRA_EXPANDED = false;
+let STOCK_VENDOR_OVERRIDE = {};
+let STOCK_PAGE = 1;
+const STOCK_PAGE_SIZE = 20;
+let _stockSortedRows = [];
+
+function renderStock(){
+  const sel=SELECTED_VENDOR;
+  let rows=matchStock(sel);
+  const usedOverride=!!STOCK_VENDOR_OVERRIDE[sel];
+
+  if(!rows.length){
+    const allVendors=getUniqueStockVendors();
+    const vendorChips=allVendors.map(v=>`
+      <div style="display:inline-flex;align-items:center;gap:6px;background:var(--row-alt);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;margin:4px;cursor:pointer;font-size:12px"
+           onclick="pickStockVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')">
+        <span style="color:var(--text)">${escHtml(v.vendor)}</span>
+        <span style="color:var(--muted);font-size:10px">${v.count} รายการ</span>
+      </div>
+    `).join('');
+    $('stContent').innerHTML=`
+      <div class="card card-gold">
+        <div class="card-head">
+          <h3><span class="gold-bar"></span>ไม่พบชื่อ Vendor ตรงกัน</h3>
+          <span class="badge badge-warn">เลือกชื่อจากรายการด้านล่าง</span>
+        </div>
+        <div class="card-body">
+          <div style="background:rgba(201,168,76,.07);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:13px">
+            <b style="color:var(--danger)">ชื่อใน BQ:</b>
+            <span style="margin-left:8px;font-family:monospace;background:var(--border);padding:2px 8px;border-radius:4px">${escHtml(sel)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600">CAT VENDOR ในชีท Stock — คลิกเพื่อเลือก:</div>
+          <div style="max-height:400px;overflow-y:auto">${vendorChips}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  rows.sort((a,b)=>b.main_total-a.main_total);
+  _stockSortedRows=rows;
+  STOCK_PAGE=1;
+
+  const mainLabels=rows[0]?.main_stock.map(s=>s.label)||[];
+  const extraLabels=rows[0]?.extra_stock.map(s=>s.label)||[];
+  const mainTotals=mainLabels.map((_,i)=>rows.reduce((s,r)=>s+(r.main_stock[i]?.val||0),0));
+  const extraTotals=extraLabels.map((_,i)=>rows.reduce((s,r)=>s+(r.extra_stock[i]?.val||0),0));
+  const grandTotal=rows.reduce((s,r)=>s+r.main_total,0);
+  const matchedName=STOCK_VENDOR_OVERRIDE[sel]||rows[0]?.cat_vendor||sel;
+  const totalPages=Math.ceil(rows.length/STOCK_PAGE_SIZE);
+
+  const statCards=mainLabels.map((lbl,i)=>`
+    <div class="stat-card"><div class="s-label">${escHtml(lbl)}</div><div class="s-value">${fmt(mainTotals[i])}</div></div>
+  `).join('');
+  const mainTh=mainLabels.map(l=>`<th class="num">${escHtml(l)}</th>`).join('');
+  const extraTh=extraLabels.map(l=>`<th class="num month-col">${escHtml(l)}</th>`).join('');
+  const mainFootCells=mainTotals.map(t=>`<td class="num">${fmt(t)}</td>`).join('');
+  const extraFootCells=extraTotals.map(t=>`<td class="num month-col">${fmt(t)}</td>`).join('');
+
+  $('stContent').innerHTML=`
+    ${usedOverride?`<div style="background:rgba(52,152,219,.08);border:1px solid rgba(52,152,219,.3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span>🔗 Map: <b>${escHtml(sel)}</b> → <b>${escHtml(matchedName)}</b></span>
+      <button class="btn btn-outline btn-sm" onclick="delete STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}'];renderStock()">✕ ล้าง</button>
+    </div>`:''}
+    <div class="stat-grid">${statCards}</div>
+    <div class="card card-gold">
+      <div class="card-head">
+        <h3><span class="gold-bar"></span>สต๊อกราย Product — ${escHtml(matchedName)}</h3>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-gold">${rows.length} รายการ</span>
+          <button class="btn btn-outline btn-sm" id="btnStockExtra" onclick="toggleStockExtra()">${STOCK_EXTRA_EXPANDED?'🔒 ซ่อนคอลัมน์':'📊 แสดงทั้งหมด'}</button>
+          <button class="btn btn-outline btn-sm" onclick="STOCK_VENDOR_OVERRIDE['${escHtml(sel).replace(/'/g,"\\'")}']='';renderStock()">🔄 เปลี่ยน vendor</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table class="tbl ${STOCK_EXTRA_EXPANDED?'expanded':''}" id="stockTbl">
+            <thead><tr>
+              <th>สินค้า</th>
+              ${mainTh}
+              ${extraTh}
+              <th class="num">รวม</th>
+            </tr></thead>
+            <tbody id="stockTbody">${_buildStockTbody(rows.slice(0,STOCK_PAGE_SIZE))}</tbody>
+            <tfoot><tr>
+              <td>รวม (${rows.length})</td>
+              ${mainFootCells}
+              ${extraFootCells}
+              <td class="num">${fmt(grandTotal)}</td>
+            </tr></tfoot>
+          </table>
+        </div>
+        <div id="stockPagWrap">${_buildStockPag(rows.length,totalPages)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function _buildStockTbody(pageRows){
+  return pageRows.map(r=>{
+    const mainCells=r.main_stock.map(s=>`<td class="num">${fmt(s.val)}</td>`).join('');
+    const extraCells=r.extra_stock.map(s=>`<td class="num month-col">${fmt(s.val)}</td>`).join('');
+    return`<tr>
+      <td><span class="prod-name" title="${escHtml(r.product_name)}">${escHtml(r.product_name)}</span></td>
+      ${mainCells}
+      ${extraCells}
+      <td class="num" style="color:var(--gold);font-weight:700">${fmt(r.main_total)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function _buildStockPag(total,totalPages){
+  if(totalPages<=1)return'';
+  const start=(STOCK_PAGE-1)*STOCK_PAGE_SIZE;
+  const end=Math.min(start+STOCK_PAGE_SIZE,total);
+  return`<div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 0 4px;font-size:13px;border-top:1px solid var(--border);margin-top:8px">
+    <button class="btn btn-outline btn-sm" onclick="stockGoPage(${STOCK_PAGE-1})" ${STOCK_PAGE<=1?'disabled':''}>◄ ก่อนหน้า</button>
+    <span style="color:var(--muted)">${start+1}–${end} จาก ${total} รายการ | หน้า ${STOCK_PAGE}/${totalPages}</span>
+    <button class="btn btn-outline btn-sm" onclick="stockGoPage(${STOCK_PAGE+1})" ${STOCK_PAGE>=totalPages?'disabled':''}>ถัดไป ►</button>
+  </div>`;
+}
+
+function stockGoPage(p){
+  const total=_stockSortedRows.length;
+  const totalPages=Math.ceil(total/STOCK_PAGE_SIZE);
+  if(p<1||p>totalPages)return;
+  STOCK_PAGE=p;
+  const start=(p-1)*STOCK_PAGE_SIZE;
+  const tbody=document.getElementById('stockTbody');
+  if(tbody)tbody.innerHTML=_buildStockTbody(_stockSortedRows.slice(start,start+STOCK_PAGE_SIZE));
+  const wrap=document.getElementById('stockPagWrap');
+  if(wrap)wrap.innerHTML=_buildStockPag(total,totalPages);
+}
+
+function toggleStockExtra(){
+  STOCK_EXTRA_EXPANDED=!STOCK_EXTRA_EXPANDED;
+  const tbl=$('stockTbl');if(tbl)tbl.classList.toggle('expanded',STOCK_EXTRA_EXPANDED);
+  const btn=$('btnStockExtra');if(btn)btn.textContent=STOCK_EXTRA_EXPANDED?'🔒 ซ่อนคอลัมน์':'📊 แสดงทั้งหมด';
+}
+
+function matchStock(sel){
+  // 0. Manual override
+  if(STOCK_VENDOR_OVERRIDE[sel]){
+    return STOCK_ALL_ROWS.filter(r=>r.cat_vendor===STOCK_VENDOR_OVERRIDE[sel]);
+  }
+  const sk=normKey(sel);
+  // 1. Exact
+  let rows=STOCK_ALL_ROWS.filter(r=>normKey(r.cat_vendor)===sk);
+  if(rows.length)return rows;
+  // 2. Contains either way
+  rows=STOCK_ALL_ROWS.filter(r=>{const vk=normKey(r.cat_vendor);return vk&&(sk.includes(vk)||vk.includes(sk));});
+  if(rows.length)return rows;
+  // 3. Token match (words > 2 chars)
+  const tokens=sel.toLowerCase().split(/\s+/).filter(t=>t.length>2);
+  rows=STOCK_ALL_ROWS.filter(r=>{const vl=r.cat_vendor.toLowerCase();return tokens.some(t=>vl.includes(t));});
+  return rows;
+}
+
+function getUniqueStockVendors(){
+  const map={};
+  STOCK_ALL_ROWS.forEach(r=>{
+    if(!r.cat_vendor)return;
+    if(!map[r.cat_vendor])map[r.cat_vendor]=0;
+    map[r.cat_vendor]++;
+  });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([v,c])=>({vendor:v,count:c}));
+}
+
+function pickStockVendor(stockVendor){
+  STOCK_VENDOR_OVERRIDE[SELECTED_VENDOR]=stockVendor;
+  renderStock();
+}
+
+/* ══ TAB / DARK / REFRESH / SETTINGS ══ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');$('tab-'+btn.dataset.tab).classList.add('active');});});
+const DARK_KEY='rattanaDark';if(localStorage.getItem(DARK_KEY)==='1')document.body.classList.add('dark');
+$('btnDark').addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem(DARK_KEY,document.body.classList.contains('dark')?'1':'0');});
+$('btnRefresh').addEventListener('click',async()=>{const b=$('btnRefresh');b.disabled=true;['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));if(SELECTED_VENDOR){localStorage.removeItem('bq_sales_'+SELECTED_VENDOR);localStorage.removeItem('bq_trend_'+SELECTED_VENDOR);localStorage.removeItem('bq_stores_'+SELECTED_VENDOR);}await initApp();if(SELECTED_VENDOR)await loadVendorData();b.disabled=false;});
+$('btnCfg').addEventListener('click',()=>{$('cfgBqUrl').value=CFG.bqProxyUrl||'';$('cfgBpId').value=CFG.bpId||'';$('cfgBpTab').value=CFG.bpTab||'';$('cfgStockId').value=CFG.stockId||'';$('cfgStockTab').value=CFG.stockTab||'';$('cfgClaudeId').value=CFG.claudeId||'';$('cfgClaudeTab').value=CFG.claudeTab||'';$('cfgModal').classList.add('open');});
+function closeCfg(){$('cfgModal').classList.remove('open');}
+async function saveCfg(){CFG={bqProxyUrl:$('cfgBqUrl').value.trim(),bpId:$('cfgBpId').value.trim(),bpTab:$('cfgBpTab').value.trim()||'BP',stockId:$('cfgStockId').value.trim(),stockTab:$('cfgStockTab').value.trim()||'Product_Detail',claudeId:$('cfgClaudeId').value.trim(),claudeTab:$('cfgClaudeTab').value.trim()||'sell in'};saveCfgObj(CFG);['bp_rows','stock_rows','sellin_rows','bq_vendors'].forEach(k=>localStorage.removeItem(k));closeCfg();showToast('บันทึกแล้ว','success');await initApp();}
+window.addEventListener('scroll',()=>{$('backToTop').classList.toggle('show',window.scrollY>300);});
+
+/* ══ BOOT ══ */
+window.handleGoogleLogin=handleGoogleLogin;window.selectVendor=selectVendor;window.toggleVendorDD=toggleVendorDD;window.filterVendorList=filterVendorList;window.setDrill=setDrill;window.logout=logout;window.closeCfg=closeCfg;window.saveCfg=saveCfg;window.toggleMonthCols=toggleMonthCols;window.pickStockVendor=pickStockVendor;window.toggleStockExtra=toggleStockExtra;window.drillPage=drillPage;window.stockGoPage=stockGoPage;window.toggleExpand=toggleExpand;window.setChannel=setChannel;window.toggleMonthFilter=toggleMonthFilter;window.toggleMonth=toggleMonth;window.monthFilterAll=monthFilterAll;window.monthFilterNone=monthFilterNone;window.toggleStoresMonthCols=toggleStoresMonthCols;
+window.onload=checkSession;
+</script>
+</body>
+</html>
