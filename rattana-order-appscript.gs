@@ -81,6 +81,11 @@ function handleGetHistory(params) {
 
   const fullTable = '`' + BQ_PROJECT + '.' + BQ_DATASET + '.' + BQ_TABLE + '`';
 
+  // กรอง 3 เดือนย้อนหลัง
+  // Month_Year ต้องอยู่ในรูป 'YYYY-MM' เช่น '2026-02'
+  // ถ้า format ต่างให้แก้ '%Y-%m' ให้ตรงกับข้อมูลจริง
+  const dateFilter = "SAFE.PARSE_DATE('%Y-%m', Month_Year) >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)";
+
   const sql = [
     'SELECT',
     "  REPLACE(COALESCE(Product_Code, ''), 'BC-', '') AS BarCode,",
@@ -91,7 +96,8 @@ function handleGetHistory(params) {
     '  SUM(COALESCE(' + BQ_QTY_COL + ', 0)) AS TotalQty,',
     '  COUNT(DISTINCT Doc_No)          AS NumOrders',
     'FROM ' + fullTable,
-    'WHERE ' + where,
+    'WHERE (' + where + ')',
+    '  AND ' + dateFilter,
     'GROUP BY BarCode, Product_Code, Product_Name, Unit, EAPerUnit',
     'ORDER BY TotalQty DESC',
     'LIMIT 100',
