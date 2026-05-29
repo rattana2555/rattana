@@ -1,22 +1,25 @@
 // ══════════════════════════════════════════════════════════════
-// Rattana Order — Google Apps Script (วาง code นี้ใน Apps Script)
+// Rattana Order — Google Apps Script v2.0
 // วิธีติดตั้ง:
 //   1. เปิด Google Sheet: 18RSfuDdCadccWS_3v_Ggi70_X8FGEIVGrGUedkQLYUw
 //   2. เมนู Extensions > Apps Script
-//   3. ลบ code เดิมทั้งหมด → วาง code นี้แทน
-//   4. กด Save (💾)
-//   5. Deploy > New deployment
-//      - Type: Web App
-//      - Execute as: Me
-//      - Who has access: Anyone
-//   6. Copy "Web app URL" ที่ได้
-//   7. วาง URL นั้นใน rattana-order.html บรรทัด: const APPS_SCRIPT_URL = '...'
+//   3. ลบ code เดิม → วาง code นี้แทน
+//   4. ⚠️ เปิด BigQuery API:
+//      - ซ้ายมือกด + ข้าง "Services"
+//      - หา "BigQuery API" → กด Add
+//   5. Save (💾) → Deploy > Manage deployments > Edit (✏️) > New version > Deploy
 // ══════════════════════════════════════════════════════════════
 
 const SPREADSHEET_ID = '18RSfuDdCadccWS_3v_Ggi70_X8FGEIVGrGUedkQLYUw';
-const REG_SHEET_NAME = 'ลงทะเบียน'; // ชื่อ Sheet ที่จะบันทึกข้อมูล
+const REG_SHEET_NAME = 'ลงทะเบียน';
 
-// Headers สำหรับ row แรก
+// ── BigQuery config ──
+const BQ_PROJECT = 'project-test-471907';
+const BQ_DATASET = 'Testimport';
+const BQ_TABLE   = 'BQ_2024_2025';   // เปลี่ยนถ้าต้องการตารางอื่น
+const BQ_QTY_COL = 'Qty';            // ⚠️ แก้ชื่อคอลัมน์ Quantity ถ้าต่างกัน
+
+// Headers สำหรับ sheet ลงทะเบียน
 const HEADERS = [
   'วันที่ลงทะเบียน',
   'ชื่อ / ร้านค้า',
@@ -37,44 +40,106 @@ const HEADERS = [
   'สถานะ',
 ];
 
-// ── รับ POST จาก HTML app ──
+// ══════════════════════════════════════
+// GET — ทดสอบ + ดึงประวัติ BigQuery
+// ══════════════════════════════════════
+function doGet(e) {
+  const action = (e && e.parameter && e.parameter.action) || '';
+  if (action === 'getHistory') return handleGetHistory(e.parameter);
+  return jsonResponse({ status: 'Rattana Order API v2.0 ready ✓' });
+}
+
+// ══════════════════════════════════════
+// POST — บันทึกลงทะเบียน
+// ══════════════════════════════════════
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
-
-    if (data.action === 'register') {
-      return handleRegister(data);
-    }
-
+    if (data.action === 'register') return handleRegister(data);
     return jsonResponse({ success: false, error: 'Unknown action' });
   } catch (err) {
     return jsonResponse({ success: false, error: err.message });
   }
 }
 
-// ── GET endpoint สำหรับทดสอบว่า Script ทำงานได้ ──
-function doGet(e) {
-  return jsonResponse({ status: 'Rattana Order API v1.1 ready ✓' });
-}
+// ══════════════════════════════════════
+// BigQuery — ดึงประวัติซื้อของร้านค้า
+// ══════════════════════════════════════
+function handleGetHistory(params) {
+  const phone = String(params.phone || '').replace(/\D/g, '');
+  const name  = String(params.name  || '').replace(/'/g, "''");  // SQL escape
 
-// ── บันทึกการลงทะเบียน ──
-function handleRegister(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  // หา Sheet ชื่อ "ลงทะเบียน" ถ้าไม่มีให้สร้างใหม่
-  let sheet = ss.getSheetByName(REG_SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(REG_SHEET_NAME);
+  if (!phone && !name) {
+    return jsonResponse({ success: false, error: 'ไม่มีข้อมูลร้านค้า' });
   }
 
-  // ถ้า Sheet ว่าง ให้ใส่ header row ก่อน
+  // WHERE: ค้นจาก Customer_Code (ตัด BC- ออก) หรือ Customer_Name
+  const conds = [];
+  if (phone) conds.push(`REPLACE(Customer_Code, 'BC-', '') = '${phone}'`);
+  if (name)  conds.push(`LOWER(Customer_Name) LIKE LOWER('%${name}%')`);
+  const where = conds.join(' OR ');
+
+  const fullTable = '`' + BQ_PROJECT + '.' + BQ_DATASET + '.' + BQ_TABLE + '`';
+
+  const sql = [
+    'SELECT',
+    "  REPLACE(COALESCE(Product_Code, ''), 'BC-', '') AS BarCode,",
+    '  Product_Code,',
+    "  COALESCE(Product_Name, '')  AS Product_Name,",
+    "  COALESCE(Unit, '')          AS Unit,",
+    '  COALESCE(EAPerUnit, 0)      AS EAPerUnit,',
+    '  SUM(COALESCE(' + BQ_QTY_COL + ', 0)) AS TotalQty,',
+    '  COUNT(DISTINCT Doc_No)          AS NumOrders',
+    'FROM ' + fullTable,
+    'WHERE ' + where,
+    'GROUP BY BarCode, Product_Code, Product_Name, Unit, EAPerUnit',
+    'ORDER BY TotalQty DESC',
+    'LIMIT 100',
+  ].join('\n');
+
+  try {
+    const response = BigQuery.Jobs.query(
+      { query: sql, useLegacySql: false, timeoutMs: 30000 },
+      BQ_PROJECT
+    );
+
+    const fields    = (response.schema && response.schema.fields) || [];
+    const fieldNames = fields.map(function(f){ return f.name; });
+
+    const rows = (response.rows || []).map(function(row) {
+      var obj = {};
+      fieldNames.forEach(function(n, i) {
+        obj[n] = (row.f && row.f[i]) ? row.f[i].v : null;
+      });
+      return obj;
+    });
+
+    return jsonResponse({ success: true, data: rows });
+
+  } catch (err) {
+    return jsonResponse({ success: false, error: err.message });
+  }
+}
+
+// ══════════════════════════════════════
+// บันทึกการลงทะเบียน → Google Sheet
+// ══════════════════════════════════════
+function handleRegister(data) {
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let   sheet = ss.getSheetByName(REG_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(REG_SHEET_NAME);
+
+  // สร้าง header row ถ้ายังว่าง
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(HEADERS);
-    sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#0d1b3e').setFontColor('#ffffff');
+    sheet.getRange(1, 1, 1, HEADERS.length)
+         .setFontWeight('bold')
+         .setBackground('#0d1b3e')
+         .setFontColor('#ffffff');
     sheet.setFrozenRows(1);
   }
 
-  // ตรวจสอบเบอร์ซ้ำ
+  // ตรวจเบอร์ซ้ำ
   const existingPhones = sheet.getLastRow() > 1
     ? sheet.getRange(2, 3, sheet.getLastRow() - 1, 1).getValues().flat().map(String)
     : [];
@@ -82,44 +147,42 @@ function handleRegister(data) {
     return jsonResponse({ success: false, error: 'phone_exists', message: 'เบอร์นี้ลงทะเบียนแล้ว' });
   }
 
-  // เวลาประเทศไทย (UTC+7)
-  const now = new Date();
-  const thaiDate = Utilities.formatDate(now, 'Asia/Bangkok', 'dd/MM/yyyy HH:mm');
+  // เวลาไทย UTC+7
+  const thaiDate = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm');
 
-  // สร้าง Google Maps link ถ้ามี GPS
-  const lat = data.lat || '';
-  const lng = data.lng || '';
-  const mapsLink = (lat && lng) ? `https://www.google.com/maps?q=${lat},${lng}` : '';
+  // Google Maps link
+  const lat      = data.lat || '';
+  const lng      = data.lng || '';
+  const mapsLink = (lat && lng) ? 'https://www.google.com/maps?q=' + lat + ',' + lng : '';
 
-  // เพิ่ม row ข้อมูล
   sheet.appendRow([
     thaiDate,
-    data.name      || '',
-    String(data.phone || ''),  // เก็บเป็น String ป้องกัน 0 หาย
-    data.houseNo   || '',
-    data.moo       || '',
-    data.tambon    || '',
-    data.amphoe    || '',
-    data.province  || '',
-    data.zipcode   || '',
-    data.birthYear || '',
-    data.birthMonth|| '',
-    data.birthDay  || '',
-    data.note      || '',
+    data.name       || '',
+    String(data.phone || ''),
+    data.houseNo    || '',
+    data.moo        || '',
+    data.tambon     || '',
+    data.amphoe     || '',
+    data.province   || '',
+    data.zipcode    || '',
+    data.birthYear  || '',
+    data.birthMonth || '',
+    data.birthDay   || '',
+    data.note       || '',
     lat,
     lng,
     mapsLink,
-    'รอยืนยัน',    // สถานะเริ่มต้น — Admin เปลี่ยนเป็น "ยืนยัน" ได้
+    'รอยืนยัน',
   ]);
 
-  // Format เบอร์โทรให้เป็น plain text (ป้องกัน Sheets ตัด 0)
+  // เบอร์โทรเป็น plain text
   const lastRow = sheet.getLastRow();
   sheet.getRange(lastRow, 3).setNumberFormat('@');
 
   return jsonResponse({ success: true, message: 'บันทึกเรียบร้อย' });
 }
 
-// ── Helper: สร้าง JSON response ──
+// ── Helper ──
 function jsonResponse(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))

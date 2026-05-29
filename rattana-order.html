@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Order v1.2</title>
+<title>Rattana Order v2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -201,6 +201,27 @@ textarea.f-input{height:80px;padding:12px 14px;resize:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ── History Panel ── */
+#historyPanel{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
+.hist-header{background:var(--navy);color:#fff;padding:12px 16px;font-weight:700;font-size:15px;border-bottom:3px solid var(--gold);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0}
+.hist-reload-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600}
+.hist-reload-btn:hover{background:rgba(255,255,255,.25)}
+.hist-area{flex:1;padding:12px;overflow-y:auto}
+.hist-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(min-width:480px){.hist-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:640px){.hist-grid{grid-template-columns:repeat(3,1fr)}}
+.hist-card{background:var(--card-bg);border-radius:var(--radius-md);padding:14px 12px;border:1px solid var(--border);border-left:4px solid var(--gold);display:flex;flex-direction:column;gap:4px;transition:box-shadow .15s}
+.hist-card:hover{box-shadow:var(--shadow-md)}
+.hist-prod-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.4;flex:1}
+.hist-barcode{font-size:10px;color:var(--muted);letter-spacing:.3px}
+.hist-qty-row{display:flex;align-items:baseline;gap:5px;margin-top:6px}
+.hist-qty{font-size:22px;font-weight:700;color:var(--navy);line-height:1}
+.hist-unit{font-size:12px;color:var(--muted);font-weight:600}
+.hist-orders{font-size:11px;color:var(--muted)}
+.hist-add-btn{margin-top:8px;width:100%;padding:6px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;transition:opacity .15s}
+.hist-add-btn:hover{opacity:.85}
+.hist-add-btn.added{background:var(--success)}
 </style>
 </head>
 <body>
@@ -216,7 +237,7 @@ textarea.f-input{height:80px;padding:12px 14px;resize:none}
 <!-- ════════════════════════════════ LOGIN SCREEN ════════════════════════════════ -->
 <div id="loginScreen" class="screen">
   <div class="hero">
-    <span class="ver-tag">v1.2</span>
+    <span class="ver-tag">v2.0</span>
     <div class="hero-inner">
       <div class="hero-logo-row">
         <img class="hero-logo-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAIAAAC2BqGFAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH6AUcCBMkIBBbggAAIABJREFUeNrsvXm0XUd95/up2vs857xJV5ItybZky3jCxhgwBgKEOQOBJJ0OoRMIkA6QpJMQEtJppzvdnU5n3uk0Deld+y0SnJAwOCYhBgd7AoMnbHlGsmVLsqWrO5w9VNXv/aP22efcK0kYiJf3rb5wJZ1z9t5n716/36/29/et2kKe6fKXH+RMl2e6POUXYKbLUyZNl2e6POXSVE6ZSVO6TOSUVVO6TOY0TemaJi1pS5qmWVqapmlaNaFqapqSZaqktmpqpqxqSlXTqqmFqplqWqaqqqmqmqmaqmpqqU1amk2bmqZq2lRN06qqaWtam..." alt="Rattana" onerror="this.style.display='none'">
@@ -386,29 +407,44 @@ textarea.f-input{height:80px;padding:12px 14px;resize:none}
     </button>
   </div>
 
-  <div class="cat-bar" id="catBar">
-    <button class="cat-btn active" data-cat="all" onclick="filterCat(this)">ทั้งหมด</button>
-    <button class="cat-btn" data-cat="water" onclick="filterCat(this)">น้ำดื่ม</button>
-    <button class="cat-btn" data-cat="beer" onclick="filterCat(this)">เบียร์</button>
-    <button class="cat-btn" data-cat="bplus" onclick="filterCat(this)">Bplus Thaibev</button>
-    <button class="cat-btn" data-cat="spirit" onclick="filterCat(this)">สุรา</button>
-    <button class="cat-btn" data-cat="other" onclick="filterCat(this)">อื่นๆ</button>
-  </div>
-
-  <!-- Products area -->
-  <div class="products-wrap" id="productsArea">
-    <div class="state-box">
-      <div class="state-icon">⏳</div>
-      <p class="state-title">กำลังโหลดสินค้า...</p>
-      <p class="state-sub">กรุณารอสักครู่</p>
+  <!-- Products panel -->
+  <div id="productsPanel" style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+    <div class="cat-bar" id="catBar">
+      <button class="cat-btn active" data-cat="all" onclick="filterCat(this)">ทั้งหมด</button>
+    </div>
+    <div class="products-wrap" id="productsArea">
+      <div class="state-box">
+        <div class="state-icon">⏳</div>
+        <p class="state-title">กำลังโหลดสินค้า...</p>
+        <p class="state-sub">กรุณารอสักครู่</p>
+      </div>
     </div>
   </div>
 
-  <!-- Bottom nav -->
+  <!-- History panel (hidden until clicked) -->
+  <div id="historyPanel" class="hidden">
+    <div class="hist-header">
+      <span>📋 ประวัติซื้อของร้าน</span>
+      <button class="hist-reload-btn" onclick="loadHistory(true)">🔄 โหลดใหม่</button>
+    </div>
+    <div class="hist-area" id="historyArea">
+      <div class="state-box">
+        <div class="state-icon">📋</div>
+        <p class="state-title">กดโหลดประวัติ</p>
+        <p class="state-sub">ข้อมูลการซื้อจาก BigQuery</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav (3 tabs) -->
   <div class="bottom-nav">
-    <button class="nav-btn active">
+    <button class="nav-btn active" id="navProducts" onclick="switchPanel('products')">
       <svg class="nav-icon nav-icon-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      หน้าหลัก
+      สั่งสินค้า
+    </button>
+    <button class="nav-btn" id="navHistory" onclick="switchPanel('history')">
+      <svg class="nav-icon" viewBox="0 0 24 24"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4"/><polyline points="3 3 3 7 7 7"/></svg>
+      ประวัติ
     </button>
     <button class="nav-btn" onclick="toProfile()">
       <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -447,8 +483,10 @@ let cart = {}; // { productKey: { name, price, qty } }
 let addressData = [];
 let selAddr = null;
 let selMonth = null;
-let selGPS = null;   // { lat, lng, accuracy }
+let selGPS = null;   // { lat, lng }
 let currentCat = 'all';
+let purchaseHistory = [];    // BigQuery history data
+let historyLoaded = false;   // prevent duplicate loads
 
 // ════════════════════ INIT ════════════════════
 window.addEventListener('load', () => {
@@ -688,7 +726,112 @@ function switchToApp(){
   app.classList.remove('hidden');
   app.style.display = 'flex';
   window.scrollTo(0,0);
+  historyLoaded = false;  // reset so history reloads on next visit
   loadProducts();
+}
+
+// ════════════════════ PANEL SWITCH (Products / History) ════════════════════
+function switchPanel(panel){
+  const prodPanel = document.getElementById('productsPanel');
+  const histPanel = document.getElementById('historyPanel');
+  const navProd   = document.getElementById('navProducts');
+  const navHist   = document.getElementById('navHistory');
+
+  if (panel === 'history'){
+    prodPanel.classList.add('hidden');
+    histPanel.classList.remove('hidden');
+    navProd.classList.remove('active');
+    navHist.classList.add('active');
+    if (!historyLoaded) loadHistory(false);
+  } else {
+    histPanel.classList.add('hidden');
+    prodPanel.classList.remove('hidden');
+    navHist.classList.remove('active');
+    navProd.classList.add('active');
+  }
+}
+
+// ════════════════════ HISTORY (BigQuery) ════════════════════
+async function loadHistory(forceReload=false){
+  const area = document.getElementById('historyArea');
+  if (!currentUser){ area.innerHTML=`<div class="state-box"><div class="state-icon">🔒</div><p class="state-title">กรุณาเข้าสู่ระบบ</p></div>`; return; }
+  if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')){
+    area.innerHTML=`<div class="state-box"><div class="state-icon">⚙️</div><p class="state-title">ยังไม่ได้ตั้งค่า Apps Script URL</p></div>`; return;
+  }
+  if (historyLoaded && !forceReload){ renderHistory(purchaseHistory); return; }
+
+  area.innerHTML=`<div class="state-box"><div class="state-icon">⏳</div><p class="state-title">กำลังโหลดประวัติ...</p><p class="state-sub">ดึงข้อมูลจาก BigQuery</p></div>`;
+
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=getHistory&phone=${encodeURIComponent(currentUser.phone)}&name=${encodeURIComponent(currentUser.name)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'BigQuery error');
+    purchaseHistory = json.data || [];
+    historyLoaded = true;
+    renderHistory(purchaseHistory);
+  } catch(e){
+    area.innerHTML=`<div class="state-box"><div class="state-icon">⚠️</div><p class="state-title">โหลดประวัติไม่ได้</p><p class="state-sub" style="color:var(--danger);font-size:11px">${esc(e.message)}</p><button class="retry-btn" onclick="loadHistory(true)" style="margin-top:12px">ลองใหม่</button></div>`;
+  }
+}
+
+function renderHistory(items){
+  const area = document.getElementById('historyArea');
+  if (!items || !items.length){
+    area.innerHTML=`<div class="state-box"><div class="state-icon">📋</div><p class="state-title">ไม่พบประวัติการซื้อ</p><p class="state-sub">ยังไม่มีข้อมูลใน BigQuery หรือ Customer_Code ไม่ตรง</p></div>`;
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'hist-grid';
+
+  items.forEach(item=>{
+    const barcode  = String(item.BarCode     || '').replace(/^BC-/i,'');
+    const rawName  = String(item.Product_Name|| '').trim();
+    const unit     = String(item.Unit        || '');
+    const totalQty = parseFloat(item.TotalQty || 0);
+    const numOrders= parseInt(item.NumOrders  || 0);
+
+    // พยายาม match กับสินค้าในชีท (ถ้า barcode ตรง)
+    const matched = allProducts.find(p=>{
+      const pb = String(p['BarCode']||p['บาร์โค้ด']||p['Barcode']||p['barcode']||'').replace(/^BC-/i,'');
+      return pb && pb === barcode;
+    });
+    const displayName = matched
+      ? (matched['ชื่อสินค้า']||matched['Product']||matched['Name']||rawName)
+      : (rawName || barcode || 'ไม่ทราบสินค้า');
+    const displayUnit = matched ? (matched['หน่วย']||matched['Unit']||unit) : unit;
+    const matchKey  = matched ? matched._key : null;
+
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+    card.innerHTML = `
+      <div class="hist-prod-name">${esc(displayName)}</div>
+      ${barcode ? `<div class="hist-barcode">🔖 ${esc(barcode)}</div>` : ''}
+      <div class="hist-qty-row">
+        <span class="hist-qty">${totalQty.toLocaleString('th-TH')}</span>
+        <span class="hist-unit">${esc(displayUnit)}</span>
+      </div>
+      <div class="hist-orders">${numOrders} รายการสั่งซื้อ</div>
+      ${matchKey ? `<button class="hist-add-btn" onclick="histAddToCart('${matchKey}',\`${esc(displayName)}\`,this)">+ เพิ่มลงตะกร้า</button>` : ''}
+    `;
+    grid.appendChild(card);
+  });
+  area.innerHTML='';
+  area.appendChild(grid);
+}
+
+function histAddToCart(key, name, btn){
+  const prod = allProducts.find(p=>p._key===key);
+  if (!prod) return;
+  const price = prod['ราคาสมาชิก']||prod['ราคา']||prod['Price']||'';
+  if (!cart[key]) cart[key] = { name, price, qty:0 };
+  cart[key].qty++;
+  updateCartBadge();
+  btn.textContent = '✅ เพิ่มแล้ว';
+  btn.classList.add('added');
+  setTimeout(()=>{ btn.textContent='+ เพิ่มลงตะกร้า'; btn.classList.remove('added'); }, 1500);
+  showToast(`เพิ่ม ${name} ลงตะกร้า 🛒`,'success');
 }
 
 // ════════════════════ LOGIN ════════════════════
@@ -855,14 +998,14 @@ async function loadProducts(){
     const rows = parseCsv(text);
     // Store all products
     allProducts = rows.map((r,i)=>({...r, _idx:i, _key: `p${i}`}));
-    // Filter by warehouse
-    const wh = (currentUser?.warehouse||'W1').toUpperCase();
-    if (wh !== 'W1'){
-      allProducts = allProducts.filter(p=>{
-        const cat = String(p['หมวดหมู่']||p['Category']||p['cat']||'').toLowerCase();
-        return !BPLUS_KEYWORDS.some(k=>cat.includes(k));
-      });
-    }
+    // Filter by IB column (warehouse) — ปัจจุบันทุกร้าน = W1
+    const userWH = (currentUser?.warehouse||'W1').toUpperCase();
+    allProducts = allProducts.filter(p=>{
+      const ib = String(p['IB']||p['คลัง']||p['Warehouse']||'').toUpperCase().trim();
+      if (!ib) return true;               // ไม่มี IB = โชว์ทุก warehouse
+      if (ib === 'ALL') return true;
+      return ib.includes(userWH);         // โชว์เฉพาะ warehouse ที่ตรง
+    });
     // Build dynamic category tabs
     buildCatTabs(allProducts);
     filteredProducts = [...allProducts];
