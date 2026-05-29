@@ -46,7 +46,47 @@ const HEADERS = [
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
   if (action === 'getHistory') return handleGetHistory(e.parameter);
+  if (action === 'getUser')    return handleGetUser(e.parameter);
   return jsonResponse({ status: 'Rattana Order API v2.0 ready ✓' });
+}
+
+// ══════════════════════════════════════
+// ค้นหาสมาชิกจาก Sheet ด้วยเบอร์โทร
+// ══════════════════════════════════════
+function handleGetUser(params) {
+  const phone = String(params.phone || '').replace(/\D/g, '');
+  if (!phone) return jsonResponse({ success: false });
+
+  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(REG_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) return jsonResponse({ success: false });
+
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, HEADERS.length).getValues();
+  const row  = rows.find(function(r) {
+    return String(r[2]).replace(/\D/g, '') === phone;
+  });
+
+  if (!row) return jsonResponse({ success: false });
+
+  return jsonResponse({
+    success: true,
+    user: {
+      name:       String(row[1]  || ''),
+      phone:      String(row[2]  || ''),
+      houseNo:    String(row[3]  || ''),
+      moo:        String(row[4]  || ''),
+      tambon:     String(row[5]  || ''),
+      amphoe:     String(row[6]  || ''),
+      province:   String(row[7]  || ''),
+      zipcode:    String(row[8]  || ''),
+      birthYear:  String(row[9]  || ''),
+      birthMonth: String(row[10] || ''),
+      birthDay:   String(row[11] || ''),
+      note:       String(row[12] || ''),
+      lat:        String(row[13] || ''),
+      lng:        String(row[14] || ''),
+    }
+  });
 }
 
 // ══════════════════════════════════════
@@ -134,6 +174,10 @@ function handleRegister(data) {
   const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
   let   sheet = ss.getSheetByName(REG_SHEET_NAME);
   if (!sheet) sheet = ss.insertSheet(REG_SHEET_NAME);
+
+  // ตั้ง column C (เบอร์โทร) เป็น plain text ทั้งคอลัมน์ก่อนเลย
+  // เพื่อป้องกัน Sheets ตัด 0 นำหน้าออก
+  sheet.getRange('C:C').setNumberFormat('@');
 
   // สร้าง header row ถ้ายังว่าง
   if (sheet.getLastRow() === 0) {

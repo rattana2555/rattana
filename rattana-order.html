@@ -803,11 +803,30 @@ function renderHistory(items){
 }
 
 // ════════════════════ LOGIN ════════════════════
-function doLogin(){
+async function doLogin(){
   const phone = document.getElementById('loginPhone').value.replace(/\D/g,'').trim();
   if (!phone || phone.length < 9){ showToast('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง','error'); return; }
+
+  // 1) เช็ค localStorage ก่อน (เร็ว / ใช้ offline ได้)
   const users = getUsers();
-  const user = users.find(u=>u.phone===phone);
+  let user = users.find(u => String(u.phone).replace(/\D/g,'') === phone);
+
+  // 2) ถ้าไม่พบ → ไปเช็ค Google Sheet ผ่าน Apps Script
+  if (!user && APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes('YOUR_SCRIPT_ID')) {
+    showSpinner('กำลังตรวจสอบสมาชิก...');
+    try {
+      const res  = await fetch(`${APPS_SCRIPT_URL}?action=getUser&phone=${encodeURIComponent(phone)}`);
+      const json = await res.json();
+      if (json.success && json.user) {
+        user = json.user;
+        // บันทึกลง localStorage เพื่อใช้ครั้งต่อไป
+        users.push(user);
+        localStorage.setItem('rattanaOrderUsers', JSON.stringify(users));
+      }
+    } catch(e){ /* offline หรือ error — ไม่เป็นไร */ }
+    hideSpinner();
+  }
+
   if (user){
     currentUser = user;
     showConfirm(user);
