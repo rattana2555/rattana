@@ -17,7 +17,8 @@
 // ───── ชีทปลายทาง ─────
 var REG_SPREADSHEET_ID = '18RSfuDdCadccWS_3v_Ggi70_X8FGEIVGrGUedkQLYUw';
 var REG_SHEET_GID      = 1357794184;   // แท็บหน้าลงทะเบียน
-var ORDER_SHEET_NAME   = 'Orders';     // แท็บเก็บออเดอร์ (จะสร้างถ้ายังไม่มี)
+var ORDER_SHEET_GID    = 1594322176;   // แท็บเก็บออเดอร์ (ตามที่ลูกค้าเปิดดู)
+var ORDER_SHEET_NAME   = 'Orders';     // สำรอง: ถ้าหา gid ไม่เจอ จะสร้างแท็บนี้แทน
 
 function doPost(e) {
   try {
@@ -72,29 +73,40 @@ function handleRegister(d) {
   return { ok:true, message:'registered' };
 }
 
-/* ───────── บันทึกออเดอร์ ───────── */
+/* ───────── บันทึกออเดอร์ → แท็บ gid 1594322176 (แมปตามชื่อหัวคอลัมน์) ───────── */
 function handleOrder(d) {
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
-  var sh = ss.getSheetByName(ORDER_SHEET_NAME);
+  var sh = getSheetByGid(ss, ORDER_SHEET_GID);
   if (!sh) {
-    sh = ss.insertSheet(ORDER_SHEET_NAME);
-    sh.appendRow(['เลขที่ออเดอร์','วันที่เวลา','ชื่อ/ร้านค้า','เบอร์โทร','User ID',
-                  'Saleman Code','Saleman Name','คลังส่ง','ชื่อสินค้า','จำนวน','หน่วย',
-                  'ราคา/หน่วย','รวมเงิน','โปรโมชั่น','ยอดรวมทั้งบิล','สถานะ']);
+    // สำรอง: สร้างแท็บ Orders พร้อมหัวคอลัมน์แบบเดียวกัน
+    sh = ss.getSheetByName(ORDER_SHEET_NAME) || ss.insertSheet(ORDER_SHEET_NAME);
+    if (sh.getLastRow() === 0) sh.appendRow(['วัน','เวลา','email','ชื่อ-สกุล','รหัสเซลล์','คลัง','ชื่อร้าน','รหัสร้าน','รูปแบบ','Barcode','ชื่อสินค้า','ยกเลิก','จำนวน','หน่วย','ราคา','ยอดเงินรวม','orderId','หมายเหตุ']);
   }
-  var now = Utilities.formatDate(new Date(), 'Asia/Bangkok', 'dd/MM/yyyy HH:mm');
+  var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var now = new Date();
+  var dateStr = Utilities.formatDate(now, 'Asia/Bangkok', 'dd/MM/yyyy');
+  var timeStr = Utilities.formatDate(now, 'Asia/Bangkok', 'HH.mm');
   var items = d.items || [];
+
   items.forEach(function(it, idx){
-    sh.appendRow([
-      d.orderId || '', now, d.customerName || '', "'" + (d.phone || ''), d.uid || '',
-      d.salemanCode || '', d.salemanName || '', d.warehouse || '',
-      it.name || '', it.qty || 0, it.unit || '',
-      it.price || 0, it.total || 0, it.promo || '',
-      idx === 0 ? (d.total || 0) : '', 'ใหม่'
-    ]);
+    var v = {
+      'วัน': dateStr, 'เวลา': timeStr, 'email': d.uid || '',
+      'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '',
+      'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': "'" + (d.phone || ''),
+      'รูปแบบ': it.type || '', 'Barcode': "'" + (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
+      'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
+      'ยอดเงินรวม': (idx === 0 ? (d.total || 0) : ''), 'orderId': d.orderId || '',
+      'หมายเหตุ': it.promo || ''
+    };
+    // map ไม่สนเรื่องช่องว่าง/ตัวพิมพ์
+    var vmap = {};
+    for (var k in v) vmap[normHead(k)] = v[k];
+    var row = headers.map(function(h){ var n = normHead(h); return vmap.hasOwnProperty(n) ? vmap[n] : ''; });
+    sh.appendRow(row);
   });
   return { ok:true, message:'order saved', count:items.length };
 }
+function normHead(s){ return String(s).replace(/\s+/g,'').replace(/[​-‍﻿]/g,'').toLowerCase(); }
 
 /* ───────── utils ───────── */
 function getSheetByGid(ss, gid) {
