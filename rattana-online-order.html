@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v1.5</title>
+<title>Rattana Online Order v1.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -218,7 +218,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.5</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.6</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -536,21 +536,22 @@ function buildBarcodeIndex(){
   });
 }
 function productByBarcode(bc){ return BARCODE_INDEX.get(clean(bc))||null; }
-/* ของแถม: ดูจาก "Barcode สินค้าแถม" + "จำนวนแถม" เทียบ threshold "จำนวน" */
+/* ของแถม: ยึด "หน่วยที่ซื้อ" (รูปแบบขาย CS/PA/EA) — โปรหน่วยไหนใช้กับสินค้าหน่วยนั้นเท่านั้น
+   แล้วดู Barcode สินค้าแถม + จำนวนแถม เทียบ threshold "จำนวน" */
 function computeGifts(){
-  const byProduct={};
-  Object.values(cart).forEach(it=>{ byProduct[it.name]=(byProduct[it.name]||0)+it.qty; });
   const gifts={};
-  Object.entries(byProduct).forEach(([name,qty])=>{
-    const p=findProduct(name); if(!p) return;
+  Object.values(cart).forEach(it=>{
+    const p=findProduct(it.name); if(!p) return;
     promoObjsFor(p).forEach(promo=>{
+      const promoUnit=clean(promo['รูปแบบขาย']).toUpperCase();          // CS / PA / EA
+      if(promoUnit && promoUnit!==String(it.type).toUpperCase()) return; // ต้องตรงหน่วยที่ซื้อ
       const barcode=clean(promo['Barcode สินค้าแถม']);
       const giftEach=numOr0(promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
       if(!barcode || giftEach<=0 || threshold<=0) return;
-      const multiples=Math.floor(qty/threshold); if(multiples<1) return;
+      const multiples=Math.floor(it.qty/threshold); if(multiples<1) return;
       const gp=productByBarcode(barcode);
       const giftName=gp?clean(gp['PRODUCT NAME']):(clean(promo['แถมสินค้า'])||('บาร์โค้ด '+barcode));
-      if(!gifts[barcode]) gifts[barcode]={barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:name};
+      if(!gifts[barcode]) gifts[barcode]={barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name};
       gifts[barcode].qty+=giftEach*multiples;
     });
   });
