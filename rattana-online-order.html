@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v1.3</title>
+<title>Rattana Online Order v1.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -218,7 +218,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.3</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.4</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -294,9 +294,11 @@ body.dark .unit-btn.active{color:var(--gold-light)}
   <div class="modal">
     <div class="modal-head"><h3>เข้าสู่ระบบ</h3><button class="modal-close" onclick="closeModal('loginModal')">×</button></div>
     <div class="modal-body">
+      <button class="btn btn-block" style="background:#06C755;color:#fff;margin-bottom:14px" onclick="lineLogin()">💬 เข้าสู่ระบบด้วย LINE</button>
+      <div class="flex-center" style="gap:8px;margin-bottom:14px"><span style="flex:1;height:1px;background:var(--border)"></span><span class="txt-sm muted">หรือ</span><span style="flex:1;height:1px;background:var(--border)"></span></div>
       <p class="txt-sm muted" style="margin-bottom:14px">กรอกเบอร์โทรที่เคยลงทะเบียนไว้ ระบบจะตรวจสอบจากฐานข้อมูล</p>
       <div class="field"><label>เบอร์โทรศัพท์</label><input class="input" id="loginPhone" type="tel" inputmode="numeric" placeholder="08XXXXXXXX"></div>
-      <button class="btn btn-primary btn-block" onclick="loginByPhone()">เข้าสู่ระบบ</button>
+      <button class="btn btn-primary btn-block" onclick="loginByPhone()">เข้าสู่ระบบด้วยเบอร์โทร</button>
       <p class="center txt-sm muted" style="margin:14px 0 6px">ยังไม่เคยลงทะเบียน?</p>
       <button class="btn btn-outline btn-block" onclick="closeModal('loginModal');openRegister()">📝 ลงทะเบียนใหม่</button>
     </div>
@@ -359,7 +361,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 const CFG = {
   // ▼▼▼ วาง URL ของ Apps Script Web App (deploy แล้ว) ตรงนี้ ▼▼▼
   GAS_URL: 'https://script.google.com/macros/s/AKfycbyKIrGHiVDgxqoefKxFVFJ_JQleSG-Ms5Lq3V6mIl3yRwLMv56f4EujeUAjqnLQR_bB/exec',
-  LIFF_ID: '', // ถ้ามี LIFF ID ในอนาคต ใส่ตรงนี้แล้วระบบจะดึง UID อัตโนมัติ
+  LIFF_ID: '2010301766-gb7U9vBG', // LINE Login (Rattana) — ดึง UID + ชื่อ อัตโนมัติเมื่อเปิดในไลน์
   productsSheetId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I', productsGid:'635140262',
   usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ', usersGid:'0',
   promoSheetId:'1CqHARklgveAeJ6rTkNeyUSku__puTiNE7-c6ebn93W8', promoSheet:'Promotion',
@@ -451,14 +453,33 @@ function getUrlUid(){
   const p=new URLSearchParams(location.search);
   return clean(p.get('uid')||p.get('userId')||p.get('lineUid')||'');
 }
+let _liffReady=false;
+async function ensureLiff(){
+  if(!CFG.LIFF_ID) return false;
+  if(!window.liff){ await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://static.line-scdn.net/liff/edge/2/sdk.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}); }
+  if(!_liffReady){ await liff.init({liffId:CFG.LIFF_ID}); _liffReady=true; }
+  return true;
+}
 async function tryLiff(){
-  if(!CFG.LIFF_ID) return null;
   try{
-    if(!window.liff){ await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://static.line-scdn.net/liff/edge/2/sdk.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);}); }
-    await liff.init({liffId:CFG.LIFF_ID});
-    if(liff.isLoggedIn()){ const p=await liff.getProfile(); return clean(p.userId); }
+    if(!(await ensureLiff())) return null;
+    if(liff.isLoggedIn()){ const p=await liff.getProfile(); window._lineProfile=p; return clean(p.userId); }
   }catch(e){ console.warn('LIFF',e); }
-  return null;
+  return null; // ไม่บังคับ login (ให้ guest เปิดดูได้) — login ผ่านปุ่มแทน
+}
+// ปุ่ม "เข้าสู่ระบบด้วย LINE" (สำหรับเบราว์เซอร์ภายนอก / ยังไม่ล็อกอิน)
+async function lineLogin(){
+  if(!CFG.LIFF_ID){ showToast('ยังไม่ได้ตั้งค่า LINE','warning'); return; }
+  showSpinner('กำลังเชื่อมต่อ LINE...');
+  try{
+    await ensureLiff();
+    if(!liff.isLoggedIn()){ hideSpinner(); liff.login(); return; } // redirect ไป LINE
+    const p=await liff.getProfile(); window._lineProfile=p; const uid=clean(p.userId); window._lineUid=uid;
+    const hit=CUSTOMERS.find(c=>c.uid && c.uid===uid);
+    hideSpinner(); closeModal('loginModal');
+    if(hit){ currentCustomer=hit; saveSession(hit); renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
+    else { openRegister(); showToast('เข้าผ่าน LINE แล้ว กรอกข้อมูลเพื่อลงทะเบียน','info'); }
+  }catch(e){ hideSpinner(); console.warn(e); showToast('เชื่อมต่อ LINE ไม่สำเร็จ','error'); }
 }
 async function resolveLogin(){
   if(currentCustomer) return;
@@ -812,6 +833,9 @@ function openRegister(){
   const uid=window._lineUid||getUrlUid();
   renderProvDropdown();
   openModal('registerModal');
+  // เติมชื่อจากโปรไฟล์ LINE ให้อัตโนมัติ (ถ้ามี และยังว่าง)
+  const nameEl=document.getElementById('regName');
+  if(window._lineProfile&&window._lineProfile.displayName&&!nameEl.value) nameEl.value=window._lineProfile.displayName;
   if(uid) document.getElementById('regNote').placeholder='เข้าผ่าน LINE (UID: '+uid.slice(0,10)+'...)';
 }
 let gpsLat='',gpsLng='';
