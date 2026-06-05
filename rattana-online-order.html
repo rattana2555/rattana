@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v1.6</title>
+<title>Rattana Online Order v1.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -218,7 +218,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.6</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.7</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -532,10 +532,13 @@ function promosFor(prod){
 function buildBarcodeIndex(){
   BARCODE_INDEX=new Map();
   PRODUCTS.forEach(p=>{
-    ['CODE EA','CODE PA','CODE BP','CODE CS'].forEach(c=>{ const v=clean(p[c]); if(v && !BARCODE_INDEX.has(v)) BARCODE_INDEX.set(v,p); });
+    [['EA','CODE EA'],['PA','CODE PA'],['BP','CODE BP'],['CS','CODE CS']].forEach(function(pair){
+      const v=clean(p[pair[1]]); if(v && !BARCODE_INDEX.has(v)) BARCODE_INDEX.set(v,{p:p,type:pair[0]});
+    });
   });
 }
-function productByBarcode(bc){ return BARCODE_INDEX.get(clean(bc))||null; }
+function barcodeEntry(bc){ return BARCODE_INDEX.get(clean(bc))||null; }
+function productByBarcode(bc){ const e=barcodeEntry(bc); return e?e.p:null; }
 /* ของแถม: ยึด "หน่วยที่ซื้อ" (รูปแบบขาย CS/PA/EA) — โปรหน่วยไหนใช้กับสินค้าหน่วยนั้นเท่านั้น
    แล้วดู Barcode สินค้าแถม + จำนวนแถม เทียบ threshold "จำนวน" */
 function computeGifts(){
@@ -549,9 +552,10 @@ function computeGifts(){
       const giftEach=numOr0(promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
       if(!barcode || giftEach<=0 || threshold<=0) return;
       const multiples=Math.floor(it.qty/threshold); if(multiples<1) return;
-      const gp=productByBarcode(barcode);
+      const ent=barcodeEntry(barcode); const gp=ent?ent.p:null;
       const giftName=gp?clean(gp['PRODUCT NAME']):(clean(promo['แถมสินค้า'])||('บาร์โค้ด '+barcode));
-      if(!gifts[barcode]) gifts[barcode]={barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name};
+      const giftUnit=ent?clean(ent.p['UNIT '+ent.type]):'';
+      if(!gifts[barcode]) gifts[barcode]={barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name,unitDetail:giftUnit};
       gifts[barcode].qty+=giftEach*multiples;
     });
   });
@@ -879,8 +883,9 @@ async function submitOrder(){
   if(!currentCustomer){ showToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ','warning'); openModal('loginModal'); return; }
   const wh=warehouseForCustomer(currentCustomer);
   const orderId='ORD'+Date.now();
-  const items=Object.values(cart).map(i=>({name:i.name,qty:i.qty,unit:i.unitName,type:i.type,barcode:i.barcode||'',price:i.price,total:i.qty*i.price,promo:(i.promo||[]).join(' | ')}));
-  computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:'ของแถม',type:'FREE',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from}));
+  // รูปแบบ = ขาย/แถม , หน่วย = หน่วยละเอียดตามบาร์โค้ด (เช่น ลังx30(CS))
+  const items=Object.values(cart).map(i=>({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:i.price,total:i.qty*i.price,promo:(i.promo||[]).join(' | ')}));
+  computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from}));
   const payload={ action:'order', orderId,
     customerName:currentCustomer.name, phone:currentCustomer.phone, uid:currentCustomer.uid||window._lineUid||'',
     salemanCode:currentCustomer.salemanCode||'', salemanName:currentCustomer.salemanName||'', warehouse:wh||'',
