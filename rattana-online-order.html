@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v1.2</title>
+<title>Rattana Online Order v1.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -218,7 +218,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.2</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.3</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -358,7 +358,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 /* ===================== CONFIG ===================== */
 const CFG = {
   // ▼▼▼ วาง URL ของ Apps Script Web App (deploy แล้ว) ตรงนี้ ▼▼▼
-  GAS_URL: 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxxbtfODzWBipS03C1KTRG8YR5qgnQr6B7K1RJ8D3wl6uiQ-L2GfJDZ9oNNl9J4QHUfhw/exec',
   LIFF_ID: '', // ถ้ามี LIFF ID ในอนาคต ใส่ตรงนี้แล้วระบบจะดึง UID อัตโนมัติ
   productsSheetId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I', productsGid:'635140262',
   usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ', usersGid:'0',
@@ -411,6 +411,7 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 let PRODUCTS=[], PROMOS=[], USERS=[], CUSTOMERS=[];
 let promoIndex={};                 // field -> Map(valueLower -> [promoObj])
 let EA_SET=new Set();              // CAT SIZE (lowercase) ที่ขายแบบชิ้น (EA) ได้
+let BARCODE_INDEX=new Map();       // barcode -> product (จาก CODE EA/PA/BP/CS)
 let cart=loadCart();               // { 'name__TYPE': {key,name,type,unitName,price,barcode,qty,img,promo} }
 let currentCustomer=null;
 let activeCat='ทั้งหมด';
@@ -507,20 +508,29 @@ function promosFor(prod){
   return [...new Set(out)].filter(Boolean);
 }
 /* ของแถมอัตโนมัติแบบ 7-11: ซื้อครบ "จำนวน" -> แถม "จำนวนแถม" ของ "แถมสินค้า" */
+function buildBarcodeIndex(){
+  BARCODE_INDEX=new Map();
+  PRODUCTS.forEach(p=>{
+    ['CODE EA','CODE PA','CODE BP','CODE CS'].forEach(c=>{ const v=clean(p[c]); if(v && !BARCODE_INDEX.has(v)) BARCODE_INDEX.set(v,p); });
+  });
+}
+function productByBarcode(bc){ return BARCODE_INDEX.get(clean(bc))||null; }
+/* ของแถม: ดูจาก "Barcode สินค้าแถม" + "จำนวนแถม" เทียบ threshold "จำนวน" */
 function computeGifts(){
-  // รวมจำนวนต่อสินค้า (ทุกหน่วยในตะกร้า) แล้วเทียบ threshold โปรฯ
   const byProduct={};
   Object.values(cart).forEach(it=>{ byProduct[it.name]=(byProduct[it.name]||0)+it.qty; });
   const gifts={};
   Object.entries(byProduct).forEach(([name,qty])=>{
     const p=findProduct(name); if(!p) return;
     promoObjsFor(p).forEach(promo=>{
-      const giftName=clean(promo['แถมสินค้า']); if(!giftName) return;
-      const threshold=numOr0(promo['จำนวน']), giftEach=numOr0(promo['จำนวนแถม']);
-      if(threshold<=0||giftEach<=0) return;
+      const barcode=clean(promo['Barcode สินค้าแถม']);
+      const giftEach=numOr0(promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
+      if(!barcode || giftEach<=0 || threshold<=0) return;
       const multiples=Math.floor(qty/threshold); if(multiples<1) return;
-      if(!gifts[giftName]) gifts[giftName]={name:giftName,qty:0,from:name,barcode:clean(promo['Barcode สินค้าแถม'])};
-      gifts[giftName].qty+=giftEach*multiples;
+      const gp=productByBarcode(barcode);
+      const giftName=gp?clean(gp['PRODUCT NAME']):(clean(promo['แถมสินค้า'])||('บาร์โค้ด '+barcode));
+      if(!gifts[barcode]) gifts[barcode]={barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:name};
+      gifts[barcode].qty+=giftEach*multiples;
     });
   });
   return Object.values(gifts);
@@ -742,10 +752,11 @@ function renderCart(){
     </div></div>`).join('');
   const gifts=computeGifts();
   const giftHtml=gifts.map(g=>`<div class="cart-item gift-item">
-    <img class="ci-img" src="${giftImg(g.name)}" onerror="this.src='${PLACEHOLDER}'">
+    <img class="ci-img" src="${g.img||giftImg(g.name)}" onerror="this.src='${PLACEHOLDER}'">
     <div class="ci-body">
       <div class="ci-name">${g.name}<span class="gift-badge">🎁 ของแถม ฟรี</span></div>
       <div class="ci-promo">แถมจากการซื้อ "${g.from}"</div>
+      ${g.barcode?`<div class="txt-sm muted">บาร์โค้ด: ${g.barcode}</div>`:''}
       <div class="ci-row"><span class="txt-sm muted">จำนวน ${g.qty}</span><span class="ci-price txt-success">฿0</span></div>
     </div></div>`).join('');
   list.innerHTML=itemsHtml+giftHtml;
@@ -866,7 +877,8 @@ async function postGAS(payload){
     return true; // demo mode: treat as success
   }
   try{
-    await fetch(CFG.GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    // no-cors: Apps Script ไม่ส่ง CORS header — ใช้ simple request (text/plain) เพื่อให้เขียนได้โดยไม่ถูก block
+    await fetch(CFG.GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
     return true;
   }catch(e){ console.error(e); return false; }
 }
@@ -890,7 +902,7 @@ async function loadAll(silent){
     ]);
     PRODUCTS=prod; PROMOS=promo; USERS=users; CUSTOMERS=cust.map(mapCustomer);
     EA_SET=new Set((ea||[]).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(Boolean));
-    buildPromoIndex();
+    buildBarcodeIndex(); buildPromoIndex();
     await resolveLogin();
     renderAll();
   }catch(e){ console.error(e); showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต','error'); }
