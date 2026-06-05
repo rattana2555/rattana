@@ -17,8 +17,8 @@
 // ───── ชีทปลายทาง ─────
 var REG_SPREADSHEET_ID = '18RSfuDdCadccWS_3v_Ggi70_X8FGEIVGrGUedkQLYUw';
 var REG_SHEET_GID      = 1357794184;   // แท็บหน้าลงทะเบียน
-var ORDER_SHEET_GID    = 1594322176;   // แท็บเก็บออเดอร์ (ตามที่ลูกค้าเปิดดู)
-var ORDER_SHEET_NAME   = 'Orders';     // สำรอง: ถ้าหา gid ไม่เจอ จะสร้างแท็บนี้แทน
+var ORDER_SHEET_NAME   = 'order';      // แท็บเก็บออเดอร์ (ชื่อแท็บจริง)
+var ORDER_SHEET_GID    = 1594322176;   // สำรอง: เผื่อเปลี่ยนชื่อแท็บ
 
 function doPost(e) {
   try {
@@ -76,12 +76,8 @@ function handleRegister(d) {
 /* ───────── บันทึกออเดอร์ → แท็บ gid 1594322176 (แมปตามชื่อหัวคอลัมน์) ───────── */
 function handleOrder(d) {
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
-  var sh = getSheetByGid(ss, ORDER_SHEET_GID);
-  if (!sh) {
-    // สำรอง: สร้างแท็บ Orders พร้อมหัวคอลัมน์แบบเดียวกัน
-    sh = ss.getSheetByName(ORDER_SHEET_NAME) || ss.insertSheet(ORDER_SHEET_NAME);
-    if (sh.getLastRow() === 0) sh.appendRow(['วัน','เวลา','email','ชื่อ-สกุล','รหัสเซลล์','คลัง','ชื่อร้าน','รหัสร้าน','รูปแบบ','Barcode','ชื่อสินค้า','ยกเลิก','จำนวน','หน่วย','ราคา','ยอดเงินรวม','orderId','หมายเหตุ']);
-  }
+  var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
+  if (!sh) return { ok:false, error:'order sheet "' + ORDER_SHEET_NAME + '" not found' };
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
   var now = new Date();
   var dateStr = Utilities.formatDate(now, 'Asia/Bangkok', 'dd/MM/yyyy');
@@ -92,10 +88,10 @@ function handleOrder(d) {
     var v = {
       'วัน': dateStr, 'เวลา': timeStr, 'email': d.uid || '',
       'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '',
-      'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': "'" + (d.phone || ''),
+      'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': '',
       'รูปแบบ': it.type || '', 'Barcode': "'" + (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
       'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
-      'ยอดเงินรวม': (idx === 0 ? (d.total || 0) : ''), 'orderId': d.orderId || '',
+      'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
       'หมายเหตุ': it.promo || ''
     };
     // map ไม่สนเรื่องช่องว่าง/ตัวพิมพ์
