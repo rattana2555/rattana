@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v1.7</title>
+<title>Rattana Online Order v1.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -211,6 +211,25 @@ body.dark .pd-price{color:var(--gold-light)}
 .unit-btn.active{border-color:var(--gold);background:rgba(201,168,76,.14);color:var(--navy)}
 body.dark .unit-btn.active{color:var(--gold-light)}
 .pd-qty{max-width:170px}
+/* Profile contact / hub */
+.info-note{background:#fff4f4;border:1px solid #ffd5d0;color:#c0392b;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;line-height:1.5;margin-bottom:14px}
+body.dark .info-note{background:#3a1a17;border-color:#5a2a25;color:#ff8a7e}
+.contact-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0}
+.contact-actions{display:flex;gap:8px}
+.cbtn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;flex-shrink:0}
+.cbtn-call{background:var(--navy);color:#fff}
+.cbtn-line{background:#06C755;color:#fff}
+.pay-note{color:var(--danger);font-weight:700;font-size:14px;margin:12px 0}
+.biz-hours{margin:10px 0;padding-top:12px;border-top:1px solid var(--border)}
+.biz-hours .txt-bold{font-size:16px;color:var(--navy);margin-top:2px}
+body.dark .biz-hours .txt-bold{color:var(--gold-light)}
+.delivery{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.delivery ul{list-style:none;margin:6px 0 0;padding:0}
+.delivery li{font-size:13px;padding:3px 0;color:var(--text);line-height:1.45}
+.delivery li b{color:var(--navy)}body.dark .delivery li b{color:var(--gold-light)}
+.hub-btn{background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--radius-md);padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--text);box-shadow:var(--shadow-sm)}
+.hub-btn .hi{font-size:24px}
+.hub-btn:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -218,7 +237,7 @@ body.dark .unit-btn.active{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.7</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.8</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -443,6 +462,7 @@ function mapCustomer(row){
     salemanName: clean(row['Saleman Name']),
     status: clean(row['สถานะ']),
     province: clean(row['จังหวัด']), district: clean(row['อำเภอ']), subdist: clean(row['ตำบล']),
+    houseNo: clean(row['บ้านเลขที่']), moo: clean(row['หมู่']), zip: clean(row['รหัสไปรษณีย์']),
   };
 }
 function saveSession(c){ localStorage.setItem('rop_customer',JSON.stringify({data:c,exp:Date.now()+30*864e5})); }
@@ -799,30 +819,69 @@ function goShop(){ showView('viewShop'); setNav('navShop'); }
 function goCart(){ showView('viewCart'); setNav('navCart'); renderCart(); }
 function goProfile(){ showView('viewProfile'); setNav('navProfile'); renderProfile(); }
 
+const CONTACT={ dept:'ฝ่ายขาย (สำนักงานใหญ่)', phone:'0803897765', lineOA:'@rpbsale' };
+const DELIVERY_AREAS=[
+  ['สมุทรสงคราม',''],['ราชบุรี',''],['สมุทรสาคร',''],['นครปฐม',''],
+  ['กาญจนบุรี','อ.เมืองกาญจนบุรี, อ.ท่ามะกา'],
+  ['เพชรบุรี','อ.เมืองเพชรบุรี, อ.เขาย้อย, อ.บ้านแหลม, อ.ท่ายาง, อ.บ้านลาด, อ.แก่งกระจาน, อ.หนองหญ้าปล้อง'],
+];
+function contactCardHtml(){
+  const tel=CONTACT.phone;
+  const lineUrl='https://line.me/R/ti/p/'+encodeURIComponent(CONTACT.lineOA);
+  return `<div class="profile-card">
+    <h3>📞 ติดต่อสอบถาม</h3>
+    <div class="contact-row">
+      <div><div class="txt-bold">${CONTACT.dept}</div><div class="muted">${tel}</div></div>
+      <div class="contact-actions">
+        <a class="cbtn cbtn-call" href="tel:${tel}" title="โทร">📞</a>
+        <a class="cbtn cbtn-line" href="${lineUrl}" target="_blank" rel="noopener" title="แชท LINE">💬</a>
+      </div>
+    </div>
+    <p class="pay-note">*โปรดชำระเงินหลังรับสินค้าแล้วเท่านั้น</p>
+    <div class="biz-hours"><div class="pk txt-sm">เวลาทำการ</div><div class="txt-bold">วันจันทร์ - วันเสาร์ 08.00 น. - 17.00 น.</div></div>
+    <div class="delivery"><div class="pk txt-sm">เขตพื้นที่ที่ส่งสินค้า</div><ul>
+      ${DELIVERY_AREAS.map(a=>`<li><b>จ.${a[0]}</b>${a[1]?' ('+a[1]+')':''}</li>`).join('')}
+    </ul></div>
+  </div>`;
+}
+function quickHubHtml(){
+  return `<div class="grid-2" style="margin-bottom:14px">
+    <button class="hub-btn" onclick="goShop()"><span class="hi">🛍️</span>สั่งสินค้า</button>
+    <button class="hub-btn" onclick="goCart()"><span class="hi">🛒</span>ตะกร้าของฉัน</button>
+  </div>`;
+}
 function renderProfile(){
   const w=document.getElementById('profileWrap');
+  let html='';
   if(currentCustomer){
-    const wh=warehouseForCustomer(currentCustomer);
-    const whName={W1:'สมุทรสงคราม',W2:'สุพรรณบุรี',W3:'ราชบุรี',W4:'นครปฐม',HQ:'สำนักงานใหญ่'}[wh]||'-';
-    const st=currentCustomer.status||'';
+    const c=currentCustomer;
+    const wh=warehouseForCustomer(c);
+    const whName={W1:'สมุทรสงคราม',W2:'สุพรรณบุรี',W3:'ราชบุรี',W4:'นครปฐม',HQ:'สำนักงานใหญ่'}[wh]||'';
+    const st=c.status||'';
     const stCls=/ยืนยัน|active|ok/i.test(st)&&!/รอ/.test(st)?'st-ok':'st-wait';
-    w.innerHTML=`<div class="profile-card">
-      <h3>👤 ${currentCustomer.name||'ลูกค้า'}</h3>
-      <div class="pinfo"><span class="pk">เบอร์โทร</span><span>${currentCustomer.phone||'-'}</span></div>
+    const addr=[c.houseNo, c.moo?('หมู่ '+c.moo):'', c.subdist, c.district, c.province, c.zip].filter(Boolean).join(' ');
+    html+=`<div class="profile-card">
+      <h3>👤 ${c.name||'ลูกค้า'}</h3>
+      <div class="pinfo"><span class="pk">เบอร์โทร</span><span>${c.phone||'-'}</span></div>
+      ${addr?`<div class="pinfo"><span class="pk">ที่อยู่</span><span style="text-align:right;max-width:62%">${addr}</span></div>`:''}
       <div class="pinfo"><span class="pk">สถานะ</span><span class="status-pill ${stCls}">${st||'รอยืนยัน'}</span></div>
-      <div class="pinfo"><span class="pk">เซลล์ผู้ดูแล</span><span>${currentCustomer.salemanName||'รอแอดมินกำหนด'}</span></div>
-      <div class="pinfo"><span class="pk">คลังส่ง</span><span>${wh?wh+' ('+whName+')':'รอกำหนด'}</span></div>
-      <div class="pinfo"><span class="pk">LINE UID</span><span class="txt-sm">${currentCustomer.uid||window._lineUid||'-'}</span></div>
-    </div>
-    <button class="btn btn-outline btn-block" onclick="logout()">ออกจากระบบ</button>`;
+      <div class="pinfo"><span class="pk">เซลล์ผู้ดูแล</span><span>${c.salemanName||'รอแอดมินกำหนด'}</span></div>
+      <div class="pinfo"><span class="pk">คลังส่ง</span><span>${wh?wh+(whName?' ('+whName+')':''):'รอกำหนด'}</span></div>
+    </div>`;
   } else {
-    w.innerHTML=`<div class="profile-card center">
+    html+=`<div class="profile-card center">
       <h3>ยังไม่ได้เข้าสู่ระบบ</h3>
       <p class="muted txt-sm" style="margin:8px 0 16px">เข้าสู่ระบบหรือลงทะเบียนเพื่อสั่งซื้อสินค้า<br>(ดูสินค้าได้โดยไม่ต้องเข้าระบบ)</p>
+      <button class="btn btn-block" style="background:#06C755;color:#fff;margin-bottom:10px" onclick="lineLogin()">💬 เข้าสู่ระบบด้วย LINE</button>
       <button class="btn btn-primary btn-block" style="margin-bottom:10px" onclick="openModal('loginModal')">🔑 เข้าสู่ระบบ (เบอร์โทร)</button>
       <button class="btn btn-gold btn-block" onclick="openRegister()">📝 ลงทะเบียนใหม่</button>
     </div>`;
   }
+  html+=`<div class="info-note">❗ หากลูกค้าสั่งซื้อสินค้าหลังจากเวลา 08.00 น. ของวันที่สั่งซื้อ ขออนุญาตส่งสินค้ารอบสัปดาห์ถัดไป</div>`;
+  html+=contactCardHtml();
+  html+=quickHubHtml();
+  if(currentCustomer) html+=`<button class="btn btn-outline btn-block" onclick="logout()">ออกจากระบบ</button>`;
+  w.innerHTML=html;
 }
 
 /* ===================== AUTH ACTIONS ===================== */
