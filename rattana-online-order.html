@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v1.9</title>
+<title>Rattana Online Order v2.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -238,7 +238,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v1.9</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.0</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -384,7 +384,7 @@ const CFG = {
   LIFF_ID: '2010301766-gb7U9vBG', // LINE Login (Rattana) — ดึง UID + ชื่อ อัตโนมัติเมื่อเปิดในไลน์
   productsSheetId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I', productsGid:'635140262',
   usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ', usersGid:'0',
-  promoSheetId:'1CqHARklgveAeJ6rTkNeyUSku__puTiNE7-c6ebn93W8', promoSheet:'Promotion',
+  promoSheetId:'1CqHARklgveAeJ6rTkNeyUSku__puTiNE7-c6ebn93W8', promoSheet:'Promotion', promoGid:'4345804',
   regSheetId:'18RSfuDdCadccWS_3v_Ggi70_X8FGEIVGrGUedkQLYUw', regGid:'1357794184',
   eaGid:'336045996',   // ชีท "ขาย EA" — รายการ CAT SIZE ที่ขายแบบชิ้นได้
 };
@@ -414,6 +414,8 @@ function parseCsv(text){
 }
 async function fetchCsvGid(id,gid){ const u=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`; const r=await fetch(u); if(!r.ok) throw new Error('fetch'); return parseCsv(await r.text()); }
 async function fetchCsvSheet(id,name){ const u=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`; const r=await fetch(u); if(!r.ok) throw new Error('fetch'); return parseCsv(await r.text()); }
+// export endpoint — เสถียรกว่า gviz สำหรับบางชีท (gviz อ่านชีท Promotion เพี้ยน)
+async function fetchCsvExport(id,gid){ const u=`https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`; const r=await fetch(u); if(!r.ok) throw new Error('fetch'); return parseCsv(await r.text()); }
 
 const TTL=5*60*1000;
 function getCached(k,ignore){ try{const i=JSON.parse(localStorage.getItem(k)); if(!i)return null; if(!ignore && Date.now()-i.ts>TTL) return null; return i.data;}catch{return null} }
@@ -990,7 +992,7 @@ async function loadAll(silent){
   try{
     const [prod,promo,users,cust,ea]=await Promise.all([
       getData('rop_products',()=>fetchCsvGid(CFG.productsSheetId,CFG.productsGid)),
-      getData('rop_promo',()=>fetchCsvSheet(CFG.promoSheetId,CFG.promoSheet)),
+      getData('rop_promo',()=>fetchCsvExport(CFG.promoSheetId,CFG.promoGid)),
       getData('rop_users',()=>fetchCsvGid(CFG.usersSheetId,CFG.usersGid)),
       getData('rop_customers',()=>fetchCsvGid(CFG.regSheetId,CFG.regGid)),
       getData('rop_ea',()=>fetchCsvGid(CFG.regSheetId,CFG.eaGid)),
