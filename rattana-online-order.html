@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.4</title>
+<title>Rattana Online Order v2.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -238,7 +238,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.4</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.5</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -336,18 +336,17 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
         <div class="field"><label>บ้านเลขที่</label><input class="input" id="regNo"></div>
         <div class="field"><label>หมู่</label><input class="input" id="regMoo"></div>
       </div>
-      <div class="field"><label>จังหวัด</label>
-        <select class="input" id="regProv" onchange="onProvChange()"><option value="">-- เลือกจังหวัด --</option></select>
-      </div>
-      <div class="grid2">
-        <div class="field"><label>เขต/อำเภอ</label>
-          <select class="input" id="regDist" onchange="onDistChange()"><option value="">-- เลือกจังหวัดก่อน --</option></select>
+      <div class="field"><label>ที่อยู่ (ตำบล, อำเภอ, จังหวัด) <span class="req">*</span></label>
+        <div class="dd-wrap" id="addrDD">
+          <button class="dd-trigger" type="button" onclick="toggleDD('addrDD')"><span id="addrLabel" class="muted">-- เลือก / ค้นหา ตำบล,อำเภอ,จังหวัด --</span><span>▾</span></button>
+          <div class="dd-panel">
+            <input class="dd-search" type="text" placeholder="🔍 พิมพ์ค้นหา เช่น ท่าระหัด" oninput="filterAddr(this)" autocomplete="off">
+            <ul class="dd-list" id="addrList"></ul>
+          </div>
         </div>
-        <div class="field"><label>แขวง/ตำบล</label>
-          <select class="input" id="regSubdist" onchange="onSubdistChange()"><option value="">-- เลือกอำเภอก่อน --</option></select>
-        </div>
+        <input type="hidden" id="regProv"><input type="hidden" id="regDist"><input type="hidden" id="regSubdist">
       </div>
-      <div class="field"><label>รหัสไปรษณีย์</label><input class="input" id="regZip" inputmode="numeric" placeholder="กรอกอัตโนมัติเมื่อเลือกตำบล"></div>
+      <div class="field"><label>รหัสไปรษณีย์</label><input class="input" id="regZip" inputmode="numeric" placeholder="กรอกอัตโนมัติเมื่อเลือกที่อยู่"></div>
       <div class="grid2">
         <div class="field"><label>วันเกิด</label><select class="input" id="regBDay"><option value="">วัน</option></select></div>
         <div class="field"><label>เดือนเกิด</label><select class="input" id="regBMonth"><option value="">เดือน</option></select></div>
@@ -703,9 +702,35 @@ async function loadGeo(){
   return GEO;
 }
 const opt=(v)=>`<option>${v}</option>`;
-function fillProvinces(){
-  const sel=document.getElementById('regProv'); if(!sel||!GEO) return;
-  sel.innerHTML='<option value="">-- เลือกจังหวัด --</option>'+Object.keys(GEO).sort((a,b)=>a.localeCompare(b,'th')).map(opt).join('');
+/* ── ที่อยู่แบบช่องเดียว พิมพ์ค้นหาได้ (ตำบล,อำเภอ,จังหวัด) + เติมรหัสไปรษณีย์ ── */
+let ADDR=[];
+function buildAddrList(){
+  ADDR=[];
+  for(const p in GEO) for(const a in GEO[p]) for(const t in GEO[p][a]){
+    ADDR.push({label:t+','+a+','+p, t, a, p, zip:GEO[p][a][t]});
+  }
+  ADDR.sort((x,y)=>x.label.localeCompare(y.label,'th'));
+  ADDR.forEach((it,i)=>it.id=i);
+  renderAddrList(ADDR);
+}
+function renderAddrList(list){
+  const el=document.getElementById('addrList'); if(!el) return;
+  el.innerHTML = list.slice(0,100).map(it=>`<li onclick="selectAddr(${it.id})">${it.label}</li>`).join('')
+    + (list.length>100?`<li class="no-result">…พิมพ์ค้นหาเพื่อแคบลง (ทั้งหมด ${list.length} รายการ)</li>`:'')
+    + (list.length===0?'<li class="no-result">ไม่พบที่อยู่</li>':'');
+}
+function filterAddr(inp){
+  const q=clean(inp.value).toLowerCase();
+  renderAddrList(q?ADDR.filter(it=>it.label.toLowerCase().includes(q)):ADDR);
+}
+function selectAddr(id){
+  const it=ADDR[id]; if(!it) return;
+  document.getElementById('regSubdist').value=it.t;
+  document.getElementById('regDist').value=it.a;
+  document.getElementById('regProv').value=it.p;
+  document.getElementById('regZip').value=it.zip;
+  const l=document.getElementById('addrLabel'); l.textContent=it.label; l.classList.remove('muted');
+  document.querySelector('#addrDD .dd-panel').classList.remove('show');
 }
 function onProvChange(){
   const p=document.getElementById('regProv').value, dist=document.getElementById('regDist'), sub=document.getElementById('regSubdist');
@@ -967,9 +992,8 @@ async function openRegister(){
   if(window._lineProfile&&window._lineProfile.displayName&&!nameEl.value) nameEl.value=window._lineProfile.displayName;
   if(uid) document.getElementById('regNote').placeholder='เข้าผ่าน LINE (UID: '+uid.slice(0,10)+'...)';
   // โหลดข้อมูลที่อยู่ + เดือน จาก Data Center แล้วเติม dropdown
-  const prov=document.getElementById('regProv');
-  if(!GEO){ prov.innerHTML='<option>กำลังโหลดข้อมูล...</option>'; await loadGeo(); }
-  fillProvinces(); fillBirthSelects();
+  if(!GEO){ document.getElementById('addrLabel').textContent='กำลังโหลดข้อมูลที่อยู่...'; await loadGeo(); document.getElementById('addrLabel').textContent='-- เลือก / ค้นหา ตำบล,อำเภอ,จังหวัด --'; }
+  buildAddrList(); fillBirthSelects();
 }
 let gpsLat='',gpsLng='';
 function getLocation(){
@@ -987,6 +1011,7 @@ async function submitRegister(){
   // บังคับกรอกช่องที่มี * แดง
   if(!name){ showToast('กรุณากรอก ชื่อ / ร้านค้า','warning'); return; }
   if(phone.length<9){ showToast('กรุณากรอก เบอร์โทรศัพท์ ให้ครบ','warning'); return; }
+  if(!clean(document.getElementById('regProv').value)){ showToast('กรุณาเลือก ที่อยู่ (ตำบล,อำเภอ,จังหวัด)','warning'); return; }
   if(!vat){ showToast('กรุณากรอก เลขบัตร / ภพ.20','warning'); return; }
   if(CUSTOMERS.find(c=>c.phone===phone)){ showToast('เบอร์นี้ลงทะเบียนแล้ว เข้าสู่ระบบได้เลย','warning'); closeModal('registerModal'); openModal('loginModal'); document.getElementById('loginPhone').value=phone; return; }
   const uid=window._lineUid||getUrlUid();
