@@ -65,6 +65,7 @@ function handleRegister(d) {
     'Google Maps Link': (d['Latitude'] && d['Longitude']) ? ('https://www.google.com/maps?q=' + d['Latitude'] + ',' + d['Longitude']) : '',
     'สถานะ':           d['สถานะ'] || 'รอยืนยัน',
     'User ID':         d['User ID'] || '',
+    'ภ.พ.20':          d['ภ.พ.20'] || '',
     'Saleman Code':    '',
     'Saleman Name':    ''
   };
