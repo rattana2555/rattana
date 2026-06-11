@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.3</title>
+<title>Rattana Online Order v2.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -238,7 +238,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.3</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.4</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -353,7 +353,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
         <div class="field"><label>เดือนเกิด</label><select class="input" id="regBMonth"><option value="">เดือน</option></select></div>
       </div>
       <div class="field"><label>ปีเกิด (พ.ศ.)</label><select class="input" id="regBYear"><option value="">พ.ศ.</option></select></div>
-      <div class="field"><label>เลขบัตรประชาชน หรือ ภ.พ.20</label><input class="input" id="regVat" inputmode="numeric" placeholder="เลขบัตรประชาชน 13 หลัก หรือ ภ.พ.20 (ถ้ามี)"></div>
+      <div class="field"><label>เลขบัตร / ภพ.20 <span class="req">*</span></label><input class="input" id="regVat" inputmode="numeric" placeholder="เลขบัตรประชาชน 13 หลัก หรือ ภพ.20"></div>
       <div class="field"><label>หมายเหตุ</label><textarea class="input" id="regNote" rows="2"></textarea></div>
       <button class="btn btn-outline btn-block" style="margin-bottom:12px" onclick="getLocation()">📍 ระบุพิกัดร้าน (GPS)</button>
       <p class="txt-sm muted center" id="gpsStatus" style="margin-bottom:12px">ยังไม่ได้ระบุพิกัด</p>
@@ -983,7 +983,11 @@ function getLocation(){
 async function submitRegister(){
   const name=clean(document.getElementById('regName').value);
   const phone=digits(document.getElementById('regPhone').value);
-  if(!name||phone.length<9){ showToast('กรอกชื่อและเบอร์โทรให้ครบ','warning'); return; }
+  const vat=clean(document.getElementById('regVat').value);
+  // บังคับกรอกช่องที่มี * แดง
+  if(!name){ showToast('กรุณากรอก ชื่อ / ร้านค้า','warning'); return; }
+  if(phone.length<9){ showToast('กรุณากรอก เบอร์โทรศัพท์ ให้ครบ','warning'); return; }
+  if(!vat){ showToast('กรุณากรอก เลขบัตร / ภพ.20','warning'); return; }
   if(CUSTOMERS.find(c=>c.phone===phone)){ showToast('เบอร์นี้ลงทะเบียนแล้ว เข้าสู่ระบบได้เลย','warning'); closeModal('registerModal'); openModal('loginModal'); document.getElementById('loginPhone').value=phone; return; }
   const uid=window._lineUid||getUrlUid();
   const payload={ action:'register',
@@ -993,7 +997,7 @@ async function submitRegister(){
     'จังหวัด':clean(document.getElementById('regProv').value),'รหัสไปรษณีย์':clean(document.getElementById('regZip').value),
     'ปีเกิด (พ.ศ.)':clean(document.getElementById('regBYear').value),'เดือนเกิด':clean(document.getElementById('regBMonth').value),
     'วันเกิด':clean(document.getElementById('regBDay').value),'หมายเหตุ':clean(document.getElementById('regNote').value),
-    'ภ.พ.20':clean(document.getElementById('regVat').value),
+    'เลขบัตร/ภพ.20':vat,
     'Latitude':gpsLat,'Longitude':gpsLng,'สถานะ':'รอยืนยัน','User ID':uid };
   showSpinner('กำลังลงทะเบียน...');
   const ok=await postGAS(payload);
