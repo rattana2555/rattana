@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.0</title>
+<title>Rattana Online Order v2.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -238,7 +238,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.0</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.1</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -507,7 +507,7 @@ async function lineLogin(){
     const hit=CUSTOMERS.find(c=>c.uid && c.uid===uid);
     hideSpinner(); closeModal('loginModal');
     if(hit){ currentCustomer=hit; saveSession(hit); renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
-    else { openRegister(); showToast('เข้าผ่าน LINE แล้ว กรอกข้อมูลเพื่อลงทะเบียน','info'); }
+    else { openModal('loginModal'); showToast('ยังไม่พบบัญชี LINE นี้ — ถ้าเคยลงทะเบียนแล้ว กรอกเบอร์เพื่อเชื่อมบัญชี หรือกดลงทะเบียนใหม่','info'); }
   }catch(e){ hideSpinner(); console.warn('LINE login error:',e); showToast('LINE: '+(e&&e.message?e.message:'เชื่อมต่อไม่สำเร็จ'),'error'); }
 }
 async function resolveLogin(){
@@ -577,8 +577,8 @@ function computeGifts(){
     promoObjsFor(p).forEach(promo=>{
       const promoUnit=clean(promo['รูปแบบขาย']).toUpperCase();          // CS / PA / EA
       if(promoUnit && promoUnit!==String(it.type).toUpperCase()) return; // ต้องตรงหน่วยที่ซื้อ
-      const barcode=clean(promo['Barcode สินค้าแถม']);
-      const giftEach=numOr0(promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
+      const barcode=clean(promo['Barcode สินค้าแถมEA']||promo['Barcode สินค้าแถม']);
+      const giftEach=numOr0(promo['จำนวนแถมEA']||promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
       if(!barcode || giftEach<=0 || threshold<=0) return;
       const multiples=Math.floor(it.qty/threshold); if(multiples<1) return;
       const ent=barcodeEntry(barcode); const gp=ent?ent.p:null;
@@ -898,8 +898,15 @@ function loginByPhone(){
   if(ph.length<9){ showToast('กรุณากรอกเบอร์ให้ครบ','warning'); return; }
   const hit=CUSTOMERS.find(c=>c.phone===ph);
   if(!hit){ showToast('ไม่พบเบอร์นี้ในระบบ กรุณาลงทะเบียน','error'); return; }
+  // ถ้าเข้าผ่าน LINE แล้ว แต่บัญชีนี้ยังไม่มี UID -> เชื่อม UID เข้ากับบัญชีให้อัตโนมัติ
+  const uid=window._lineUid||getUrlUid();
+  if(uid && hit.uid!==uid){ hit.uid=uid; linkUidToServer(hit.phone,uid); }
   currentCustomer=hit; saveSession(hit); closeModal('loginModal');
   renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success');
+}
+async function linkUidToServer(phone,uid){
+  if(!phone||!uid) return;
+  try{ await postGAS({action:'linkUid', phone:String(phone), uid:String(uid)}); }catch(e){ console.warn('linkUid',e); }
 }
 function openRegister(){
   const uid=window._lineUid||getUrlUid();

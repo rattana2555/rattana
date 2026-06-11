@@ -25,6 +25,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     if (data.action === 'register') return json(handleRegister(data));
     if (data.action === 'order')    return json(handleOrder(data));
+    if (data.action === 'linkUid')  return json(handleLinkUid(data));
     return json({ ok:false, error:'unknown action' });
   } catch (err) {
     return json({ ok:false, error:String(err) });
@@ -101,6 +102,25 @@ function handleOrder(d) {
     sh.appendRow(row);
   });
   return { ok:true, message:'order saved', count:items.length };
+}
+/* ───────── เชื่อม LINE User ID เข้ากับลูกค้าที่ลงทะเบียนด้วยเบอร์แล้ว ───────── */
+function handleLinkUid(d) {
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var sh = getSheetByGid(ss, REG_SHEET_GID);
+  if (!sh) return { ok:false, error:'reg sheet not found' };
+  var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+  var phoneCol = headers.indexOf('เบอร์โทรศัพท์'), uidCol = headers.indexOf('User ID');
+  if (phoneCol < 0 || uidCol < 0) return { ok:false, error:'columns not found' };
+  var last = sh.getLastRow(); if (last < 2) return { ok:false, error:'no data' };
+  var vals = sh.getRange(2, 1, last - 1, headers.length).getValues();
+  var target = String(d.phone || '').replace(/\D/g, '');
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][phoneCol]).replace(/\D/g, '') === target) {
+      sh.getRange(i + 2, uidCol + 1).setValue(d.uid || '');
+      return { ok:true, linked:true };
+    }
+  }
+  return { ok:false, error:'phone not found' };
 }
 function normHead(s){ return String(s).replace(/\s+/g,'').replace(/[​-‍﻿]/g,'').toLowerCase(); }
 
