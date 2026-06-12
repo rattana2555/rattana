@@ -688,8 +688,9 @@ function _buildAgg(bqRows,bpRows,key){
   return Object.values(agg).sort((a,b)=>b.bqCS-a.bqCS);
 }
 function _drillTr(r,hl,wd,expandKey,canExpand,indent){
-  const _mn=activeMonthCount();const avgCS=r.bqCS/_mn,avgEX=r.bqEX/_mn,expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
-  const rCS=expCS>0?(r.bpCS/expCS*100):0,rEX=expEX>0?(r.bpEX/expEX*100):0;
+  const _mn=activeMonthCount();const avgCS=r.bqCS/_mn,avgEX=r.bqEX/_mn;
+  // Direct ratio vs AVG (not pro-rata) — drill-down shows raw "เดือนนี้ vs AVG"
+  const rCS=avgCS>0?(r.bpCS/avgCS*100):0,rEX=avgEX>0?(r.bpEX/avgEX*100):0;
   const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
   const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
   const mcCS=hl.map(l=>`<td class="num month-col">${fmtInt(r.months[l]?.cs||0)}</td>`).join('');
@@ -703,8 +704,9 @@ function _drillTr(r,hl,wd,expandKey,canExpand,indent){
   return`<tr ${bg}>${nc}${mcCS}<td class="num">${fmtInt(avgCS)}</td><td class="num" style="font-weight:700;color:var(--navy)">${fmtInt(r.bpCS)}</td><td class="num"><span class="cmp-arr ${cCS}">${rCS.toFixed(0)}%</span></td>${mcEX}<td class="num">${fmtInt(avgEX)}</td><td class="num" style="font-weight:700">${fmtInt(r.bpEX)}</td><td class="num"><span class="cmp-arr ${cEX}">${rEX.toFixed(0)}%</span></td></tr>`;
 }
 function _drillFoot(tot,totM,hl,wd,count){
-  const _mn=activeMonthCount();const aCS=tot.bqCS/_mn,aEX=tot.bqEX/_mn,eCS=aCS*wd.rate,eEX=aEX*wd.rate;
-  const rCS=eCS>0?(tot.bpCS/eCS*100):0,rEX=eEX>0?(tot.bpEX/eEX*100):0;
+  const _mn=activeMonthCount();const aCS=tot.bqCS/_mn,aEX=tot.bqEX/_mn;
+  // Direct ratio vs AVG (not pro-rata)
+  const rCS=aCS>0?(tot.bpCS/aCS*100):0,rEX=aEX>0?(tot.bpEX/aEX*100):0;
   const cCS=rCS>=100?'cmp-up':(rCS<80?'cmp-down':'cmp-neutral');
   const cEX=rEX>=100?'cmp-up':(rEX<80?'cmp-down':'cmp-neutral');
   const mcCS=hl.map(l=>`<td class="num month-col">${fmtInt(totM[l]?.cs||0)}</td>`).join('');
