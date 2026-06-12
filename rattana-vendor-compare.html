@@ -376,8 +376,8 @@ body.dark .spinner-box{background:var(--card-bg)}
 <script>
 /* ══ CONFIG ══ */
 const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
-const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1S1WEUOOlFTs11TCN5WXvJ-V6LjGgh6wEFXpT7-hVy-A',claudeTab:'sell in'};
-const CFG_KEY='rattanaVendorCfg_v5';
+const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
+const CFG_KEY='rattanaVendorCfg_v6';
 function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
 if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
 function saveCfgObj(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
