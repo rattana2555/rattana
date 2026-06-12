@@ -376,8 +376,8 @@ body.dark .spinner-box{background:var(--card-bg)}
 <script>
 /* ══ CONFIG ══ */
 const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
-const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1la0jxp3Z5DyDT6wz_zgYp_YV5DcjPu4ZG1GQ9wEnETo',claudeTab:'sell in'};
-const CFG_KEY='rattanaVendorCfg_v7';
+const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1nqxRB3h0168e1bd2pquuW7DV1Y4hAo-TOiheXbLuA1c',claudeTab:'PO'};
+const CFG_KEY='rattanaVendorCfg_v8';
 function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
 if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
 function saveCfgObj(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
@@ -520,7 +520,18 @@ async function loadSellIn(){
   const c=cacheGet('sellin_rows');if(c){console.log('[SellIn] cache hit:',c.length,'rows');return c;}
   const raw=await fetchSheetCsv(CFG.claudeId,CFG.claudeTab);
   console.log('[SellIn] raw rows:',raw.length,'| sample[0]:',raw[0],'| keys:',raw[0]?Object.keys(raw[0]):'none');
-  const r=raw.map(r=>{const keys=Object.keys(r);return{vendor:normVendor(r[keys[0]]||''),cs:pNum(r[keys[1]]),baht:pNum(r[keys[2]])};}).filter(r=>r.vendor);
+  // New PO format: group by AP_NAME, sum TRD_QTY (cs) + EX_VAT (baht)
+  const agg={};
+  raw.forEach(r=>{
+    const vendor=normVendor(r['AP_NAME']||r['Ap_Name']||r['ap_name']||'');
+    if(!vendor)return;
+    const qty=pNum(r['TRD_QTY']||r['Trd_Qty']||r['trd_qty']||0);
+    const ex=pNum(r['EX_VAT']||r['Ex_Vat']||r['ex_vat']||r['EXVat']||0);
+    if(!agg[vendor])agg[vendor]={vendor,cs:0,baht:0};
+    agg[vendor].cs+=qty;
+    agg[vendor].baht+=ex;
+  });
+  const r=Object.values(agg);
   console.log('[SellIn] parsed vendors:',r.length,'| first 5:',r.slice(0,5));
   cacheSet('sellin_rows',r);return r;
 }
