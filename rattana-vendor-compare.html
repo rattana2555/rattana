@@ -581,10 +581,9 @@ function renderStats(){
   const bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
   const _mn=activeMonthCount();const avgCS=bqCS/_mn,avgEX=bqEX/_mn;
   const wd=getWDStats();
-  // Pro-rata expected = avg * (elapsed WD / total WD)
-  const expCS=avgCS*wd.rate,expEX=avgEX*wd.rate;
-  const csRatio=expCS>0?(bpCS/expCS*100):0;
-  const exRatio=expEX>0?(bpEX/expEX*100):0;
+  // Direct ratio vs AVG (no pro-rata) — consistent with drill-down table
+  const csRatio=avgCS>0?(bpCS/avgCS*100):0;
+  const exRatio=avgEX>0?(bpEX/avgEX*100):0;
   const{historyLabels,currentLabel}=getPeriodLabels();
   $('periodLbl').textContent=`${historyLabels[0]} → ${currentLabel}`;
   const cc=(r)=>r>=100?'cmp-up':(r<80?'cmp-down':'cmp-neutral');
@@ -595,12 +594,12 @@ function renderStats(){
     <div class="stat-card ${csRatio>=100?'success':(csRatio<80?'danger':'warning')}">
       <div class="s-label">BP เดือนนี้ — Sales CS</div>
       <div class="s-value">${fmtInt(bpCS)} <span class="cmp-arr ${cc(csRatio)}">${cs(csRatio)} ${csRatio.toFixed(0)}%</span></div>
-      <div class="s-sub">วันทำงาน ${wd.elapsed}/${wd.total} วัน · เป้า ${fmtInt(expCS)} CS</div>
+      <div class="s-sub">เทียบ AVG ${fmtInt(avgCS)} CS · วันทำงาน ${wd.elapsed}/${wd.total} วัน</div>
     </div>
     <div class="stat-card ${exRatio>=100?'success':(exRatio<80?'danger':'warning')}">
       <div class="s-label">BP เดือนนี้ — EXVat</div>
       <div class="s-value">${fmtInt(bpEX)} ฿ <span class="cmp-arr ${cc(exRatio)}">${cs(exRatio)} ${exRatio.toFixed(0)}%</span></div>
-      <div class="s-sub">เทียบเป้า Pro-rata (จ-ส) ${fmtInt(expEX)} ฿</div>
+      <div class="s-sub">เทียบ AVG ${fmtInt(avgEX)} ฿ · วันทำงาน ${wd.elapsed}/${wd.total} วัน</div>
     </div>
   `;
 }
