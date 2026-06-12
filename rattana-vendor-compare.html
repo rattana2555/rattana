@@ -428,6 +428,17 @@ function getWDStats(){
   const total=countWD(y,m,1,dim);
   return{elapsed,total,remaining:total-elapsed,rate:elapsed/total,day:d,dim};
 }
+// Standard workdays per month (Mon-Sat avg) — used for daily-rate AVG comparison
+const STD_WD_PER_MONTH=26;
+// Find latest doc-date day in BP rows; return workdays from 1 to that day in current month
+function getBpWDElapsed(bp){
+  if(!bp||!bp.length)return 0;
+  let maxDay=0;
+  bp.forEach(r=>{const d=parseBpDate(r.doc_date);if(d){const day=d.getDate();if(day>maxDay)maxDay=day;}});
+  if(!maxDay)return 0;
+  const now=new Date();
+  return countWD(now.getFullYear(),now.getMonth()+1,1,maxDay);
+}
 
 /* ══ AUTH ══ */
 function decodeJwtPayload(token){const parts=String(token||'').split('.');if(parts.length<2)throw new Error('JWT invalid');let b64=parts[1].replace(/-/g,'+').replace(/_/g,'/');const pad=(4-b64.length%4)%4;if(pad)b64+='='.repeat(pad);const bin=atob(b64);const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return JSON.parse(new TextDecoder('utf-8').decode(bytes));}
@@ -581,9 +592,12 @@ function renderStats(){
   const bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
   const _mn=activeMonthCount();const avgCS=bqCS/_mn,avgEX=bqEX/_mn;
   const wd=getWDStats();
-  // Direct ratio vs AVG (no pro-rata) — consistent with drill-down table
-  const csRatio=avgCS>0?(bpCS/avgCS*100):0;
-  const exRatio=avgEX>0?(bpEX/avgEX*100):0;
+  // Per-day rate comparison: BP/days_so_far vs AVG/26_std_wd
+  const bpDays=getBpWDElapsed(bp);
+  const bpCSperDay=bpDays>0?bpCS/bpDays:0,bpEXperDay=bpDays>0?bpEX/bpDays:0;
+  const avgCSperDay=avgCS/STD_WD_PER_MONTH,avgEXperDay=avgEX/STD_WD_PER_MONTH;
+  const csRatio=avgCSperDay>0?(bpCSperDay/avgCSperDay*100):0;
+  const exRatio=avgEXperDay>0?(bpEXperDay/avgEXperDay*100):0;
   const{historyLabels,currentLabel}=getPeriodLabels();
   $('periodLbl').textContent=`${historyLabels[0]} → ${currentLabel}`;
   const cc=(r)=>r>=100?'cmp-up':(r<80?'cmp-down':'cmp-neutral');
@@ -594,12 +608,12 @@ function renderStats(){
     <div class="stat-card ${csRatio>=100?'success':(csRatio<80?'danger':'warning')}">
       <div class="s-label">BP เดือนนี้ — Sales CS</div>
       <div class="s-value">${fmtInt(bpCS)} <span class="cmp-arr ${cc(csRatio)}">${cs(csRatio)} ${csRatio.toFixed(0)}%</span></div>
-      <div class="s-sub">เทียบ AVG ${fmtInt(avgCS)} CS · วันทำงาน ${wd.elapsed}/${wd.total} วัน</div>
+      <div class="s-sub">${fmtInt(bpCSperDay)}/วัน (${bpDays} วัน) เทียบ AVG ${fmtInt(avgCSperDay)}/วัน</div>
     </div>
     <div class="stat-card ${exRatio>=100?'success':(exRatio<80?'danger':'warning')}">
       <div class="s-label">BP เดือนนี้ — EXVat</div>
       <div class="s-value">${fmtInt(bpEX)} ฿ <span class="cmp-arr ${cc(exRatio)}">${cs(exRatio)} ${exRatio.toFixed(0)}%</span></div>
-      <div class="s-sub">เทียบ AVG ${fmtInt(avgEX)} ฿ · วันทำงาน ${wd.elapsed}/${wd.total} วัน</div>
+      <div class="s-sub">${fmtInt(bpEXperDay)}/วัน (${bpDays} วัน) เทียบ AVG ${fmtInt(avgEXperDay)}/วัน</div>
     </div>
   `;
 }
