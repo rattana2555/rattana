@@ -376,8 +376,8 @@ body.dark .spinner-box{background:var(--card-bg)}
 <script>
 /* ══ CONFIG ══ */
 const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
-const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1vKG6LbKv01S-WqkYyTQMNTzYCGdvDXKJ89ERYNdfBc8',claudeTab:'sell in'};
-const CFG_KEY='rattanaVendorCfg_v6';
+const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1la0jxp3Z5DyDT6wz_zgYp_YV5DcjPu4ZG1GQ9wEnETo',claudeTab:'sell in'};
+const CFG_KEY='rattanaVendorCfg_v7';
 function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
 if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
 function saveCfgObj(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
@@ -516,7 +516,14 @@ async function loadStock(){
   })).filter(r=>r.product_name&&r.cat_vendor);
   cacheSet('stock_rows',r);return r;
 }
-async function loadSellIn(){const c=cacheGet('sellin_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.claudeId,CFG.claudeTab);const r=raw.map(r=>{const keys=Object.keys(r);return{vendor:normVendor(r[keys[0]]||''),cs:pNum(r[keys[1]]),baht:pNum(r[keys[2]])};}).filter(r=>r.vendor);cacheSet('sellin_rows',r);return r;}
+async function loadSellIn(){
+  const c=cacheGet('sellin_rows');if(c){console.log('[SellIn] cache hit:',c.length,'rows');return c;}
+  const raw=await fetchSheetCsv(CFG.claudeId,CFG.claudeTab);
+  console.log('[SellIn] raw rows:',raw.length,'| sample[0]:',raw[0],'| keys:',raw[0]?Object.keys(raw[0]):'none');
+  const r=raw.map(r=>{const keys=Object.keys(r);return{vendor:normVendor(r[keys[0]]||''),cs:pNum(r[keys[1]]),baht:pNum(r[keys[2]])};}).filter(r=>r.vendor);
+  console.log('[SellIn] parsed vendors:',r.length,'| first 5:',r.slice(0,5));
+  cacheSet('sellin_rows',r);return r;
+}
 
 /* ══ VENDOR DROPDOWN ══ */
 function renderVendorList(){const ul=$('vendorList');if(!VENDORS.length){ul.innerHTML='<li class="no-result">ยังไม่มี vendor — ตั้งค่า BQ Proxy ที่ ⚙</li>';return;}const sorted=[...VENDORS].sort((a,b)=>b.exvat-a.exvat);ul.innerHTML=sorted.map(v=>`<li onclick="selectVendor('${escHtml(v.vendor).replace(/'/g,"\\'")}')"><div class="vrow"><span class="vname">${escHtml(v.vendor)}</span><span class="vamt">${fmtInt(v.exvat)} ฿</span></div></li>`).join('');}
@@ -937,7 +944,14 @@ function renderSellIn(){
   const sel=SELECTED_VENDOR;
   const selK=normKey(sel);
   let row=SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===selK)||SELLIN_ALL_ROWS.find(r=>selK.includes(normKey(r.vendor))||normKey(r.vendor).includes(selK));
-  if(!row){$('seContent').innerHTML=`<div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>ยอดซื้อเข้าเดือนนี้ (Sell-In)</h3></div><div class="card-body"><div class="empty-state" style="padding:30px 20px"><div class="icon">🔍</div><div class="ttl">ไม่พบข้อมูลซื้อเข้าของ vendor นี้</div></div></div></div>`;return;}
+  if(!row){
+    console.warn('[SellIn MATCH FAIL] selected="'+sel+'" selK="'+selK+'" | total sellin rows:',SELLIN_ALL_ROWS.length);
+    if(SELLIN_ALL_ROWS.length){
+      const samples=SELLIN_ALL_ROWS.slice(0,8).map(r=>({vendor:r.vendor,key:normKey(r.vendor)}));
+      console.warn('[SellIn samples]',samples);
+    }
+    $('seContent').innerHTML=`<div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>ยอดซื้อเข้าเดือนนี้ (Sell-In)</h3></div><div class="card-body"><div class="empty-state" style="padding:30px 20px"><div class="icon">🔍</div><div class="ttl">ไม่พบข้อมูลซื้อเข้าของ vendor นี้</div></div></div></div>`;return;
+  }
   const bp=vendorBpRows(),bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
   const sb=row.cs-bpCS,mb=row.baht-bpEX;
   $('seContent').innerHTML=`
