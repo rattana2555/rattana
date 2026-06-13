@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.15</title>
+<title>Rattana Online Order v2.16</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -60,6 +60,9 @@ header{background:var(--navy);color:#fff;padding:10px 14px;position:sticky;top:0
 .search-box input:focus{border-color:var(--gold)}
 .search-box .si{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
 .filter-btn{width:46px;height:46px;border-radius:14px;background:var(--card-bg);border:1.5px solid var(--border);color:var(--text);font-size:18px;flex-shrink:0}
+.scan-btn{background:var(--gold);border-color:var(--gold)}
+#scanReader{border-radius:12px;overflow:hidden;background:#000}
+#scanReader video{width:100%!important;border-radius:12px;display:block}
 
 /* Category chips */
 .chips{display:flex;gap:8px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none}
@@ -246,7 +249,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.15</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.16</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -272,6 +275,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
   <div class="search-bar">
     <div class="search-box"><span class="si">🔍</span><input id="searchInput" type="text" placeholder="ค้นหาสินค้า..." oninput="onSearch()" autocomplete="off"></div>
+    <button class="filter-btn scan-btn" onclick="openScan()" title="สแกนบาร์โค้ด">📷</button>
     <button class="filter-btn" onclick="clearSearch()" title="ล้าง">⟲</button>
   </div>
   <div class="cat-row">
@@ -374,6 +378,16 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
   <div class="modal">
     <div class="modal-head"><h3>รายละเอียดสินค้า</h3><button class="modal-close" onclick="closeModal('productModal')">×</button></div>
     <div class="modal-body" id="pdBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="scanModal">
+  <div class="modal">
+    <div class="modal-head"><h3>📷 สแกนบาร์โค้ดสินค้า</h3><button class="modal-close" onclick="closeScan()">×</button></div>
+    <div class="modal-body">
+      <div id="scanReader" style="width:100%;min-height:220px"></div>
+      <p class="muted txt-sm" id="scanHint" style="margin-top:12px;text-align:center">เล็งกล้องไปที่บาร์โค้ดสินค้า</p>
+    </div>
   </div>
 </div>
 
@@ -819,11 +833,51 @@ function clearSpecial(){ specialFilter='none'; document.getElementById('specialB
 function onSearch(){ searchTerm=clean(document.getElementById('searchInput').value); renderLimit=60; renderProducts(); }
 function clearSearch(){ document.getElementById('searchInput').value=''; searchTerm=''; activeCat='ทั้งหมด'; specialFilter='none'; document.getElementById('specialBanner').style.display='none'; document.getElementById('catLabel').textContent='📂 ทุกหมวดหมู่'; renderLimit=60; renderCatDropdown(); renderProducts(); }
 
+/* ===================== SCAN BARCODE ===================== */
+let _scanner=null,_scanLib=false,_scanBusy=false;
+function ensureScanLib(){
+  if(_scanLib) return Promise.resolve(true);
+  return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'; s.onload=()=>{_scanLib=true;res(true);}; s.onerror=rej; document.head.appendChild(s); });
+}
+/* หาสินค้าจากบาร์โค้ดที่สแกน (เผื่อ leading zero / pad 13 หลัก แบบ EAN/UPC) */
+function findByScan(code){
+  code=clean(code); if(!code) return null;
+  return barcodeEntry(code) || barcodeEntry(code.replace(/^0+/,'')) || barcodeEntry(('0000000000000'+code).slice(-13));
+}
+async function openScan(){
+  openModal('scanModal'); _scanBusy=false;
+  const hint=document.getElementById('scanHint'); hint.textContent='กำลังเปิดกล้อง...';
+  try{
+    await ensureScanLib();
+    _scanner=new Html5Qrcode('scanReader');
+    const F=Html5QrcodeSupportedFormats;
+    const cfg={ fps:10, qrbox:{width:260,height:170}, formatsToSupport:[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF,F.QR_CODE] };
+    await _scanner.start({facingMode:'environment'}, cfg, onScanHit, ()=>{});
+    hint.textContent='เล็งกล้องไปที่บาร์โค้ดสินค้า';
+  }catch(e){
+    hint.textContent='เปิดกล้องไม่ได้ — โปรดอนุญาตสิทธิ์กล้องแล้วลองใหม่';
+    showToast('เปิดกล้องไม่ได้: '+(e&&e.message?e.message:'ตรวจสอบสิทธิ์กล้อง'),'error');
+  }
+}
+async function stopScan(){ if(_scanner){ try{ await _scanner.stop(); _scanner.clear(); }catch(e){} _scanner=null; } }
+async function closeScan(){ await stopScan(); closeModal('scanModal'); }
+function onScanHit(text){
+  if(_scanBusy) return;
+  const e=findByScan(text);
+  if(e){
+    _scanBusy=true;
+    const nm=clean(e.p['PRODUCT NAME']);
+    closeScan().then(()=>{ openProduct(nm, e.type); showToast('พบสินค้า: '+nm,'success'); });
+  } else {
+    document.getElementById('scanHint').textContent='ไม่พบสินค้าบาร์โค้ด '+text+' — ลองเล็งใหม่';
+  }
+}
+
 /* ── หน้ารายละเอียดสินค้า + เลือกหน่วย + ยืนยันเพิ่มลงตะกร้า ── */
-function openProduct(name){
+function openProduct(name,preferType){
   const p=findProduct(name); if(!p) return;
   const units=unitsFor(p); const promo=promosFor(p);
-  const sel=(units.find(u=>u.type==='PA')||units[0]).type;
+  const sel=((preferType&&units.find(u=>u.type===preferType))||units.find(u=>u.type==='PA')||units[0]).type;
   window._pd={name, units, sel, qty:1};
   const meta=[clean(p['CAT BRAND']),clean(p['CAT GROUP']),clean(p['CAT SIZE'])].filter(Boolean).join(' • ');
   const inCart=inCartQtyOf(name);
