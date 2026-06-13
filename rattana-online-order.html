@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.7</title>
+<title>Rattana Online Order v2.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -243,7 +243,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.7</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.8</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -575,18 +575,27 @@ function computeGifts(){
   const gifts={};
   Object.values(cart).forEach(it=>{
     const p=findProduct(it.name); if(!p) return;
+    // รวบรวมโปรของแถมที่ "ถึงจำนวน" และตรงหน่วยที่ซื้อ
+    const cands=[];
     promoObjsFor(p).forEach(promo=>{
       const promoUnit=clean(promo['รูปแบบขาย']).toUpperCase();          // CS / PA / EA
       if(promoUnit && promoUnit!==String(it.type).toUpperCase()) return; // ต้องตรงหน่วยที่ซื้อ
       const barcode=clean(promo['Barcode สินค้าแถมEA']||promo['Barcode สินค้าแถม']);
       const giftEach=numOr0(promo['จำนวนแถมEA']||promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
-      if(!barcode || giftEach<=0 || threshold<=0) return;
-      const multiples=Math.floor(it.qty/threshold); if(multiples<1) return;
-      const ent=barcodeEntry(barcode); const gp=ent?ent.p:null;
-      const giftName=gp?clean(gp['PRODUCT NAME']):(clean(promo['แถมสินค้า'])||('บาร์โค้ด '+barcode));
+      if(!barcode || giftEach<=0 || threshold<=0 || it.qty<threshold) return;
+      cands.push({barcode,giftEach,threshold});
+    });
+    if(!cands.length) return;
+    // เอาเฉพาะ "ขั้นสูงสุด" ที่ถึง (ไม่เอาขั้นล่างมารวม)
+    const maxTh=Math.max.apply(null,cands.map(c=>c.threshold));
+    cands.filter(c=>c.threshold===maxTh).forEach(c=>{
+      const mult=Math.floor(it.qty/c.threshold);
+      const ent=barcodeEntry(c.barcode); const gp=ent?ent.p:null;
+      const giftName=gp?clean(gp['PRODUCT NAME']):('บาร์โค้ด '+c.barcode);
       const giftUnit=ent?clean(ent.p['UNIT '+ent.type]):'';
-      if(!gifts[barcode]) gifts[barcode]={barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name,unitDetail:giftUnit};
-      gifts[barcode].qty+=giftEach*multiples;
+      const k=it.key+'|'+c.barcode;   // แยกของแถมตามสินค้าที่ซื้อ (ให้แสดงใต้สินค้านั้น)
+      if(!gifts[k]) gifts[k]={barcode:c.barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name,fromKey:it.key,unitDetail:giftUnit};
+      gifts[k].qty+=c.giftEach*mult;
     });
   });
   return Object.values(gifts);
@@ -907,7 +916,8 @@ function renderCart(){
   const list=document.getElementById('cartList'); const sum=document.getElementById('cartSummary');
   const items=Object.values(cart);
   if(!items.length){ list.innerHTML='<div class="empty">🛒 ยังไม่มีสินค้าในตะกร้า<br><button class="btn btn-gold" style="margin-top:14px" onclick="goShop()">เลือกสินค้า</button></div>'; sum.style.display='none'; return; }
-  const itemsHtml=items.map(i=>`<div class="cart-item">
+  const gifts=computeGifts();
+  const itemHtml=i=>`<div class="cart-item">
     <img class="ci-img" src="${i.img||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'">
     <div class="ci-body">
       <div class="ci-name">${i.name} <span style="font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(201,168,76,.18);color:var(--navy);font-weight:700">${i.unitName}</span></div>
@@ -922,17 +932,17 @@ function renderCart(){
         <button class="ci-del" onclick="removeItem('${esc(i.key)}')">🗑</button>
       </div>
       <div class="txt-sm muted">${baht(itemUnitPrice(i))} / ${i.unitName}${(i.tiers&&i.tiers.length>1)?' <span class="txt-success">(ราคาตามจำนวน)</span>':''}</div>
-    </div></div>`).join('');
-  const gifts=computeGifts();
-  const giftHtml=gifts.map(g=>`<div class="cart-item gift-item">
+    </div></div>`;
+  const giftHtml=g=>`<div class="cart-item gift-item">
     <img class="ci-img" src="${g.img||giftImg(g.name)}" onerror="this.src='${PLACEHOLDER}'">
     <div class="ci-body">
       <div class="ci-name">${g.name}<span class="gift-badge">🎁 ของแถม ฟรี</span></div>
-      <div class="ci-promo">แถมจากการซื้อ "${g.from}"</div>
+      <div class="ci-promo">↑ แถมจากการซื้อด้านบน</div>
       ${g.barcode?`<div class="txt-sm muted">บาร์โค้ด: ${g.barcode}</div>`:''}
       <div class="ci-row"><span class="txt-sm muted">จำนวน ${g.qty}</span><span class="ci-price txt-success">฿0</span></div>
-    </div></div>`).join('');
-  list.innerHTML=itemsHtml+giftHtml;
+    </div></div>`;
+  // แสดงของแถมไว้ใต้สินค้าที่ซื้อทันที
+  list.innerHTML=items.map(i=> itemHtml(i) + gifts.filter(g=>g.fromKey===i.key).map(giftHtml).join('') ).join('');
   sum.style.display='block';
   document.getElementById('sumItems').textContent=items.length+' รายการ'+(gifts.length?` + ของแถม ${gifts.length}`:'');
   document.getElementById('sumQty').textContent=cartCount();
