@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.19</title>
+<title>Rattana Online Order v2.20</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -127,11 +127,12 @@ header{background:var(--navy);color:#fff;padding:12px 18px;position:sticky;top:0
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
 /* Bottom nav */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card-bg);border-top:1px solid var(--border);display:flex;z-index:95;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 10px rgba(0,0,0,.06)}
-.bn-btn{flex:1;background:none;color:var(--muted);padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;position:relative}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:3px solid var(--gold);display:flex;justify-content:center;z-index:95;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 16px rgba(0,0,0,.18)}
+.bn-btn{flex:1 1 0;max-width:200px;background:none;color:rgba(255,255,255,.6);padding:9px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;position:relative;transition:color .15s}
 .bn-btn.active{color:var(--gold)}
+.bn-btn.active::before{content:"";position:absolute;top:-3px;left:24%;right:24%;height:3px;border-radius:0 0 3px 3px;background:var(--gold)}
 .bn-btn .bi{font-size:20px}
-.bn-badge{position:absolute;top:2px;right:50%;margin-right:-22px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.bn-badge{position:absolute;top:2px;right:50%;margin-right:-22px;background:#E23B3B;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--navy)}
 
 /* Views */
 .view{display:none}.view.active{display:block}
@@ -216,7 +217,7 @@ body.dark .special-banner{color:var(--gold-light)}
 .feat-scroll,.section-head{max-width:1200px;margin-left:auto;margin-right:auto}
 .grid{max-width:1200px;margin-left:auto;margin-right:auto}
 @media(min-width:1280px){.grid{grid-template-columns:repeat(5,1fr)}}
-.bottom-nav{max-width:1200px;margin:0 auto}
+.bottom-nav{max-width:none;margin:0}
 
 /* Cart gift item */
 .gift-item{border:1.5px dashed var(--success);background:rgba(46,204,113,.07)}
@@ -271,7 +272,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.19</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.20</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
