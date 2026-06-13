@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.23</title>
+<title>Rattana Online Order v2.24</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.23</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.24</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -518,7 +518,42 @@ const PROMO_FIELD={
 
 /* ===================== CART PERSIST ===================== */
 function loadCart(){ try{return JSON.parse(localStorage.getItem('rop_cart'))||{};}catch{return{}} }
-function saveCart(){ localStorage.setItem('rop_cart',JSON.stringify(cart)); }
+function saveCart(){ localStorage.setItem('rop_cart',JSON.stringify(cart)); pushCartSoon(); }
+
+/* ===================== SHARED CART (ซิงค์ข้ามเครื่องของร้านเดียวกัน ผูกด้วยเบอร์) ===================== */
+let _cartTs=0,_cartPushTimer=null,_cartSyncOn=false;
+function cartShopKey(){ return currentCustomer ? digits(currentCustomer.phone) : ''; }
+function cartArrForSync(){ return Object.values(cart).map(i=>({key:i.key,name:i.name,type:i.type,unitName:i.unitName,unitDetail:i.unitDetail,price:i.price,tiers:i.tiers||null,barcode:i.barcode||'',img:i.img||'',promo:i.promo||[],qty:i.qty})); }
+/* เซฟตะกร้าขึ้นชีท (หน่วง 1.5 วิ) — เฉพาะลูกค้าที่ล็อกอินแล้ว */
+function pushCartSoon(){
+  const phone=cartShopKey(); if(!phone) return;
+  if(_cartPushTimer) clearTimeout(_cartPushTimer);
+  _cartPushTimer=setTimeout(()=>{ _cartTs=Date.now();
+    postGAS({action:'saveCart', phone, name:(currentCustomer&&currentCustomer.name)||'', uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'', cart:JSON.stringify(cartArrForSync()), ts:_cartTs});
+  },1500);
+}
+/* ดึงตะกร้าล่าสุดของร้านจากเซิร์ฟเวอร์ (JSONP — อ่านข้าม origin ได้) */
+function pullCart(force){
+  const phone=cartShopKey(); if(!phone) return;
+  if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
+  const cb='__cartcb'+Date.now()+Math.floor(Math.random()*1e4);
+  window[cb]=(r)=>{ try{
+    if(r&&r.ok){
+      const serverTs=Number(r.ts)||0;
+      if(force||serverTs>_cartTs){
+        const obj={}; (r.cart||[]).forEach(i=>{ if(i&&i.key) obj[i.key]=i; });
+        cart=obj; _cartTs=serverTs; localStorage.setItem('rop_cart',JSON.stringify(cart)); // ไม่ push กลับ
+        renderCartBadge(); if(document.getElementById('viewCart').classList.contains('active')) renderCart(); renderProducts();
+      }
+    }
+  }catch(e){console.warn('pullCart',e);} finally{ delete window[cb]; const s=document.getElementById(cb); if(s) s.remove(); } };
+  const s=document.createElement('script'); s.id=cb;
+  s.src=CFG.GAS_URL+'?action=getCart&phone='+encodeURIComponent(phone)+'&callback='+cb+'&_='+Date.now();
+  s.onerror=()=>{ delete window[cb]; s.remove(); };
+  document.head.appendChild(s);
+  setTimeout(()=>{ if(window[cb]){ delete window[cb]; const s2=document.getElementById(cb); if(s2) s2.remove(); } },8000);
+}
+function startCartSync(){ if(_cartSyncOn) return; _cartSyncOn=true; setInterval(()=>pullCart(false),25000); }
 
 /* ===================== CUSTOMER / SESSION ===================== */
 function mapCustomer(row){
@@ -575,7 +610,7 @@ async function lineLogin(){
     const p=await liff.getProfile(); window._lineProfile=p; const uid=clean(p.userId); window._lineUid=uid;
     const hit=custByUid(uid);
     hideSpinner(); closeModal('loginModal');
-    if(hit){ currentCustomer=hit; saveSession(hit); renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
+    if(hit){ currentCustomer=hit; saveSession(hit); renderAll(); goShop(); pullCart(true); startCartSync(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
     else { openModal('loginModal'); showToast('ยังไม่พบบัญชี LINE นี้ — ถ้าเคยลงทะเบียนแล้ว กรอกเบอร์เพื่อเชื่อมบัญชี หรือกดลงทะเบียนใหม่','info'); }
   }catch(e){ hideSpinner(); console.warn('LINE login error:',e); showToast('LINE: '+(e&&e.message?e.message:'เชื่อมต่อไม่สำเร็จ'),'error'); }
 }
@@ -1123,7 +1158,7 @@ function renderCart(){
 function setNav(id){ ['navShop','navCart','navProfile'].forEach(n=>document.getElementById(n).classList.remove('active')); document.getElementById(id).classList.add('active'); }
 function showView(v){ ['viewShop','viewCart','viewProfile'].forEach(x=>document.getElementById(x).classList.remove('active')); document.getElementById(v).classList.add('active'); window.scrollTo(0,0); }
 function goShop(){ showView('viewShop'); setNav('navShop'); }
-function goCart(){ showView('viewCart'); setNav('navCart'); renderCart(); }
+function goCart(){ showView('viewCart'); setNav('navCart'); renderCart(); pullCart(false); }
 function goProfile(){ showView('viewProfile'); setNav('navProfile'); renderProfile(); }
 
 const CONTACT={ dept:'ฝ่ายขาย (สำนักงานใหญ่)', phone:'0803897765', lineOA:'@rpbsale' };
@@ -1204,7 +1239,7 @@ function loginByPhone(){
     linkUidToServer(hit.phone,uid);
   }
   currentCustomer=hit; saveSession(hit); closeModal('loginModal');
-  renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success');
+  renderAll(); goShop(); pullCart(true); startCartSync(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success');
 }
 async function linkUidToServer(phone,uid){
   if(!phone||!uid) return;
@@ -1320,6 +1355,7 @@ async function loadAll(silent){
     refreshCurrentCustomer();   // ดึงข้อมูลร้านล่าสุดจากชีท (ที่อยู่/เซลล์/คลัง/สถานะ)
     await resolveLogin();
     renderAll();
+    pullCart(true); startCartSync();   // ซิงค์ตะกร้าร่วมของร้าน
   }catch(e){ console.error(e); showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต','error'); }
   finally{ if(!silent) hideSpinner(); }
 }
