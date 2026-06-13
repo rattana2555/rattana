@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.16</title>
+<title>Rattana Online Order v2.17</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -249,7 +249,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.16</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.17</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -849,9 +849,12 @@ async function openScan(){
   const hint=document.getElementById('scanHint'); hint.textContent='กำลังเปิดกล้อง...';
   try{
     await ensureScanLib();
-    _scanner=new Html5Qrcode('scanReader');
     const F=Html5QrcodeSupportedFormats;
-    const cfg={ fps:10, qrbox:{width:260,height:170}, formatsToSupport:[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF,F.QR_CODE] };
+    // เน้นเฉพาะบาร์โค้ดสินค้า (EAN/UPC + CODE128) เพื่อ decode เร็วขึ้น
+    const fmts=[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128];
+    _scanner=new Html5Qrcode('scanReader',{ formatsToSupport:fmts, useBarCodeDetectorIfSupported:true, verbose:false });
+    const cfg={ fps:24, qrbox:{width:300,height:170}, aspectRatio:1.33,
+      experimentalFeatures:{useBarCodeDetectorIfSupported:true} };
     await _scanner.start({facingMode:'environment'}, cfg, onScanHit, ()=>{});
     hint.textContent='เล็งกล้องไปที่บาร์โค้ดสินค้า';
   }catch(e){
