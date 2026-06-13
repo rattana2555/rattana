@@ -133,6 +133,7 @@ function handleOrder(d) {
   var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
   if (!sh) return { ok:false, error:'order sheet "' + ORDER_SHEET_NAME + '" not found' };
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var bcCol = -1; for (var bi=0; bi<headers.length; bi++){ if (normHead(headers[bi])===normHead('Barcode')){ bcCol=bi; break; } }
   var now = new Date();
   var dateStr = Utilities.formatDate(now, 'Asia/Bangkok', 'dd/MM/yyyy');
   var timeStr = Utilities.formatDate(now, 'Asia/Bangkok', 'HH.mm');
@@ -143,7 +144,7 @@ function handleOrder(d) {
       'วัน': dateStr, 'เวลา': timeStr, 'email': d.uid || '',
       'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '',
       'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': '',
-      'รูปแบบ': it.type || '', 'Barcode': "'" + (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
+      'รูปแบบ': it.type || '', 'Barcode': (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
       'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
       'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
       'โปรที่ใช้': it.promo || '',        // โปร/ของแถมที่ใช้ -> คอลัมน์ "โปรที่ใช้"
@@ -154,6 +155,8 @@ function handleOrder(d) {
     for (var k in v) vmap[normHead(k)] = v[k];
     var row = headers.map(function(h){ var n = normHead(h); return vmap.hasOwnProperty(n) ? vmap[n] : ''; });
     sh.appendRow(row);
+    // Barcode: เก็บเป็น "ข้อความ" ด้วย number format @ (ไม่ต้องใส่ ' นำหน้า, ไม่เพี้ยนเป็น scientific)
+    if (bcCol >= 0) { var lr = sh.getLastRow(); var bcell = sh.getRange(lr, bcCol+1); bcell.setNumberFormat('@'); bcell.setValue(String(it.barcode || '')); }
   });
   try { pushLineOrder(d, sh); } catch (e) {}   // ส่งสรุปเข้าไลน์ลูกค้า (ไม่ให้ล้มถ้า push พลาด)
   clearCartFor(d.phone);   // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน (ทุกเครื่องตะกร้าว่างพร้อมกัน)
