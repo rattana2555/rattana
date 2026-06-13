@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.17</title>
+<title>Rattana Online Order v2.18</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -249,7 +249,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.17</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.18</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -844,9 +844,20 @@ function findByScan(code){
   code=clean(code); if(!code) return null;
   return barcodeEntry(code) || barcodeEntry(code.replace(/^0+/,'')) || barcodeEntry(('0000000000000'+code).slice(-13));
 }
+/* สถานะสิทธิ์กล้อง: granted=เคยอนุญาตแล้ว(เปิดเลยไม่ถาม) / denied=โดนบล็อก / prompt=ยังไม่เคยถาม */
+async function camPermState(){
+  try{ if(navigator.permissions&&navigator.permissions.query){ const s=await navigator.permissions.query({name:'camera'}); return s.state; } }catch(e){}
+  return 'unknown';
+}
 async function openScan(){
   openModal('scanModal'); _scanBusy=false;
-  const hint=document.getElementById('scanHint'); hint.textContent='กำลังเปิดกล้อง...';
+  const hint=document.getElementById('scanHint');
+  const st=await camPermState();
+  if(st==='denied'){
+    hint.innerHTML='⚠️ กล้องถูกปิดสิทธิ์อยู่<br><span class="txt-sm">แตะ 🔒 ข้างช่องเว็บ → สิทธิ์ → กล้อง → อนุญาต แล้วเปิดสแกนใหม่</span>';
+    showToast('กล้องถูกบล็อก — เปิดสิทธิ์กล้องในเบราว์เซอร์ก่อน','warning'); return;
+  }
+  hint.textContent = st==='granted' ? 'กำลังเปิดกล้อง...' : 'แตะ "อนุญาต" เพื่อใช้กล้องสแกน (ครั้งเดียว ระบบจะจำไว้)';
   try{
     await ensureScanLib();
     const F=Html5QrcodeSupportedFormats;
