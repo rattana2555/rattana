@@ -179,21 +179,37 @@ function pushLineOrder(d, sh){
     payload: JSON.stringify(msg), muteHttpExceptions:true
   });
 }
-/* ───────── เชื่อม LINE User ID เข้ากับลูกค้าที่ลงทะเบียนด้วยเบอร์แล้ว ───────── */
+/* ───────── เชื่อม LINE User ID เข้ากับลูกค้าที่ลงทะเบียนด้วยเบอร์แล้ว ─────────
+   ร้านเดียวกัน (เบอร์เดียวกัน) มีหลายไลน์ได้:
+   - uid ตัวแรก → เก็บที่คอลัมน์ 'User ID' (ไม่เคยทับ)
+   - uid ตัวถัดไป → ต่อท้ายคอลัมน์ 'User ID เพิ่ม' (คั่น , กันซ้ำ) — สร้างคอลัมน์ให้อัตโนมัติถ้ายังไม่มี */
 function handleLinkUid(d) {
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
   var sh = getSheetByGid(ss, REG_SHEET_GID);
   if (!sh) return { ok:false, error:'reg sheet not found' };
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
   var phoneCol = headers.indexOf('เบอร์โทรศัพท์'), uidCol = headers.indexOf('User ID');
+  var extraCol = headers.indexOf('User ID เพิ่ม');
   if (phoneCol < 0 || uidCol < 0) return { ok:false, error:'columns not found' };
+  var uid = String(d.uid || '').trim();
+  if (!uid) return { ok:false, error:'no uid' };
+  // สร้างคอลัมน์ 'User ID เพิ่ม' อัตโนมัติถ้ายังไม่มี (ต่อท้ายหัวตาราง)
+  if (extraCol < 0) { extraCol = headers.length; sh.getRange(1, extraCol + 1).setValue('User ID เพิ่ม'); }
   var last = sh.getLastRow(); if (last < 2) return { ok:false, error:'no data' };
-  var vals = sh.getRange(2, 1, last - 1, headers.length).getValues();
+  var width = Math.max(headers.length, extraCol + 1);
+  var vals = sh.getRange(2, 1, last - 1, width).getValues();
   var target = String(d.phone || '').replace(/\D/g, '');
   for (var i = 0; i < vals.length; i++) {
     if (String(vals[i][phoneCol]).replace(/\D/g, '') === target) {
-      sh.getRange(i + 2, uidCol + 1).setValue(d.uid || '');
-      return { ok:true, linked:true };
+      var primary = String(vals[i][uidCol] || '').trim();
+      if (!primary) { sh.getRange(i + 2, uidCol + 1).setValue(uid); return { ok:true, linked:'primary' }; }
+      if (primary === uid) return { ok:true, linked:'already' };
+      var extra = String(vals[i][extraCol] || '');
+      var listed = extra.split(/[,\n;]+/).map(function(s){ return s.trim(); }).filter(String);
+      if (listed.indexOf(uid) >= 0) return { ok:true, linked:'already' };
+      listed.push(uid);
+      sh.getRange(i + 2, extraCol + 1).setValue(listed.join(', '));
+      return { ok:true, linked:'extra' };
     }
   }
   return { ok:false, error:'phone not found' };

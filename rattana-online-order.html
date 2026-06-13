@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.8</title>
+<title>Rattana Online Order v2.9</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -243,7 +243,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.8</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.9</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -462,6 +462,7 @@ function mapCustomer(row){
     name: clean(row['ชื่อ / ร้านค้า']),
     phone: digits(row['เบอร์โทรศัพท์']),
     uid: clean(row['User ID']),
+    uidsExtra: clean(row['User ID เพิ่ม']),
     salemanCode: clean(row['Saleman Code']),
     salemanName: clean(row['Saleman Name']),
     status: clean(row['สถานะ']),
@@ -469,13 +470,16 @@ function mapCustomer(row){
     houseNo: clean(row['บ้านเลขที่']), moo: clean(row['หมู่']), zip: clean(row['รหัสไปรษณีย์']),
   };
 }
+// uid ทั้งหมดของร้าน (ตัวหลัก + ที่เพิ่มภายหลัง) — ร้านเดียวมีได้หลายไลน์
+function uidList(c){ const a=[]; if(c&&c.uid) a.push(clean(c.uid)); if(c&&c.uidsExtra) clean(c.uidsExtra).split(/[,\n;]+/).forEach(u=>{u=clean(u); if(u)a.push(u);}); return a; }
+function custByUid(uid){ uid=clean(uid); if(!uid) return null; return CUSTOMERS.find(c=>uidList(c).includes(uid))||null; }
 function saveSession(c){ localStorage.setItem('rop_customer',JSON.stringify({data:c,exp:Date.now()+30*864e5})); }
 function checkSession(){ try{const r=JSON.parse(localStorage.getItem('rop_customer')); if(r&&Date.now()<r.exp) currentCustomer=r.data;}catch{} }
 function logout(){ localStorage.removeItem('rop_customer'); currentCustomer=null; renderAll(); goShop(); showToast('ออกจากระบบแล้ว','info'); }
 // อัปเดตข้อมูลลูกค้าที่ล็อกอินอยู่ ให้ตรงกับชีทลงทะเบียนล่าสุด (ที่อยู่/เซลล์/คลัง/สถานะ)
 function refreshCurrentCustomer(){
   if(!currentCustomer) return;
-  const fresh=CUSTOMERS.find(c=>(currentCustomer.uid&&c.uid===currentCustomer.uid)||(currentCustomer.phone&&c.phone===currentCustomer.phone));
+  const fresh=CUSTOMERS.find(c=>(currentCustomer.uid&&uidList(c).includes(clean(currentCustomer.uid)))||(currentCustomer.phone&&c.phone===currentCustomer.phone));
   if(fresh){ currentCustomer=fresh; saveSession(fresh); }
 }
 
@@ -505,7 +509,7 @@ async function lineLogin(){
     await ensureLiff();
     if(!liff.isLoggedIn()){ hideSpinner(); liff.login(); return; } // redirect ไป LINE
     const p=await liff.getProfile(); window._lineProfile=p; const uid=clean(p.userId); window._lineUid=uid;
-    const hit=CUSTOMERS.find(c=>c.uid && c.uid===uid);
+    const hit=custByUid(uid);
     hideSpinner(); closeModal('loginModal');
     if(hit){ currentCustomer=hit; saveSession(hit); renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
     else { openModal('loginModal'); showToast('ยังไม่พบบัญชี LINE นี้ — ถ้าเคยลงทะเบียนแล้ว กรอกเบอร์เพื่อเชื่อมบัญชี หรือกดลงทะเบียนใหม่','info'); }
@@ -516,7 +520,7 @@ async function resolveLogin(){
   let uid = await tryLiff(); if(!uid) uid=getUrlUid();
   if(uid){
     window._lineUid=uid;
-    const hit=CUSTOMERS.find(c=>c.uid && c.uid===uid);
+    const hit=custByUid(uid);
     if(hit){ currentCustomer=hit; saveSession(hit); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
   }
 }
@@ -1027,9 +1031,12 @@ function loginByPhone(){
   if(ph.length<9){ showToast('กรุณากรอกเบอร์ให้ครบ','warning'); return; }
   const hit=CUSTOMERS.find(c=>c.phone===ph);
   if(!hit){ showToast('ไม่พบเบอร์นี้ในระบบ กรุณาลงทะเบียน','error'); return; }
-  // ถ้าเข้าผ่าน LINE แล้ว แต่บัญชีนี้ยังไม่มี UID -> เชื่อม UID เข้ากับบัญชีให้อัตโนมัติ
+  // ถ้าเข้าผ่าน LINE แล้ว และ uid นี้ยังไม่เคยผูกกับร้าน -> ผูกเพิ่ม (ไลน์ที่ 2,3.. เก็บช่อง User ID เพิ่ม, ไม่ทับตัวหลัก)
   const uid=window._lineUid||getUrlUid();
-  if(uid && hit.uid!==uid){ hit.uid=uid; linkUidToServer(hit.phone,uid); }
+  if(uid && !uidList(hit).includes(uid)){
+    if(!clean(hit.uid)) hit.uid=uid; else hit.uidsExtra=(clean(hit.uidsExtra)?hit.uidsExtra+', ':'')+uid;
+    linkUidToServer(hit.phone,uid);
+  }
   currentCustomer=hit; saveSession(hit); closeModal('loginModal');
   renderAll(); goShop(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success');
 }
