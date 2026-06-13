@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.12</title>
+<title>Rattana Online Order v2.13</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -246,7 +246,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.12</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.13</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -618,17 +618,12 @@ function isSellable(p,wh){
   if(['W1','W2','W3'].includes(wh)) return !!clean(p['IB '+wh]);
   return true; // HQ/อื่นๆ เห็นทั้งหมด
 }
-/* ช่อง IB Wn เก็บข้อความแบบ "2026/06/05 VOLUME 100.0 FREE 0.0 VALUE 566.64" → ดึงเลขหลัง VOLUME = สต๊อกจริง */
-function ibVolume(s){
-  s=clean(s); if(!s) return 0;
-  const m=s.match(/VOLUME\s+([\d,.]+)/i);
-  return m?numOr0(m[1]):numOr0(s);
-}
-/* สต๊อกคงเหลือของคลังที่ให้บริการลูกค้า (W4 = W4+C4, guest/HQ = รวมทุกคลัง) */
+/* สต๊อกคงเหลือจริงอยู่ในคอลัมน์ STOCK Wn (เลขล้วน) — ไม่ใช่ IB Wn (= ข้อมูลรับเข้าล่าสุด, ไม่ใช่ยอดคงเหลือ)
+   W4 = STOCK W4 + STOCK C4 (รวมกัน), guest/HQ = รวมทุกคลัง */
 function stockForWh(p,wh){
-  if(wh==='W4') return ibVolume(p['IB W4'])+ibVolume(p['IB C4']);
-  if(['W1','W2','W3'].includes(wh)) return ibVolume(p['IB '+wh]);
-  return ['W1','W2','W3','W4','C4'].reduce((s,w)=>s+ibVolume(p['IB '+w]),0);
+  if(wh==='W4') return numOr0(p['STOCK W4'])+numOr0(p['STOCK C4']);
+  if(['W1','W2','W3'].includes(wh)) return numOr0(p['STOCK '+wh]);
+  return ['W1','W2','W3','W4','C4'].reduce((s,w)=>s+numOr0(p['STOCK '+w]),0);
 }
 /* เกณฑ์ "สินค้าใกล้หมด" ตาม RANK: A,B<30 | C,D<10 | E,F,New/อื่นๆ<5 */
 function lowStockLimit(rank){
