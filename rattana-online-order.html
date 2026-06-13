@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.10</title>
+<title>Rattana Online Order v2.11</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -246,7 +246,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.10</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.11</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -535,8 +535,10 @@ function warehouseForCustomer(c){
     const u=USERS.find(u=> clean(u['รหัสเซลล์'])===c.salemanCode || clean(u['รหัสเซล'])===c.salemanCode || clean(u['รหัสขาย Bplus'])===c.salemanCode);
     if(u){ const w=clean(u['คลังส่ง'])||clean(u['W']); if(w) return w.toUpperCase(); }
   }
-  return null; // registered but unassigned -> see all, can still order
+  return null; // registered but unassigned -> คลังจริงยัง "รอกำหนด" (ใช้ตอนบันทึกออเดอร์/โปรไฟล์)
 }
+/* คลังสำหรับ "โชว์สินค้า/สต๊อก/rank/ราคา": ถ้ายังไม่รู้คลังลูกค้า ให้ยึด W1 เป็นค่าตั้งต้น */
+function displayWarehouse(c){ return warehouseForCustomer(c) || 'W1'; }
 
 /* ===================== PROMOTIONS ===================== */
 function promoActive(p){
@@ -630,7 +632,7 @@ function lowStockLimit(rank){
   return 5;
 }
 function isLowStock(p){
-  const wh=warehouseForCustomer(currentCustomer);
+  const wh=displayWarehouse(currentCustomer);
   const stock=stockForWh(p,wh);
   return stock>0 && stock < lowStockLimit(productRank(p,wh));
 }
@@ -641,7 +643,7 @@ function priceOf(p){
   return {value:v,unit};
 }
 function visibleProducts(){
-  const wh=warehouseForCustomer(currentCustomer);
+  const wh=displayWarehouse(currentCustomer);
   return PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && isSellable(p,wh));
 }
 function newestProducts(){
@@ -920,7 +922,7 @@ function tierPriceForQty(tiers,qty){
 function itemUnitPrice(it){ return (it.tiers&&it.tiers.length)?tierPriceForQty(it.tiers,it.qty):it.price; }
 function unitWord(detail,fallback){ const d=clean(detail); if(!d) return fallback; const m=d.match(/^([^\dxX]+)/); return (m&&m[1].trim())||fallback; }
 function unitsFor(p){
-  const wh=warehouseForCustomer(currentCustomer);
+  const wh=displayWarehouse(currentCustomer);
   const u=[];
   const cs=numOr0(p['PRICE S03 CS']); if(cs>0){ const dt=clean(p['UNIT CS']); u.push({type:'CS',name:unitWord(dt,'ลัง'),price:cs,barcode:clean(p['CODE CS']),detail:dt,tiers:priceTiersCS(p,wh)}); }
   const pa=numOr0(p['PRICE S03 PA']); if(pa>0){ const dt=clean(p['UNIT PA']); u.push({type:'PA',name:unitWord(dt,'แพ็ค'),price:pa,barcode:clean(p['CODE PA']),detail:dt,tiers:null}); }
