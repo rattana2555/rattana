@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.20</title>
+<title>Rattana Online Order v2.21</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -63,13 +63,20 @@ header{background:var(--navy);color:#fff;padding:12px 18px;position:sticky;top:0
 
 /* Featured */
 .section-head{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 8px}
-.section-head h2{font-size:17px;font-weight:700}
+.section-head h2{font-size:17px;font-weight:800;display:flex;align-items:center;gap:9px}
+.section-head h2::before{content:"";width:6px;height:20px;border-radius:3px;background:var(--gold);flex:none}
+.section-head.sh-promo h2::before{background:#1D5FD6}
 .section-head .see-all{color:var(--gold);font-size:13px;font-weight:600;background:none}
 .feat-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 14px 14px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .feat-scroll::-webkit-scrollbar{height:6px}
 .feat-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.feat-card{flex:0 0 150px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);overflow:hidden;position:relative;display:flex;flex-direction:column}
-.feat-card .f-img{width:100%;height:110px;object-fit:contain;background:#fff;padding:6px}
+.feat-card{flex:0 0 158px;background:var(--card-bg);border:1px solid #ECEFF5;border-radius:18px;box-shadow:0 4px 14px rgba(15,27,51,.05);overflow:hidden;position:relative;display:flex;flex-direction:column;cursor:pointer}
+body.dark .feat-card{border-color:var(--border)}
+.feat-card .f-thumb{position:relative;height:112px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.feat-card .f-img{max-width:80%;max-height:84%;object-fit:contain;mix-blend-mode:multiply}
+.feat-card .f-tag{position:absolute;top:8px;left:8px;font-size:10px;font-weight:700;color:#fff;background:#E23B3B;padding:3px 9px;border-radius:999px}
+.feat-card .f-price{font-weight:800;color:var(--text);font-size:15px}
+.feat-card .f-price small{font-weight:500;color:var(--muted);font-size:10px}
 .feat-card .f-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:4px;flex:1}
 .feat-card .f-name{font-size:12px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:30px}
 .feat-card .f-promo{font-size:10px;color:var(--danger);font-weight:600;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -95,20 +102,28 @@ header{background:var(--navy);color:#fff;padding:12px 18px;position:sticky;top:0
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:4px 14px 24px}
 @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
-.pcard{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);overflow:hidden;position:relative;display:flex;flex-direction:column}
-.pcard .price-tag{position:absolute;top:8px;right:8px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:12px;box-shadow:var(--shadow-md);z-index:2}
-.pcard .price-tag small{font-weight:500;opacity:.8;font-size:9px}
-.pcard .promo-flag{position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;font-size:12px;font-weight:700;padding:5px 12px;border-radius:0 12px 12px 0;z-index:2;box-shadow:var(--shadow-md);letter-spacing:.3px}
-.pcard .p-img{width:100%;height:130px;object-fit:contain;background:#fff;padding:8px}
-.pcard .p-body{padding:8px 10px 10px;display:flex;flex-direction:column;gap:5px;flex:1}
-.pcard .p-name{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
-.pcard .p-meta{font-size:11px;color:var(--muted)}
-.pcard .p-promo{font-size:10px;color:var(--danger);font-weight:600;background:rgba(231,76,60,.08);border-radius:6px;padding:4px 6px;line-height:1.25}
-.pcard .p-low{align-self:flex-start;font-size:10px;font-weight:700;color:#b45309;background:rgba(245,158,11,.16);border-radius:6px;padding:3px 7px;line-height:1.2}
-.low-flag{position:absolute;top:8px;left:8px;background:#f59e0b;color:#3a2a00;font-size:11px;font-weight:700;padding:4px 10px;border-radius:0 12px 12px 0;z-index:2;box-shadow:var(--shadow-md);letter-spacing:.2px}
+.pcard{background:var(--card-bg);border:1px solid #ECEFF5;border-radius:18px;box-shadow:0 4px 14px rgba(15,27,51,.05);overflow:hidden;position:relative;display:flex;flex-direction:column;cursor:pointer;transition:transform .12s}
+body.dark .pcard{border-color:var(--border)}
+.pcard:active{transform:scale(.985)}
+.pcard .p-thumb{position:relative;height:128px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pcard .p-img{max-width:80%;max-height:86%;object-fit:contain;mix-blend-mode:multiply}
+.pcard .p-tag{position:absolute;top:9px;left:9px;font-size:10px;font-weight:700;color:#fff;padding:3px 9px;border-radius:999px;z-index:2;letter-spacing:.3px}
+.pcard .tag-promo{background:#E23B3B}
+.pcard .tag-new{background:#1E9E5A}
+.pcard .p-qty{position:absolute;top:9px;right:9px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+.pcard .p-body{padding:11px 12px 13px;display:flex;flex-direction:column;gap:3px;flex:1}
+.pcard .p-name{font-size:12.5px;font-weight:600;line-height:1.35;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.pcard .p-price{display:flex;align-items:baseline;gap:5px;margin-top:4px}
+.pcard .p-price b{font-size:18px;font-weight:800;color:var(--text)}
+.pcard .p-price small{font-size:10.5px;color:var(--muted);font-weight:500}
+.pcard .p-unit{font-size:10.5px;color:var(--muted)}
+.pcard .p-low{align-self:flex-start;font-size:10px;font-weight:700;color:#b45309;background:rgba(245,158,11,.16);border-radius:999px;padding:3px 8px;line-height:1.2;margin-top:2px}
+.pcard .p-add{margin-top:auto;background:#1D5FD6;color:#fff;font-weight:700;font-size:13px;border-radius:11px;padding:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.pcard .p-add svg{stroke:#fff}
+.pcard .p-add:active{transform:scale(.97)}
+.pcard .p-add.in{background:#E7EFFC;color:#1648A8}
+.pcard .p-add.in svg{stroke:#1648A8}
 .pd-low{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.16);color:#b45309;font-weight:700;font-size:13px;border-radius:8px;padding:8px 12px;margin:10px 0}
-.pcard .add-btn{margin-top:auto;background:var(--gold);color:var(--navy);font-weight:700;font-size:13px;border-radius:var(--radius-sm);padding:9px;display:flex;align-items:center;justify-content:center;gap:6px}
-.pcard .add-btn:active{transform:scale(.97)}
 
 /* qty stepper */
 .stepper{display:flex;align-items:center;gap:0;margin-top:auto;border:1.5px solid var(--gold);border-radius:var(--radius-sm);overflow:hidden}
@@ -272,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.20</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.21</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -297,11 +312,11 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
   </div>
 
   <div id="promoSection">
-    <div class="section-head"><h2>🎁 โปรโมชั่น</h2><button class="see-all" onclick="setSpecial('promo')">ดูทั้งหมด ›</button></div>
+    <div class="section-head sh-promo"><h2>โปรโมชั่นแนะนำ</h2><button class="see-all" onclick="setSpecial('promo')">ดูทั้งหมด ›</button></div>
     <div class="feat-scroll" id="promoScroll"></div>
   </div>
   <div id="newSection">
-    <div class="section-head"><h2>🆕 สินค้าใหม่</h2><button class="see-all" onclick="setSpecial('new')">ดูทั้งหมด ›</button></div>
+    <div class="section-head"><h2>สินค้าใหม่</h2><button class="see-all" onclick="setSpecial('new')">ดูทั้งหมด ›</button></div>
     <div class="feat-scroll" id="newScroll"></div>
   </div>
 
@@ -690,6 +705,11 @@ function isLowStock(p){
   const stock=stockForWh(p,wh);
   return stock>0 && stock < lowStockLimit(productRank(p,wh));
 }
+/* สินค้าใหม่: FIRST STOCK DATE ภายใน 60 วัน */
+function isNewProduct(p){ const d=Date.parse(clean(p['FIRST STOCK DATE']).replace(/\//g,'-')); return !isNaN(d) && (Date.now()-d) < 60*864e5; }
+/* สีพื้นพาสเทลของกล่องรูป (สลับตามหมวด/แบรนด์ ให้ดูมีสีสันแบบดีไซน์) */
+const CARD_TINTS=['#FBF3DF','#FDECEC','#E7EFFC','#E6F4EC','#EFE9FB','#FCEEE0','#E3F3F2'];
+function cardTint(p){ const s=clean(p['CAT GROUP'])||clean(p['CAT BRAND'])||clean(p['PRODUCT NAME']); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return CARD_TINTS[h%CARD_TINTS.length]; }
 function priceOf(p){
   let v=numOr0(p['PRICE S03 PA']), unit=clean(p['UNIT PA'])||'แพ็ค';
   if(!v){ v=numOr0(p['PRICE S03 CS']); unit=clean(p['UNIT CS'])||'ลัง'; }
@@ -722,13 +742,15 @@ function updateLogo(){ document.getElementById('logoImg').src=LOGO_RATTANA; }
 const esc=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
 
 function scrollCard(p,tag,isNew){
-  const name=clean(p['PRODUCT NAME']); const {value,unit}=priceOf(p);
+  const name=clean(p['PRODUCT NAME']); const {value,unit}=priceOf(p); const word=unitWord(unit,unit); const tint=cardTint(p);
   return `<div class="feat-card" onclick="openProduct('${esc(name)}')">
-    <img class="f-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
+    <div class="f-thumb" style="background:${tint}">
+      <img class="f-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
+      <span class="f-tag" style="${isNew?'background:#1E9E5A':''}">${isNew?'ใหม่':'โปร'}</span>
+    </div>
     <div class="f-body">
       <div class="f-name">${name}</div>
-      <div class="f-promo ${isNew?'f-new':''}">${tag}</div>
-      <div style="font-weight:700;color:var(--navy);font-size:13px">${baht(value)} <span style="font-weight:400;color:var(--muted);font-size:10px">/${unit}</span></div>
+      <div class="f-price">${baht(value)} <small>/${word}</small></div>
     </div></div>`;
 }
 function renderPromoScroll(){
@@ -985,17 +1007,20 @@ function renderProducts(){
   if(!all.length){ grid.innerHTML='<div class="empty">ไม่พบสินค้า</div>'; return; }
   const list=all.slice(0,renderLimit);
   grid.innerHTML=list.map(p=>{
-    const name=clean(p['PRODUCT NAME']); const {value,unit}=priceOf(p);
-    const promo=promosFor(p); const inCart=inCartQtyOf(name); const low=isLowStock(p);
+    const name=clean(p['PRODUCT NAME']); const {value,unit}=priceOf(p); const word=unitWord(unit,unit);
+    const promo=promosFor(p); const inCart=inCartQtyOf(name); const low=isLowStock(p); const isNew=isNewProduct(p); const tint=cardTint(p);
     return `<div class="pcard" onclick="openProduct('${esc(name)}')">
-      <div class="price-tag">${baht(value)}<br><small>/${unit}</small></div>
-      ${promo.length?'<div class="promo-flag">🎁 โปรโมชั่น</div>':(low?'<div class="low-flag">⚠️ ใกล้หมด</div>':'')}
-      <img class="p-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
+      <div class="p-thumb" style="background:${tint}">
+        <img class="p-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
+        ${promo.length?'<span class="p-tag tag-promo">โปร</span>':(isNew?'<span class="p-tag tag-new">ใหม่</span>':'')}
+        ${inCart?`<span class="p-qty">${inCart}</span>`:''}
+      </div>
       <div class="p-body">
         <div class="p-name">${name}</div>
-        <div class="p-meta">${clean(p['CAT BRAND'])||clean(p['CAT GROUP'])||''}</div>
-        ${low&&promo.length?'<div class="p-low">⚠️ สินค้าใกล้หมด</div>':''}
-        <button class="add-btn" onclick="event.stopPropagation();openProduct('${esc(name)}')">${inCart?('🛒 ในตะกร้า '+inCart):'เลือกซื้อ ›'}</button>
+        <div class="p-price"><b>${baht(value)}</b><small>/${word}</small></div>
+        ${unit&&unit!==word?`<div class="p-unit">${unit}</div>`:''}
+        ${low?'<div class="p-low">⚠️ สินค้าใกล้หมด</div>':''}
+        <button class="p-add ${inCart?'in':''}" onclick="event.stopPropagation();openProduct('${esc(name)}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg> ${inCart?('ในตะกร้า '+inCart):'เพิ่มลงตะกร้า'}</button>
       </div></div>`;
   }).join('') + (all.length>renderLimit?`<div class="load-more"><button class="btn btn-outline" onclick="renderLimit+=60;renderProducts()">แสดงเพิ่ม (${all.length-renderLimit})</button></div>`:'');
 }
