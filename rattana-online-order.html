@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.5</title>
+<title>Rattana Online Order v2.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -211,6 +211,11 @@ body.dark .pd-price{color:var(--gold-light)}
 .unit-btn.active{border-color:var(--gold);background:rgba(201,168,76,.14);color:var(--navy)}
 body.dark .unit-btn.active{color:var(--gold-light)}
 .pd-qty{max-width:170px}
+.pd-tiers{margin:14px 0}
+.pd-tiers-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.pd-tier-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;padding:8px 12px;border-radius:8px;margin-bottom:5px;background:var(--row-alt);border:1px solid var(--border)}
+.pd-tier-row.active{background:rgba(201,168,76,.16);border-color:var(--gold)}
+.pd-tier-row b{color:var(--navy)}body.dark .pd-tier-row b{color:var(--gold-light)}
 /* Profile contact / hub */
 .info-note{background:#fff4f4;border:1px solid #ffd5d0;color:#c0392b;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;line-height:1.5;margin-bottom:14px}
 body.dark .info-note{background:#3a1a17;border-color:#5a2a25;color:#ff8a7e}
@@ -238,7 +243,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.5</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.6</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -785,6 +790,7 @@ function openProduct(name){
     <div id="pdPrice" class="pd-price"></div>
     ${promo.length?`<div class="pd-promo">🎁 ${promo.join('<br>')}</div>`:''}
     ${clean(p['DESCRIPTION'])?`<div class="pd-desc">${clean(p['DESCRIPTION'])}</div>`:''}
+    <div id="pdTiers" class="pd-tiers"></div>
     <div class="pd-unit-label">เลือกหน่วยที่ต้องการสั่ง</div>
     <div class="pd-units" id="pdUnits"></div>
     <div class="pd-unit-label">จำนวน</div>
@@ -795,24 +801,34 @@ function openProduct(name){
     </div>
     ${inCart?`<div class="txt-sm muted" style="margin-top:8px">🛒 ในตะกร้าแล้ว ${inCart} หน่วย</div>`:''}
     <button class="btn btn-gold btn-block" style="margin-top:14px" onclick="confirmAddToCart()">🛒 เพิ่มลงตะกร้า</button>`;
-  renderPdUnits(); renderPdPrice(); openModal('productModal');
+  renderPdUnits(); renderPdPrice(); renderPdTiers(); openModal('productModal');
 }
 function renderPdUnits(){
   const pd=window._pd; if(!pd) return;
   document.getElementById('pdUnits').innerHTML=pd.units.map(u=>
-    `<button class="unit-btn ${u.type===pd.sel?'active':''}" onclick="selUnit('${u.type}')">${u.name}<small>${baht(u.price)}${u.detail?'<br>'+u.detail:''}</small></button>`).join('');
+    `<button class="unit-btn ${u.type===pd.sel?'active':''}" onclick="selUnit('${u.type}')">${u.name}<small>${baht(u.tiers&&u.tiers.length?u.tiers[0].price:u.price)}${u.detail?'<br>'+u.detail:''}</small></button>`).join('');
 }
-function selUnit(t){ window._pd.sel=t; renderPdUnits(); renderPdPrice(); }
+function selUnit(t){ window._pd.sel=t; renderPdUnits(); renderPdPrice(); renderPdTiers(); }
+function pdStrip(s){ return clean(s).replace(/\s*\([^)]*\)\s*/g,'').trim(); }
 function renderPdPrice(){
   const pd=window._pd; const u=pd.units.find(x=>x.type===pd.sel);
-  document.getElementById('pdPrice').innerHTML=`${baht(u.price)} <span style="font-size:13px;color:var(--muted);font-weight:400">/ ${u.name}${u.detail?' ('+u.detail+')':''}</span>`;
+  const price=(u.tiers&&u.tiers.length)?tierPriceForQty(u.tiers,pd.qty):u.price;
+  document.getElementById('pdPrice').innerHTML=`${baht(price)} <span style="font-size:13px;color:var(--muted);font-weight:400">/ ${u.name}${u.detail?' ('+u.detail+')':''}</span>`;
 }
-function pdQty(d){ const pd=window._pd; pd.qty=Math.max(1,(pd.qty||1)+d); document.getElementById('pdQtyInput').value=pd.qty; }
-function pdSetQty(v){ const pd=window._pd; pd.qty=Math.max(1,parseInt(v)||1); document.getElementById('pdQtyInput').value=pd.qty; }
+function renderPdTiers(){
+  const pd=window._pd; const u=pd.units.find(x=>x.type===pd.sel); const el=document.getElementById('pdTiers'); if(!el) return;
+  if(!u.tiers || u.tiers.length<2){ el.innerHTML=''; return; }
+  let actMin=u.tiers[0].min; u.tiers.forEach(t=>{ if(pd.qty>=t.min) actMin=t.min; });
+  const lbl=pdStrip(u.detail)||u.name;
+  el.innerHTML='<div class="pd-tiers-title">💰 ราคาตามจำนวน (ยิ่งซื้อเยอะยิ่งถูก)</div>'+u.tiers.map(t=>
+    `<div class="pd-tier-row ${t.min===actMin?'active':''}"><span>${t.min} ${lbl} ขึ้นไป</span><b>${baht(t.price)}</b></div>`).join('');
+}
+function pdQty(d){ const pd=window._pd; pd.qty=Math.max(1,(pd.qty||1)+d); document.getElementById('pdQtyInput').value=pd.qty; renderPdPrice(); renderPdTiers(); }
+function pdSetQty(v){ const pd=window._pd; pd.qty=Math.max(1,parseInt(v)||1); document.getElementById('pdQtyInput').value=pd.qty; renderPdPrice(); renderPdTiers(); }
 function confirmAddToCart(){
   const pd=window._pd; if(!pd) return; const u=pd.units.find(x=>x.type===pd.sel); const p=findProduct(pd.name);
   const key=pd.name+'__'+u.type;
-  if(!cart[key]) cart[key]={key,name:pd.name,type:u.type,unitName:u.name,unitDetail:u.detail,price:u.price,barcode:u.barcode,img:imgUrl(p['SKU_USAGE']),promo:promosFor(p),qty:0};
+  if(!cart[key]) cart[key]={key,name:pd.name,type:u.type,unitName:u.name,unitDetail:u.detail,price:u.price,tiers:u.tiers||null,barcode:u.barcode,img:imgUrl(p['SKU_USAGE']),promo:promosFor(p),qty:0};
   cart[key].qty+=pd.qty; saveCart();
   renderProducts(); renderCartBadge(); closeModal('productModal');
   showToast(`เพิ่ม ${pd.name} (${pd.qty} ${u.name}) ลงตะกร้าแล้ว`,'success');
@@ -841,13 +857,35 @@ function renderProducts(){
 /* ===================== CART OPS ===================== */
 function findProduct(name){ return PRODUCTS.find(p=>clean(p['PRODUCT NAME'])===name); }
 /* หน่วยที่ขายได้ของสินค้า: ลัง(CS) / แพ็ค(PA) เสมอถ้ามีราคา, ชิ้น(EA) เฉพาะ CAT SIZE ที่อยู่ในชีทขาย EA */
+/* ราคาขั้นบันได (ลัง/CS) ตาม RANK ของคลังลูกค้า:
+   A,B: 1=S03, 10=S02, 1เลท(CS PALLET)=S01 | C: 1=S03, 5=S02, 10=S01 | D,E,F,New: 1=S03, 2=S02, 5=S01 */
+function priceTiersCS(p,wh){
+  const s01=numOr0(p['PRICE S01 CS']), s02=numOr0(p['PRICE S02 CS']), s03=numOr0(p['PRICE S03 CS']);
+  if(!s03) return null;
+  const rank = wh? clean(p['RANK '+wh]).toUpperCase() : '';
+  const pallet=numOr0(p['CS PALLET']);
+  let raw;
+  if(rank==='A'||rank==='B') raw=[[1,s03],[10,s02],[pallet>0?pallet:10,s01]];
+  else if(rank==='C')        raw=[[1,s03],[5,s02],[10,s01]];
+  else                       raw=[[1,s03],[2,s02],[5,s01]]; // D,E,F,New,ไม่ระบุ
+  const tiers=[]; raw.forEach(([min,price])=>{ if(price>0 && !tiers.some(t=>t.min===min)) tiers.push({min,price}); });
+  tiers.sort((a,b)=>a.min-b.min);
+  return tiers.length?tiers:null;
+}
+function tierPriceForQty(tiers,qty){
+  if(!tiers||!tiers.length) return 0;
+  let chosen=tiers[0]; tiers.forEach(t=>{ if(qty>=t.min) chosen=t; }); return chosen.price;
+}
+function itemUnitPrice(it){ return (it.tiers&&it.tiers.length)?tierPriceForQty(it.tiers,it.qty):it.price; }
+function unitWord(detail,fallback){ const d=clean(detail); if(!d) return fallback; const m=d.match(/^([^\dxX]+)/); return (m&&m[1].trim())||fallback; }
 function unitsFor(p){
+  const wh=warehouseForCustomer(currentCustomer);
   const u=[];
-  const cs=numOr0(p['PRICE S03 CS']); if(cs>0) u.push({type:'CS',name:'ลัง',price:cs,barcode:clean(p['CODE CS']),detail:clean(p['UNIT CS'])});
-  const pa=numOr0(p['PRICE S03 PA']); if(pa>0) u.push({type:'PA',name:'แพ็ค',price:pa,barcode:clean(p['CODE PA']),detail:clean(p['UNIT PA'])});
+  const cs=numOr0(p['PRICE S03 CS']); if(cs>0){ const dt=clean(p['UNIT CS']); u.push({type:'CS',name:unitWord(dt,'ลัง'),price:cs,barcode:clean(p['CODE CS']),detail:dt,tiers:priceTiersCS(p,wh)}); }
+  const pa=numOr0(p['PRICE S03 PA']); if(pa>0){ const dt=clean(p['UNIT PA']); u.push({type:'PA',name:unitWord(dt,'แพ็ค'),price:pa,barcode:clean(p['CODE PA']),detail:dt,tiers:null}); }
   const ea=numOr0(p['PRICE S03 EA']);
-  if(ea>0 && EA_SET.has(clean(p['CAT SIZE']).toLowerCase())) u.push({type:'EA',name:'ชิ้น',price:ea,barcode:clean(p['CODE EA']),detail:clean(p['UNIT EA'])});
-  if(!u.length){ const f=priceOf(p); u.push({type:'PA',name:f.unit,price:f.value,barcode:'',detail:''}); }
+  if(ea>0 && EA_SET.has(clean(p['CAT SIZE']).toLowerCase())){ const dt=clean(p['UNIT EA']); u.push({type:'EA',name:unitWord(dt,'ชิ้น'),price:ea,barcode:clean(p['CODE EA']),detail:dt,tiers:null}); }
+  if(!u.length){ const f=priceOf(p); u.push({type:'PA',name:f.unit,price:f.value,barcode:'',detail:'',tiers:null}); }
   return u;
 }
 function inCartQtyOf(name){ return Object.values(cart).filter(c=>c.name===name).reduce((s,c)=>s+c.qty,0); }
@@ -855,7 +893,7 @@ function changeQty(key,d){ if(!cart[key])return; cart[key].qty+=d; if(cart[key].
 function setQty(key,v){ const q=parseInt(v)||0; if(!cart[key])return; if(q<=0) delete cart[key]; else cart[key].qty=q; saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
 function removeItem(key){ delete cart[key]; saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
 function cartCount(){ return Object.values(cart).reduce((s,i)=>s+i.qty,0); }
-function cartTotal(){ return Object.values(cart).reduce((s,i)=>s+i.qty*i.price,0); }
+function cartTotal(){ return Object.values(cart).reduce((s,i)=>s+i.qty*itemUnitPrice(i),0); }
 function renderCartBadge(){
   const n=cartCount();
   ['cartBadgeTop','cartBadgeNav'].forEach(id=>{const e=document.getElementById(id); e.style.display=n?'flex':'none'; e.textContent=n;});
@@ -875,10 +913,10 @@ function renderCart(){
           <input type="number" min="0" value="${i.qty}" onchange="setQty('${esc(i.key)}',this.value)">
           <button onclick="changeQty('${esc(i.key)}',1)">+</button>
         </div>
-        <span class="ci-price">${baht(i.qty*i.price)}</span>
+        <span class="ci-price">${baht(i.qty*itemUnitPrice(i))}</span>
         <button class="ci-del" onclick="removeItem('${esc(i.key)}')">🗑</button>
       </div>
-      <div class="txt-sm muted">${baht(i.price)} / ${i.unitName}${i.unitDetail?' ('+i.unitDetail+')':''}</div>
+      <div class="txt-sm muted">${baht(itemUnitPrice(i))} / ${i.unitName}${(i.tiers&&i.tiers.length>1)?' <span class="txt-success">(ราคาตามจำนวน)</span>':''}</div>
     </div></div>`).join('');
   const gifts=computeGifts();
   const giftHtml=gifts.map(g=>`<div class="cart-item gift-item">
@@ -1042,7 +1080,7 @@ async function submitOrder(){
   const wh=warehouseForCustomer(currentCustomer);
   const orderId='ORD'+Date.now();
   // รูปแบบ = ขาย/แถม , หน่วย = หน่วยละเอียดตามบาร์โค้ด (เช่น ลังx30(CS))
-  const items=Object.values(cart).map(i=>({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:i.price,total:i.qty*i.price,promo:(i.promo||[]).join(' | ')}));
+  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | ')};});
   computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from}));
   const payload={ action:'order', orderId,
     customerName:currentCustomer.name, phone:currentCustomer.phone, uid:currentCustomer.uid||window._lineUid||'',
