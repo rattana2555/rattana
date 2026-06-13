@@ -30,14 +30,62 @@ function doPost(e) {
     if (data.action === 'register') return json(handleRegister(data));
     if (data.action === 'order')    return json(handleOrder(data));
     if (data.action === 'linkUid')  return json(handleLinkUid(data));
+    if (data.action === 'saveCart') return json(handleSaveCart(data));
     return json({ ok:false, error:'unknown action' });
   } catch (err) {
     return json({ ok:false, error:String(err) });
   }
 }
 
-function doGet() {
+function doGet(e) {
+  var p = (e && e.parameter) || {};
+  if (p.action === 'getCart') {
+    var r = getCartFor(p.phone);
+    return p.callback ? jsonp(p.callback, r) : json(r);   // JSONP = อ่านข้าม origin จากเบราว์เซอร์ได้
+  }
   return json({ ok:true, service:'Rattana Online Order', time:new Date() });
+}
+function jsonp(cb, obj){ return ContentService.createTextOutput(cb + '(' + JSON.stringify(obj) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT); }
+
+/* ───────── ตะกร้าร่วม (ซิงค์ข้ามเครื่องของร้านเดียวกัน ผูกด้วยเบอร์) ───────── */
+function getCartSheet(){
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var sh = ss.getSheetByName('ตะกร้า');
+  if(!sh){ sh = ss.insertSheet('ตะกร้า'); sh.appendRow(['เบอร์','ชื่อร้าน','User ID','อัปเดตเมื่อ','จำนวนรายการ','ยอดรวม','รายการ(JSON)','ts']); }
+  return sh;
+}
+function handleSaveCart(d){
+  var sh = getCartSheet();
+  var phone = String(d.phone||'').replace(/\D/g,''); if(!phone) return { ok:false, error:'no phone' };
+  var cartStr = d.cart || '[]'; var cart=[]; try{ cart=JSON.parse(cartStr); }catch(e){}
+  var count=0, total=0; cart.forEach(function(it){ var q=Number(it.qty)||0; count+=q; total+=q*(Number(it.price)||0); });
+  var ts = Number(d.ts) || (new Date().getTime());
+  var now = Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy HH:mm');
+  var last = sh.getLastRow(), rowIdx=-1;
+  if(last>=2){ var col=sh.getRange(2,1,last-1,1).getValues();
+    for(var i=0;i<col.length;i++){ if(String(col[i][0]).replace(/\D/g,'')===phone){ rowIdx=i+2; break; } } }
+  if(!cart.length){ if(rowIdx>0) sh.deleteRow(rowIdx); return { ok:true, cleared:true }; }   // ตะกร้าว่าง -> ลบแถว
+  var row = [ "'"+phone, d.name||'', d.uid||'', now, count, total, cartStr, ts ];
+  if(rowIdx>0) sh.getRange(rowIdx,1,1,row.length).setValues([row]); else sh.appendRow(row);
+  return { ok:true, ts:ts };
+}
+function getCartFor(phone){
+  var target=String(phone||'').replace(/\D/g,''); if(!target) return { ok:true, cart:[], ts:0 };
+  var sh=getCartSheet(); var last=sh.getLastRow(); if(last<2) return { ok:true, cart:[], ts:0 };
+  var vals=sh.getRange(2,1,last-1,8).getValues();
+  for(var i=0;i<vals.length;i++){
+    if(String(vals[i][0]).replace(/\D/g,'')===target){
+      var cart=[]; try{ cart=JSON.parse(String(vals[i][6]||'[]')); }catch(e){}
+      return { ok:true, cart:cart, ts:Number(vals[i][7])||0, name:vals[i][1]||'' };
+    }
+  }
+  return { ok:true, cart:[], ts:0 };
+}
+function clearCartFor(phone){
+  var target=String(phone||'').replace(/\D/g,''); if(!target) return;
+  var sh=getCartSheet(); var last=sh.getLastRow(); if(last<2) return;
+  var col=sh.getRange(2,1,last-1,1).getValues();
+  for(var i=0;i<col.length;i++){ if(String(col[i][0]).replace(/\D/g,'')===target){ sh.deleteRow(i+2); return; } }
 }
 
 /* ───────── ลงทะเบียนลูกค้า ───────── */
@@ -107,6 +155,7 @@ function handleOrder(d) {
     sh.appendRow(row);
   });
   try { pushLineOrder(d, sh); } catch (e) {}   // ส่งสรุปเข้าไลน์ลูกค้า (ไม่ให้ล้มถ้า push พลาด)
+  clearCartFor(d.phone);   // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน (ทุกเครื่องตะกร้าว่างพร้อมกัน)
   return { ok:true, message:'order saved', count:items.length };
 }
 
