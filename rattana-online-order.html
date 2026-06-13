@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.18</title>
+<title>Rattana Online Order v2.19</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -25,14 +25,35 @@ input,select,textarea{font-family:inherit;font-size:16px}
 img{display:block}
 
 /* Header */
-header{background:var(--navy);color:#fff;padding:10px 14px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--gold);padding-top:max(10px,env(safe-area-inset-top))}
-.logo-img{height:34px;border-radius:6px;flex-shrink:0}
-.logo-text{font-weight:700;letter-spacing:.5px;font-size:15px;color:#fff;line-height:1.1}
-.logo-text span{color:var(--gold)}
+header{background:var(--navy);color:#fff;padding:12px 18px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--gold);padding-top:max(16px,calc(env(safe-area-inset-top) + 8px))}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.logo-box{width:40px;height:40px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
+.logo-img{width:32px;height:32px;object-fit:contain}
+.logo-ring{position:absolute;width:17px;height:17px;border-radius:50%;border:3px solid var(--gold);border-right-color:transparent;transform:rotate(40deg);display:none}
+.logo-text{font-weight:800;letter-spacing:.12em;font-size:15px;color:#fff;line-height:1.05;display:flex;flex-direction:column}
+.logo-text span{color:var(--gold);font-size:10px;font-weight:600;letter-spacing:.16em;margin-top:3px}
+.logo-text .ver{font-style:normal;font-size:8px;font-weight:400;opacity:.5;letter-spacing:0;margin-top:2px}
 .h-spacer{flex:1}
-.icon-btn{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.2);width:38px;height:38px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .15s;position:relative}
-.icon-btn:hover{background:rgba(255,255,255,.12)}
+.icon-btn{background:rgba(255,255,255,.10);color:#fff;border:none;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .15s;position:relative;flex-shrink:0}
+.icon-btn:hover{background:rgba(255,255,255,.18)}
+.user-chip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.10);border:none;border-radius:12px;padding:6px 13px 6px 7px;cursor:pointer;color:#fff;flex-shrink:0}
+.user-chip:hover{background:rgba(255,255,255,.16)}
+.uc-ava{width:32px;height:32px;border-radius:9px;background:var(--gold);color:var(--navy);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.uc-txt{display:flex;flex-direction:column;text-align:left;line-height:1;min-width:0}
+.uc-txt b{font-size:12.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.uc-txt i{font-style:normal;font-size:10.5px;color:rgba(255,255,255,.6);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.cart-pill{position:relative;display:flex;align-items:center;gap:9px;height:46px;padding:0 18px;border:none;border-radius:13px;background:var(--gold);color:var(--navy);font-weight:700;font-size:13.5px;cursor:pointer;flex-shrink:0;white-space:nowrap}
+.cart-pill:active{transform:scale(.97)}
 .cart-badge{position:absolute;top:-6px;right:-6px;background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.cart-pill .cart-badge{min-width:21px;height:21px;border-radius:999px;background:#E23B3B;color:#fff;border:2px solid var(--navy);font-size:11px}
+@media(max-width:600px){
+  header{padding:10px 12px;gap:8px;padding-top:max(12px,calc(env(safe-area-inset-top) + 6px))}
+  #btnRefresh{display:none}
+  .uc-txt{display:none}
+  .user-chip{padding:4px}
+  .cart-pill{height:42px;padding:0 13px;font-size:13px}
+  .cart-pill .cp-label{display:none}
+}
 
 /* Quick actions */
 .quick-row{display:flex;gap:10px;padding:12px 14px;background:var(--navy);}
@@ -248,12 +269,22 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <div id="loadingBar"></div>
 
 <header>
-  <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.18</div></div>
+  <div class="brand">
+    <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.19</i></div>
+  </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
-  <button class="icon-btn" onclick="goCart()" title="ตะกร้า">🛒<span class="cart-badge" id="cartBadgeTop" style="display:none">0</span></button>
+  <button class="user-chip" id="userChip" onclick="goProfile()" title="โปรไฟล์" style="display:none">
+    <span class="uc-ava" id="ucAva">A</span>
+    <span class="uc-txt"><b id="ucName">-</b><i id="ucProv"></i></span>
+  </button>
+  <button class="cart-pill" onclick="goCart()" title="ตะกร้า">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+    <span id="cartPillTxt"><span class="cp-label">ตะกร้า · </span>฿0</span>
+    <span class="cart-badge" id="cartBadgeTop" style="display:none">0</span>
+  </button>
 </header>
 
 <!-- ===== SHOP VIEW ===== -->
@@ -1015,7 +1046,16 @@ function cartCount(){ return Object.values(cart).reduce((s,i)=>s+i.qty,0); }
 function cartTotal(){ return Object.values(cart).reduce((s,i)=>s+i.qty*itemUnitPrice(i),0); }
 function renderCartBadge(){
   const n=cartCount();
-  ['cartBadgeTop','cartBadgeNav'].forEach(id=>{const e=document.getElementById(id); e.style.display=n?'flex':'none'; e.textContent=n;});
+  ['cartBadgeTop','cartBadgeNav'].forEach(id=>{const e=document.getElementById(id); if(e){ e.style.display=n?'flex':'none'; e.textContent=n; }});
+  // ปุ่มตะกร้าทอง (header) โชว์ยอดเงิน
+  const pill=document.getElementById('cartPillTxt'); if(pill) pill.innerHTML='<span class="cp-label">ตะกร้า · </span>'+baht(cartTotal());
+  // ชิปผู้ใช้ (header): อวตาร + ชื่อ + จังหวัด
+  const chip=document.getElementById('userChip');
+  if(chip){
+    const c=currentCustomer;
+    if(c){ chip.style.display='flex'; document.getElementById('ucAva').textContent=((clean(c.name)[0]||'?')).toUpperCase(); document.getElementById('ucName').textContent=clean(c.name)||'ลูกค้า'; document.getElementById('ucProv').textContent=clean(c.province)||''; }
+    else chip.style.display='none';
+  }
 }
 function renderCart(){
   const list=document.getElementById('cartList'); const sum=document.getElementById('cartSummary');
