@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.24</title>
+<title>Rattana Online Order v2.25</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.24</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.25</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -348,6 +348,10 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
       <div class="s-line"><span>จำนวนหน่วยรวม</span><span id="sumQty">0</span></div>
       <div class="s-total"><span>ยอดรวมโดยประมาณ</span><b id="sumTotal">฿0</b></div>
       <p class="txt-sm muted" style="margin-top:8px">* ราคาอ้างอิง PRICE S03 PA — ยอดจริงยืนยันโดยฝ่ายขาย</p>
+      <div style="margin-top:12px">
+        <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">📝 หมายเหตุถึงร้านค้า (ถ้ามี)</label>
+        <textarea id="orderNote" class="input" style="height:auto;min-height:64px;resize:vertical;padding:10px 14px;line-height:1.5" placeholder="เช่น ขอส่งช่วงเช้า / โทรก่อนส่ง / ฝากไว้หน้าร้าน ฯลฯ"></textarea>
+      </div>
       <button class="btn btn-gold btn-block" style="margin-top:14px" onclick="submitOrder()">✓ ยืนยันสั่งซื้อ</button>
     </div>
   </div>
@@ -695,7 +699,7 @@ function computeGifts(){
       const barcode=clean(promo['Barcode สินค้าแถมEA']||promo['Barcode สินค้าแถม']);
       const giftEach=numOr0(promo['จำนวนแถมEA']||promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
       if(!barcode || giftEach<=0 || threshold<=0 || it.qty<threshold) return;
-      cands.push({barcode,giftEach,threshold});
+      cands.push({barcode,giftEach,threshold,giftName:clean(promo['แถมสินค้า'])});
     });
     if(!cands.length) return;
     // เอาเฉพาะ "ขั้นสูงสุด" ที่ถึง (ไม่เอาขั้นล่างมารวม)
@@ -703,7 +707,7 @@ function computeGifts(){
     cands.filter(c=>c.threshold===maxTh).forEach(c=>{
       const mult=Math.floor(it.qty/c.threshold);
       const ent=barcodeEntry(c.barcode); const gp=ent?ent.p:null;
-      const giftName=gp?clean(gp['PRODUCT NAME']):('บาร์โค้ด '+c.barcode);
+      const giftName=c.giftName||(gp?clean(gp['PRODUCT NAME']):'')||('บาร์โค้ด '+c.barcode);
       const giftUnit=ent?clean(ent.p['UNIT '+ent.type]):'';
       const k=it.key+'|'+c.barcode;   // แยกของแถมตามสินค้าที่ซื้อ (ให้แสดงใต้สินค้านั้น)
       if(!gifts[k]) gifts[k]={barcode:c.barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name,fromKey:it.key,unitDetail:giftUnit};
@@ -1305,15 +1309,16 @@ async function submitOrder(){
   // รูปแบบ = ขาย/แถม , หน่วย = หน่วยละเอียดตามบาร์โค้ด (เช่น ลังx30(CS))
   const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | ')};});
   computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from}));
+  const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   const payload={ action:'order', orderId,
     customerName:currentCustomer.name, phone:currentCustomer.phone, uid:currentCustomer.uid||window._lineUid||'',
     salemanCode:currentCustomer.salemanCode||'', salemanName:currentCustomer.salemanName||'', warehouse:wh||'',
-    total:cartTotal(), items };
+    note, total:cartTotal(), items };
   showSpinner('กำลังส่งออเดอร์...');
   const ok=await postGAS(payload);
   hideSpinner();
   if(ok!==false){
-    cart={}; saveCart(); renderCart(); renderProducts(); renderCartBadge();
+    cart={}; saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
     showToast('ส่งออเดอร์สำเร็จ! เลขที่ '+orderId,'success');
     goShop();
   } else { showToast('ส่งออเดอร์ไม่สำเร็จ ลองใหม่','error'); }
