@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.9</title>
+<title>Rattana Online Order v2.10</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -80,6 +80,9 @@ header{background:var(--navy);color:#fff;padding:10px 14px;position:sticky;top:0
 .pcard .p-name{font-size:13px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
 .pcard .p-meta{font-size:11px;color:var(--muted)}
 .pcard .p-promo{font-size:10px;color:var(--danger);font-weight:600;background:rgba(231,76,60,.08);border-radius:6px;padding:4px 6px;line-height:1.25}
+.pcard .p-low{align-self:flex-start;font-size:10px;font-weight:700;color:#b45309;background:rgba(245,158,11,.16);border-radius:6px;padding:3px 7px;line-height:1.2}
+.low-flag{position:absolute;top:8px;left:8px;background:#f59e0b;color:#3a2a00;font-size:11px;font-weight:700;padding:4px 10px;border-radius:0 12px 12px 0;z-index:2;box-shadow:var(--shadow-md);letter-spacing:.2px}
+.pd-low{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.16);color:#b45309;font-weight:700;font-size:13px;border-radius:8px;padding:8px 12px;margin:10px 0}
 .pcard .add-btn{margin-top:auto;background:var(--gold);color:var(--navy);font-weight:700;font-size:13px;border-radius:var(--radius-sm);padding:9px;display:flex;align-items:center;justify-content:center;gap:6px}
 .pcard .add-btn:active{transform:scale(.97)}
 
@@ -243,7 +246,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.9</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.10</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -613,6 +616,24 @@ function isSellable(p,wh){
   if(['W1','W2','W3'].includes(wh)) return !!clean(p['IB '+wh]);
   return true; // HQ/อื่นๆ เห็นทั้งหมด
 }
+/* สต๊อกคงเหลือของคลังที่ให้บริการลูกค้า (W4 = W4+C4, guest/HQ = รวมทุกคลัง) */
+function stockForWh(p,wh){
+  if(wh==='W4') return numOr0(p['IB W4'])+numOr0(p['IB C4']);
+  if(['W1','W2','W3'].includes(wh)) return numOr0(p['IB '+wh]);
+  return ['W1','W2','W3','W4','C4'].reduce((s,w)=>s+numOr0(p['IB '+w]),0);
+}
+/* เกณฑ์ "สินค้าใกล้หมด" ตาม RANK: A,B<30 | C,D<10 | E,F,New/อื่นๆ<5 */
+function lowStockLimit(rank){
+  rank=(rank||'').toUpperCase();
+  if(rank==='A'||rank==='B') return 30;
+  if(rank==='C'||rank==='D') return 10;
+  return 5;
+}
+function isLowStock(p){
+  const wh=warehouseForCustomer(currentCustomer);
+  const stock=stockForWh(p,wh);
+  return stock>0 && stock < lowStockLimit(productRank(p,wh));
+}
 function priceOf(p){
   let v=numOr0(p['PRICE S03 PA']), unit=clean(p['UNIT PA'])||'แพ็ค';
   if(!v){ v=numOr0(p['PRICE S03 CS']); unit=clean(p['UNIT CS'])||'ลัง'; }
@@ -800,6 +821,7 @@ function openProduct(name){
     <img class="pd-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'">
     <div class="pd-name">${name}</div>
     ${meta?`<div class="pd-meta">${meta}</div>`:''}
+    ${isLowStock(p)?'<div class="pd-low">⚠️ สินค้าใกล้หมด</div>':''}
     <div id="pdPrice" class="pd-price"></div>
     ${promo.length?`<div class="pd-promo">🎁 ${promo.join('<br>')}</div>`:''}
     ${clean(p['DESCRIPTION'])?`<div class="pd-desc">${clean(p['DESCRIPTION'])}</div>`:''}
@@ -854,14 +876,15 @@ function renderProducts(){
   const list=all.slice(0,renderLimit);
   grid.innerHTML=list.map(p=>{
     const name=clean(p['PRODUCT NAME']); const {value,unit}=priceOf(p);
-    const promo=promosFor(p); const inCart=inCartQtyOf(name);
+    const promo=promosFor(p); const inCart=inCartQtyOf(name); const low=isLowStock(p);
     return `<div class="pcard" onclick="openProduct('${esc(name)}')">
       <div class="price-tag">${baht(value)}<br><small>/${unit}</small></div>
-      ${promo.length?'<div class="promo-flag">🎁 โปรโมชั่น</div>':''}
+      ${promo.length?'<div class="promo-flag">🎁 โปรโมชั่น</div>':(low?'<div class="low-flag">⚠️ ใกล้หมด</div>':'')}
       <img class="p-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
       <div class="p-body">
         <div class="p-name">${name}</div>
         <div class="p-meta">${clean(p['CAT BRAND'])||clean(p['CAT GROUP'])||''}</div>
+        ${low&&promo.length?'<div class="p-low">⚠️ สินค้าใกล้หมด</div>':''}
         <button class="add-btn" onclick="event.stopPropagation();openProduct('${esc(name)}')">${inCart?('🛒 ในตะกร้า '+inCart):'เลือกซื้อ ›'}</button>
       </div></div>`;
   }).join('') + (all.length>renderLimit?`<div class="load-more"><button class="btn btn-outline" onclick="renderLimit+=60;renderProducts()">แสดงเพิ่ม (${all.length-renderLimit})</button></div>`:'');
