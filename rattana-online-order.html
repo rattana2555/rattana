@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.13</title>
+<title>Rattana Online Order v2.14</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -246,7 +246,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.13</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.14</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -844,7 +844,7 @@ function openProduct(name){
 function renderPdUnits(){
   const pd=window._pd; if(!pd) return;
   document.getElementById('pdUnits').innerHTML=pd.units.map(u=>
-    `<button class="unit-btn ${u.type===pd.sel?'active':''}" onclick="selUnit('${u.type}')">${u.name}<small>${baht(u.tiers&&u.tiers.length?u.tiers[0].price:u.price)}${u.detail?'<br>'+u.detail:''}</small></button>`).join('');
+    `<button class="unit-btn ${u.type===pd.sel?'active':''}" onclick="selUnit('${u.type}')">${u.name}${u.detail?'<small>'+u.detail+'</small>':''}</button>`).join('');
 }
 function selUnit(t){ window._pd.sel=t; renderPdUnits(); renderPdPrice(); renderPdTiers(); }
 function pdStrip(s){ return clean(s).replace(/\s*\([^)]*\)\s*/g,'').trim(); }
