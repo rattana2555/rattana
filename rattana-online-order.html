@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.22</title>
+<title>Rattana Online Order v2.23</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.22</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.23</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -707,15 +707,8 @@ function isLowStock(p){
 }
 /* สินค้าใหม่: FIRST STOCK DATE ภายใน 60 วัน */
 function isNewProduct(p){ const d=Date.parse(clean(p['FIRST STOCK DATE']).replace(/\//g,'-')); return !isNaN(d) && (Date.now()-d) < 60*864e5; }
-/* สีพื้นกล่องรูปตาม RANK: A,B,C(ขายดี)=เขียวไล่เฉด | D,E,F=แดงไล่เฉด | New/ไม่มี rank=รุ้งพาสเทล */
-const TINT_RANK={A:'#BFE6CB',B:'#D4EEDB',C:'#E8F6EC',D:'#F5CFC9',E:'#F9DFDA',F:'#FCECE9'};
-const TINT_RAINBOW='linear-gradient(135deg,#FBD9E0 0%,#FDE9C8 26%,#E3F2CE 52%,#CDEBE8 76%,#DAD9F5 100%)';
-function cardTint(p){
-  if(isNewProduct(p)) return TINT_RAINBOW;
-  const r=(productRank(p,displayWarehouse(currentCustomer))||'').toUpperCase();
-  if(r==='NEW'||r==='') return TINT_RAINBOW;
-  return TINT_RANK[r]||TINT_RAINBOW;
-}
+/* พื้นกล่องรูป = ขาวแบบเดิม */
+function cardTint(p){ return '#fff'; }
 function priceOf(p){
   let v=numOr0(p['PRICE S03 PA']), unit=clean(p['UNIT PA'])||'แพ็ค';
   if(!v){ v=numOr0(p['PRICE S03 CS']); unit=clean(p['UNIT CS'])||'ลัง'; }
