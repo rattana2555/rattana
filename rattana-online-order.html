@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.6</title>
+<title>Rattana Online Order v2.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -243,7 +243,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <header>
   <img class="logo-img" id="logoImg" alt="Rattana">
-  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.6</div></div>
+  <div class="logo-text">RATTANA <span>ONLINE ORDER</span><div style="font-size:9px;font-weight:400;opacity:.55;letter-spacing:0">v2.7</div></div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
   <button class="icon-btn" onclick="toggleDark()" title="โหมดมืด">◐</button>
@@ -859,10 +859,15 @@ function findProduct(name){ return PRODUCTS.find(p=>clean(p['PRODUCT NAME'])===n
 /* หน่วยที่ขายได้ของสินค้า: ลัง(CS) / แพ็ค(PA) เสมอถ้ามีราคา, ชิ้น(EA) เฉพาะ CAT SIZE ที่อยู่ในชีทขาย EA */
 /* ราคาขั้นบันได (ลัง/CS) ตาม RANK ของคลังลูกค้า:
    A,B: 1=S03, 10=S02, 1เลท(CS PALLET)=S01 | C: 1=S03, 5=S02, 10=S01 | D,E,F,New: 1=S03, 2=S02, 5=S01 */
+function productRank(p,wh){
+  if(wh){ const r=clean(p['RANK '+wh]).toUpperCase(); if(r) return r; }   // ยึดตามคลังลูกค้าก่อน
+  for(const w of ['W1','W2','W3','W4','C4']){ const r=clean(p['RANK '+w]).toUpperCase(); if(r) return r; } // ไม่มีคลัง/ว่าง → คลังแรกที่มีค่า
+  return '';
+}
 function priceTiersCS(p,wh){
   const s01=numOr0(p['PRICE S01 CS']), s02=numOr0(p['PRICE S02 CS']), s03=numOr0(p['PRICE S03 CS']);
   if(!s03) return null;
-  const rank = wh? clean(p['RANK '+wh]).toUpperCase() : '';
+  const rank = productRank(p,wh);
   const pallet=numOr0(p['CS PALLET']);
   let raw;
   if(rank==='A'||rank==='B') raw=[[1,s03],[10,s02],[pallet>0?pallet:10,s01]];
