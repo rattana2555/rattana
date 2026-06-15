@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.26</title>
+<title>Rattana Online Order v2.27</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.26</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.27</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -564,6 +564,7 @@ function mapCustomer(row){
   return {
     name: clean(row['ชื่อ / ร้านค้า']),
     phone: digits(row['เบอร์โทรศัพท์']),
+    shopCode: clean(row['รหัสร้าน']),
     uid: clean(row['User ID']),
     uidsExtra: clean(row['User ID เพิ่ม']),
     salemanCode: clean(row['Saleman Code']),
@@ -1303,7 +1304,9 @@ async function submitOrder(){
   if(!Object.keys(cart).length){ showToast('ตะกร้าว่าง','warning'); return; }
   if(!currentCustomer){ showToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ','warning'); openModal('loginModal'); return; }
   const wh=warehouseForCustomer(currentCustomer);
-  const sCode=salemanCodeForCustomer(currentCustomer)||currentCustomer.salemanCode||'';
+  const sUser=salemanUserFor(currentCustomer);
+  const sCode=sUser?clean(sUser['รหัสเซลล์']):(currentCustomer.salemanCode||'');
+  const sName=sUser?clean(sUser['ชื่อ - สกุล']):normName(currentCustomer.salemanName||'');   // ชื่อเซลล์ไม่มี "คุณ"
   const orderId='ORD'+Date.now();
   // รูปแบบ = ขาย/แถม , หน่วย = หน่วยละเอียดตามบาร์โค้ด (เช่น ลังx30(CS))
   const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | ')};});
@@ -1311,7 +1314,7 @@ async function submitOrder(){
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   const payload={ action:'order', orderId,
     customerName:currentCustomer.name, phone:currentCustomer.phone, uid:currentCustomer.uid||window._lineUid||'',
-    salemanCode:sCode, salemanName:currentCustomer.salemanName||'', warehouse:wh||'',
+    salemanCode:sCode, salemanName:sName, warehouse:wh||'', shopCode:currentCustomer.shopCode||'',
     note, total:cartTotal(), items };
   showSpinner('กำลังส่งออเดอร์...');
   const ok=await postGAS(payload);

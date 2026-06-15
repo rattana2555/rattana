@@ -143,7 +143,7 @@ function handleOrder(d) {
     var v = {
       'วัน': dateStr, 'เวลา': timeStr, 'email': d.uid || '',
       'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '', 'คลังส่ง': d.warehouse || '',
-      'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': '',
+      'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': d.shopCode || '',
       'รูปแบบ': it.type || '', 'Barcode': (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
       'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
       'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
