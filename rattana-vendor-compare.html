@@ -516,22 +516,39 @@ async function loadStock(){
   })).filter(r=>r.product_name&&r.cat_vendor);
   cacheSet('stock_rows',r);return r;
 }
+// Parse various date formats (YYYY/MM/DD, YYYY-MM-DD, DD/MM/YYYY) → {y,m,d} or null
+function parseAnyDate(s){
+  if(!s)return null;
+  const str=String(s).trim();
+  // YYYY/MM/DD or YYYY-MM-DD
+  let m=str.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(m)return{y:+m[1],m:+m[2],d:+m[3]};
+  // DD/MM/YYYY
+  m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m)return{y:+m[3],m:+m[2],d:+m[1]};
+  return null;
+}
 async function loadSellIn(){
   const c=cacheGet('sellin_rows');if(c){console.log('[SellIn] cache hit:',c.length,'rows');return c;}
   const raw=await fetchSheetCsv(CFG.claudeId,CFG.claudeTab);
   console.log('[SellIn] raw rows:',raw.length,'| sample[0]:',raw[0],'| keys:',raw[0]?Object.keys(raw[0]):'none');
-  // New PO format: group by AP_NAME, sum TRD_QTY (cs) + EX_VAT (baht)
-  const agg={};
+  // IB format: group by AP_NAME, sum TRD_QTY (cs) + EX_VAT (baht); FILTER by DI_DATE = current month
+  const now=new Date();const cy=now.getFullYear(),cm=now.getMonth()+1;
+  const agg={};let kept=0,dropped=0;
   raw.forEach(r=>{
     const vendor=normVendor(r['AP_NAME']||r['Ap_Name']||r['ap_name']||'');
     if(!vendor)return;
+    const dt=parseAnyDate(r['DI_DATE']||r['Di_Date']||r['di_date']||r['Date']||'');
+    if(!dt||dt.y!==cy||dt.m!==cm){dropped++;return;}
     const qty=pNum(r['TRD_QTY']||r['Trd_Qty']||r['trd_qty']||0);
     const ex=pNum(r['EX_VAT']||r['Ex_Vat']||r['ex_vat']||r['EXVat']||0);
     if(!agg[vendor])agg[vendor]={vendor,cs:0,baht:0};
     agg[vendor].cs+=qty;
     agg[vendor].baht+=ex;
+    kept++;
   });
   const r=Object.values(agg);
+  console.log(`[SellIn] current month ${cy}/${cm} → kept ${kept}, dropped ${dropped} (out of month)`);
   console.log('[SellIn] parsed vendors:',r.length,'| first 5:',r.slice(0,5));
   cacheSet('sellin_rows',r);return r;
 }
