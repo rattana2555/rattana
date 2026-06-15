@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.25</title>
+<title>Rattana Online Order v2.26</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.25</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.26</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -629,21 +629,19 @@ async function resolveLogin(){
 }
 
 /* ทำชื่อให้เทียบกันได้: ตัด (ชื่อเล่น) ในวงเล็บ + ยุบช่องว่าง */
-function normName(s){ return clean(s).replace(/\s*\([^)]*\)\s*/g,'').replace(/\s+/g,' ').trim(); }
-/* warehouse resolution: ชื่อเซลล์ดูแล (reg col V) -> จับคู่ Users "ชื่อ - สกุล" -> อ่าน "คลังส่ง" (AE) */
-function warehouseForCustomer(c){
+/* ทำชื่อให้เทียบกันได้: ตัด (ชื่อเล่น) + คำนำหน้า (คุณ/นาย/นาง/นางสาว/น.ส./ดร.) + ยุบช่องว่าง
+   (ฐานข้อมูลพนักงานไม่มี "คุณ" นำหน้า แต่ "เซลล์ดูแล" ของลูกค้าอาจมี) */
+function normName(s){ return clean(s).replace(/\s*\([^)]*\)\s*/g,'').replace(/^(คุณ|นาย|นางสาว|นาง|น\.ส\.|ดร\.)\s*/,'').replace(/\s+/g,' ').trim(); }
+/* หาแถวพนักงาน(เซลล์) ของลูกค้า: จับคู่ "เซลล์ดูแล" (reg col V) กับ Users "ชื่อ - สกุล" (ตัดคำนำหน้า) */
+function salemanUserFor(c){
   if(!c) return null;
   const sname=normName(c.salemanName);
-  if(sname){
-    const u=USERS.find(u=> normName(u['ชื่อ - สกุล'])===sname || normName(u['ชื่อ - สกุล (ชื่อเล่น)'])===sname);
-    if(u){ const w=clean(u['คลังส่ง'])||clean(u['W']); if(w) return w.toUpperCase(); }
-  }
-  if(c.salemanCode){ // fallback เดิม: จับคู่ด้วยรหัสเซลล์ (เผื่อบางบัญชีเก็บเป็นรหัส)
-    const u=USERS.find(u=> clean(u['รหัสเซลล์'])===c.salemanCode || clean(u['รหัสเซล'])===c.salemanCode || clean(u['รหัสขาย Bplus'])===c.salemanCode);
-    if(u){ const w=clean(u['คลังส่ง'])||clean(u['W']); if(w) return w.toUpperCase(); }
-  }
-  return null; // ยังไม่ถูกกำหนดเซลล์/คลัง -> โปรไฟล์โชว์ "รอกำหนด", โชว์สินค้า default W1
+  if(sname){ const u=USERS.find(u=> normName(u['ชื่อ - สกุล'])===sname || normName(u['ชื่อ - สกุล (ชื่อเล่น)'])===sname); if(u) return u; }
+  if(c.salemanCode){ const u=USERS.find(u=> clean(u['รหัสเซลล์'])===c.salemanCode || clean(u['รหัสเซล'])===c.salemanCode || clean(u['รหัสขาย Bplus'])===c.salemanCode); if(u) return u; }
+  return null;
 }
+function warehouseForCustomer(c){ const u=salemanUserFor(c); if(u){ const w=clean(u['คลังส่ง'])||clean(u['W']); if(w) return w.toUpperCase(); } return null; }
+function salemanCodeForCustomer(c){ const u=salemanUserFor(c); return u ? clean(u['รหัสเซลล์']) : ''; }
 /* คลังสำหรับ "โชว์สินค้า/สต๊อก/rank/ราคา": ถ้ายังไม่รู้คลังลูกค้า ให้ยึด W1 เป็นค่าตั้งต้น */
 function displayWarehouse(c){ return warehouseForCustomer(c) || 'W1'; }
 
@@ -1305,6 +1303,7 @@ async function submitOrder(){
   if(!Object.keys(cart).length){ showToast('ตะกร้าว่าง','warning'); return; }
   if(!currentCustomer){ showToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ','warning'); openModal('loginModal'); return; }
   const wh=warehouseForCustomer(currentCustomer);
+  const sCode=salemanCodeForCustomer(currentCustomer)||currentCustomer.salemanCode||'';
   const orderId='ORD'+Date.now();
   // รูปแบบ = ขาย/แถม , หน่วย = หน่วยละเอียดตามบาร์โค้ด (เช่น ลังx30(CS))
   const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | ')};});
@@ -1312,7 +1311,7 @@ async function submitOrder(){
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   const payload={ action:'order', orderId,
     customerName:currentCustomer.name, phone:currentCustomer.phone, uid:currentCustomer.uid||window._lineUid||'',
-    salemanCode:currentCustomer.salemanCode||'', salemanName:currentCustomer.salemanName||'', warehouse:wh||'',
+    salemanCode:sCode, salemanName:currentCustomer.salemanName||'', warehouse:wh||'',
     note, total:cartTotal(), items };
   showSpinner('กำลังส่งออเดอร์...');
   const ok=await postGAS(payload);
