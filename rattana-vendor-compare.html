@@ -377,7 +377,7 @@ body.dark .spinner-box{background:var(--card-bg)}
 /* ══ CONFIG ══ */
 const AUTH_CONFIG={clientId:'909097830974-co4dkgs474rid01cubg5njqr1ct6ii5v.apps.googleusercontent.com',usersSheetId:'1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ',usersSheetName:'Rattana Users for apps'};
 const DEFAULT_CFG={bqProxyUrl:'https://script.google.com/macros/s/AKfycbyMrMdvKv_WFPJOn5wxg6-CEd59uMnJlNJFltFfNuot0q5Wey8pciJk94JyhK__8UY2/exec',bpId:'1NxFkxiQev0xxGir93-qt0flNfzHz848-KuE7jDRSxQE',bpTab:'BP',stockId:'16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I',stockTab:'PDDT',claudeId:'1nqxRB3h0168e1bd2pquuW7DV1Y4hAo-TOiheXbLuA1c',claudeTab:'IB'};
-const CFG_KEY='rattanaVendorCfg_v9';
+const CFG_KEY='rattanaVendorCfg_v10';
 function loadCfg(){try{const r=localStorage.getItem(CFG_KEY);if(!r)return{...DEFAULT_CFG};const saved={...DEFAULT_CFG,...JSON.parse(r)};// Always use hardcoded URL if saved one is blank
 if(!saved.bqProxyUrl)saved.bqProxyUrl=DEFAULT_CFG.bqProxyUrl;return saved;}catch{return{...DEFAULT_CFG};}}
 function saveCfgObj(c){localStorage.setItem(CFG_KEY,JSON.stringify(c));}
@@ -484,7 +484,7 @@ async function initApp(){
   }finally{hideSpinner();setLoading(false);}
 }
 async function loadVendors(){const c=cacheGet('bq_vendors');if(c)return c;const rows=await bqCall('vendors',{months:6});const r=rows.map(r=>({vendor:normVendor(r.vendor),sales_cs:pNum(r.sales_cs),exvat:pNum(r.exvat)})).filter(r=>r.vendor&&!r.vendor.match(/^non.?product$/i));cacheSet('bq_vendors',r);return r;}
-async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CSxValue']||r['Sales_CS_x_Value']||r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim(),customer_code:String(r['Customer_Code']||r['customer_code']||r['Customer Code']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
+async function loadBp(){const c=cacheGet('bp_rows');if(c)return c;const raw=await fetchSheetCsv(CFG.bpId,CFG.bpTab);const{currentLabel}=getPeriodLabels();const[cy,cm]=currentLabel.split('/').map(Number);const r=raw.map(r=>({doc_date:r['Doc_Date']||r['Doc Date']||'',cat_vendor:normVendor(r['Cat_Vendor']),cat_brand:r['Cat_Brand']||'',cat_pack:r['Cat_Pack']||'',product_name:r['Product_Name']||'',sales_cs:pNum(r['Sales_CSxValue']||r['Sales_CS_x_Value']||r['Sales_CS']),free_cs:pNum(r['Free_CS']),exvat:pNum(r['EXVat']),total_baht:pNum(r['TotalBaht']),ws:normWH(r['WS']||r['WH']||r['Warehouse']||r['warehouse']||''),channel:(r['Channel']||r['channel']||r['Channal']||r['channal']||'').trim(),customer_code:String(r['Customer_Code']||r['customer_code']||r['Customer Code']||'').trim(),vendor_name:String(r['Vendor_Name']||r['vendor_name']||r['VendorName']||'').trim()})).filter(r=>{const d=parseBpDate(r.doc_date);return d&&d.getFullYear()===cy&&(d.getMonth()+1)===cm&&r.cat_vendor;});cacheSet('bp_rows',r);return r;}
 /* parseCsv to raw arrays (no header conversion) */
 function parseCsvArrays(text){
   if(!text)return[];if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
@@ -968,12 +968,31 @@ function renderStores(){
 }
 
 /* ══ SELL-IN ══ */
+// Build mapping: Cat_Vendor (full name from BQ/BP) → Vendor_Name (short name used in IB sheet)
+function getVendorNameMap(){
+  const map={};
+  BP_ALL_ROWS.forEach(r=>{
+    if(r.cat_vendor&&r.vendor_name){
+      const k=normKey(r.cat_vendor);
+      if(!map[k])map[k]=r.vendor_name;
+    }
+  });
+  return map;
+}
 function renderSellIn(){
   const sel=SELECTED_VENDOR;
   const selK=normKey(sel);
-  let row=SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===selK)||SELLIN_ALL_ROWS.find(r=>selK.includes(normKey(r.vendor))||normKey(r.vendor).includes(selK));
+  // Map full Cat_Vendor name → short Vendor_Name (the format used in IB sheet)
+  const vmap=getVendorNameMap();
+  const shortName=vmap[selK]||sel;
+  const shortK=normKey(shortName);
+  console.log('[SellIn] full="'+sel+'" → short="'+shortName+'"');
+  // Try: mapped short name → original full name → substring fallback
+  let row=SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===shortK)
+       ||SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===selK)
+       ||SELLIN_ALL_ROWS.find(r=>{const rk=normKey(r.vendor);return rk&&(shortK.includes(rk)||rk.includes(shortK)||selK.includes(rk)||rk.includes(selK));});
   if(!row){
-    console.warn('[SellIn MATCH FAIL] selected="'+sel+'" selK="'+selK+'" | total sellin rows:',SELLIN_ALL_ROWS.length);
+    console.warn('[SellIn MATCH FAIL] selected="'+sel+'" shortName="'+shortName+'" shortK="'+shortK+'" | total sellin rows:',SELLIN_ALL_ROWS.length);
     if(SELLIN_ALL_ROWS.length){
       const samples=SELLIN_ALL_ROWS.slice(0,8).map(r=>({vendor:r.vendor,key:normKey(r.vendor)}));
       console.warn('[SellIn samples]',samples);
