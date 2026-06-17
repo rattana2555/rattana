@@ -968,37 +968,50 @@ function renderStores(){
 }
 
 /* ══ SELL-IN ══ */
-// Build mapping: Cat_Vendor (full name from BQ/BP) → Vendor_Name (short name used in IB sheet)
+// Build mapping: Cat_Vendor (full) → [Vendor_Name1, Vendor_Name2, ...] (one full name may map to multiple short names)
 function getVendorNameMap(){
   const map={};
   BP_ALL_ROWS.forEach(r=>{
     if(r.cat_vendor&&r.vendor_name){
       const k=normKey(r.cat_vendor);
-      if(!map[k])map[k]=r.vendor_name;
+      if(!map[k])map[k]=new Set();
+      map[k].add(r.vendor_name);
     }
   });
-  return map;
+  const out={};for(const k in map)out[k]=[...map[k]];return out;
 }
 function renderSellIn(){
   const sel=SELECTED_VENDOR;
   const selK=normKey(sel);
-  // Map full Cat_Vendor name → short Vendor_Name (the format used in IB sheet)
   const vmap=getVendorNameMap();
-  const shortName=vmap[selK]||sel;
-  const shortK=normKey(shortName);
-  console.log('[SellIn] full="'+sel+'" → short="'+shortName+'"');
-  // Try: mapped short name → original full name → substring fallback
-  let row=SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===shortK)
-       ||SELLIN_ALL_ROWS.find(r=>normKey(r.vendor)===selK)
-       ||SELLIN_ALL_ROWS.find(r=>{const rk=normKey(r.vendor);return rk&&(shortK.includes(rk)||rk.includes(shortK)||selK.includes(rk)||rk.includes(selK));});
-  if(!row){
-    console.warn('[SellIn MATCH FAIL] selected="'+sel+'" shortName="'+shortName+'" shortK="'+shortK+'" | total sellin rows:',SELLIN_ALL_ROWS.length);
+  const shortNames=vmap[selK]||[sel];
+  const shortKs=shortNames.map(normKey);
+  console.log('[SellIn] full="'+sel+'" → short:',shortNames);
+  // Find ALL matching rows in SELLIN_ALL_ROWS (sum across multiple short names)
+  const matched=[];const seen=new Set();
+  SELLIN_ALL_ROWS.forEach(r=>{
+    const rk=normKey(r.vendor);
+    if(!rk||seen.has(rk))return;
+    if(shortKs.includes(rk)||rk===selK){matched.push(r);seen.add(rk);}
+  });
+  // Fallback: substring match
+  if(!matched.length){
+    SELLIN_ALL_ROWS.forEach(r=>{
+      const rk=normKey(r.vendor);if(!rk||seen.has(rk))return;
+      if(shortKs.some(sk=>sk.includes(rk)||rk.includes(sk))||selK.includes(rk)||rk.includes(selK)){matched.push(r);seen.add(rk);}
+    });
+  }
+  if(!matched.length){
+    console.warn('[SellIn MATCH FAIL] full="'+sel+'" shorts=',shortNames,'| total sellin rows:',SELLIN_ALL_ROWS.length);
     if(SELLIN_ALL_ROWS.length){
       const samples=SELLIN_ALL_ROWS.slice(0,8).map(r=>({vendor:r.vendor,key:normKey(r.vendor)}));
       console.warn('[SellIn samples]',samples);
     }
     $('seContent').innerHTML=`<div class="card card-gold"><div class="card-head"><h3><span class="gold-bar"></span>ยอดซื้อเข้าเดือนนี้ (Sell-In)</h3></div><div class="card-body"><div class="empty-state" style="padding:30px 20px"><div class="icon">🔍</div><div class="ttl">ไม่พบข้อมูลซื้อเข้าของ vendor นี้</div></div></div></div>`;return;
   }
+  // Sum matched rows into single row object
+  const row={vendor:matched.map(r=>r.vendor).join(' + '),cs:matched.reduce((s,r)=>s+r.cs,0),baht:matched.reduce((s,r)=>s+r.baht,0)};
+  console.log('[SellIn] matched',matched.length,'rows →',row);
   const bp=vendorBpRows(),bpCS=bp.reduce((s,r)=>s+r.sales_cs,0),bpEX=bp.reduce((s,r)=>s+r.exvat,0);
   const sb=row.cs-bpCS,mb=row.baht-bpEX;
   $('seContent').innerHTML=`
