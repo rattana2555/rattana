@@ -24,6 +24,35 @@ var ORDER_SHEET_GID    = 1594322176;   // สำรอง: เผื่อเป
 // เอา Channel access token (long-lived) จาก LINE Developers > channel Messaging API ของ OA Rattana_Official
 var LINE_TOKEN = 'PASTE_LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN';
 
+// ───── Supabase (เก็บออเดอร์ลงฐานข้อมูลด้วย — dual-write) ─────
+// SUPABASE_URL = Project URL (เช่น https://abcd.supabase.co)
+// SUPABASE_KEY = service_role key (Settings > API) — เก็บใน .gs เท่านั้น ห้ามใส่ในฝั่งเว็บ
+var SUPABASE_URL = 'https://PASTE_PROJECT_REF.supabase.co';
+var SUPABASE_KEY = 'PASTE_SERVICE_ROLE_KEY';
+function pushOrderToSupabase(d){
+  if(!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE')>=0 || !SUPABASE_KEY || SUPABASE_KEY.indexOf('PASTE')>=0) return; // ยังไม่ตั้งค่า
+  var now = new Date();
+  var dateStr = Utilities.formatDate(now,'Asia/Bangkok','dd/MM/yyyy');
+  var timeStr = Utilities.formatDate(now,'Asia/Bangkok','HH:mm');
+  var rows = (d.items||[]).map(function(it){
+    return {
+      order_id: d.orderId||'', order_date: dateStr, order_time: timeStr,
+      uid: d.uid||'', saleman_name: d.salemanName||'', saleman_code: d.salemanCode||'',
+      warehouse: d.warehouse||'', customer_name: d.customerName||'', shop_code: d.shopCode||'',
+      phone: String(d.phone||''), type: it.type||'', barcode: String(it.barcode||''),
+      product_name: it.name||'', qty: Number(it.qty)||0, unit: it.unit||'',
+      price: Number(it.price)||0, line_total: Number(it.total)||0,
+      promo: it.promo||'', note: d.note||''
+    };
+  });
+  if(!rows.length) return;
+  UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/orders', {
+    method:'post', contentType:'application/json',
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' },
+    payload: JSON.stringify(rows), muteHttpExceptions:true
+  });
+}
+
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
@@ -158,7 +187,8 @@ function handleOrder(d) {
     // Barcode: เก็บเป็น "ข้อความ" ด้วย number format @ (ไม่ต้องใส่ ' นำหน้า, ไม่เพี้ยนเป็น scientific)
     if (bcCol >= 0) { var lr = sh.getLastRow(); var bcell = sh.getRange(lr, bcCol+1); bcell.setNumberFormat('@'); bcell.setValue(String(it.barcode || '')); }
   });
-  try { pushLineOrder(d, sh); } catch (e) {}   // ส่งสรุปเข้าไลน์ลูกค้า (ไม่ให้ล้มถ้า push พลาด)
+  try { pushLineOrder(d, sh); } catch (e) {}        // ส่งสรุปเข้าไลน์ลูกค้า
+  try { pushOrderToSupabase(d); } catch (e) {}      // เก็บลง Supabase ด้วย (dual-write)
   clearCartFor(d.phone);   // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน (ทุกเครื่องตะกร้าว่างพร้อมกัน)
   return { ok:true, message:'order saved', count:items.length };
 }
