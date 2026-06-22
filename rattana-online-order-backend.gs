@@ -32,21 +32,23 @@ var SUPABASE_KEY = 'PASTE_SERVICE_ROLE_KEY';
 function pushOrderToSupabase(d){
   if(!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE')>=0 || !SUPABASE_KEY || SUPABASE_KEY.indexOf('PASTE')>=0) return; // ยังไม่ตั้งค่า
   var now = new Date();
-  var dateStr = Utilities.formatDate(now,'Asia/Bangkok','dd/MM/yyyy');
-  var timeStr = Utilities.formatDate(now,'Asia/Bangkok','HH:mm');
+  var dateISO = Utilities.formatDate(now,'Asia/Bangkok','yyyy-MM-dd');   // date type -> ISO
+  var timeStr = Utilities.formatDate(now,'Asia/Bangkok','HH:mm');        // time column ควรเป็น text
   var rows = (d.items||[]).map(function(it){
     return {
-      order_id: d.orderId||'', order_date: dateStr, order_time: timeStr,
-      uid: d.uid||'', saleman_name: d.salemanName||'', saleman_code: d.salemanCode||'',
-      warehouse: d.warehouse||'', customer_name: d.customerName||'', shop_code: d.shopCode||'',
-      phone: String(d.phone||''), type: it.type||'', barcode: String(it.barcode||''),
-      product_name: it.name||'', qty: Number(it.qty)||0, unit: it.unit||'',
-      price: Number(it.price)||0, line_total: Number(it.total)||0,
-      promo: it.promo||'', note: d.note||''
+      date: dateISO, time: timeStr, email: d.uid||'',
+      salesman_name: d.salemanName||'', salesman_code: d.salemanCode||'',
+      wh: d.warehouse||'', customer_name: d.customerName||'', customer_code: d.shopCode||'',
+      tran_type: it.type||'', barcode: String(it.barcode||''), product_name: it.name||'',
+      status: '', qty: Number(it.qty)||0, unit: it.unit||'',
+      price: Number(it.price)||0, total: Number(it.total)||0,
+      orderid: d.orderId||'', note: d.note||'',
+      wh_ship: d.warehouse||'', user_code: d.salemanCode||'',
+      promotion: it.promo||''
     };
   });
   if(!rows.length) return;
-  UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/orders', {
+  UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/roo_sales', {
     method:'post', contentType:'application/json',
     headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' },
     payload: JSON.stringify(rows), muteHttpExceptions:true
