@@ -29,6 +29,19 @@ var LINE_TOKEN = 'PASTE_LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN';
 // SUPABASE_KEY = service_role key (Settings > API) — เก็บใน .gs เท่านั้น ห้ามใส่ในฝั่งเว็บ
 var SUPABASE_URL = 'https://PASTE_PROJECT_REF.supabase.co';
 var SUPABASE_KEY = 'PASTE_SERVICE_ROLE_KEY';
+/* ── ทดสอบ: เลือกฟังก์ชันนี้ใน Apps Script แล้วกด Run → ดู Execution log ว่าได้ HTTP อะไร ── */
+function testSupabaseInsert(){
+  var resp = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/roo_sales', {
+    method:'post', contentType:'application/json',
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=representation' },
+    payload: JSON.stringify([{ date:'2026-06-23', time:'TEST', orderid:'TEST-'+new Date().getTime(), product_name:'ทดสอบ Supabase', qty:1, total:0 }]),
+    muteHttpExceptions:true
+  });
+  Logger.log('URL = ' + SUPABASE_URL);
+  Logger.log('KEY set? = ' + (SUPABASE_KEY && SUPABASE_KEY.indexOf('PASTE')<0));
+  Logger.log('HTTP ' + resp.getResponseCode());
+  Logger.log('BODY ' + resp.getContentText());
+}
 function pushOrderToSupabase(d){
   if(!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE')>=0 || !SUPABASE_KEY || SUPABASE_KEY.indexOf('PASTE')>=0) return; // ยังไม่ตั้งค่า
   var now = new Date();
