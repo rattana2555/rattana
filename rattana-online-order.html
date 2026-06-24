@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.31</title>
+<title>Rattana Online Order v2.32</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.31</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.32</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -335,6 +335,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <!-- ===== CART VIEW ===== -->
 <section class="view" id="viewCart">
   <div class="section-head"><h2>สรุปออเดอร์</h2><button class="see-all" onclick="goShop()">← เลือกสินค้าต่อ</button></div>
+  <button class="btn btn-block" style="margin-bottom:12px;background:var(--navy-light);color:#fff" onclick="goSummary()">📋 ออเดอร์ที่สั่งแล้ว (อนุมัติ)</button>
   <div class="cart-wrap">
     <div id="cartList"></div>
     <div class="summary" id="cartSummary" style="display:none">
@@ -349,6 +350,13 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
       <button class="btn btn-gold btn-block" style="margin-top:14px" onclick="submitOrder()">✓ ยืนยันสั่งซื้อ</button>
     </div>
   </div>
+</section>
+
+<!-- ===== ORDER SUMMARY VIEW ===== -->
+<section class="view" id="viewSummary">
+  <div class="section-head"><h2>ออเดอร์ที่สั่งแล้ว</h2><button class="see-all" onclick="goCart()">← กลับตะกร้า</button></div>
+  <p class="txt-sm muted" style="margin:0 0 12px">เฉพาะออเดอร์ที่ฝ่ายขาย <b>อนุมัติ</b>แล้ว (ทั้งหมด)</p>
+  <div id="summaryList"></div>
 </section>
 
 <!-- ===== PROFILE VIEW ===== -->
@@ -1189,9 +1197,45 @@ function renderCart(){
 
 /* ===================== NAV ===================== */
 function setNav(id){ ['navShop','navCart','navProfile'].forEach(n=>document.getElementById(n).classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function showView(v){ ['viewShop','viewCart','viewProfile'].forEach(x=>document.getElementById(x).classList.remove('active')); document.getElementById(v).classList.add('active'); window.scrollTo(0,0); }
+function showView(v){ ['viewShop','viewCart','viewProfile','viewSummary'].forEach(x=>document.getElementById(x).classList.remove('active')); document.getElementById(v).classList.add('active'); window.scrollTo(0,0); }
 function goShop(){ showView('viewShop'); setNav('navShop'); }
 function goCart(){ showView('viewCart'); setNav('navCart'); renderCart(); pullCart(false); }
+
+/* ===================== สรุปออเดอร์ (ออเดอร์ "อนุมัติ" ของร้าน) ===================== */
+function goSummary(){ showView('viewSummary'); setNav('navCart'); fetchShopOrders(); }
+function fetchShopOrders(){
+  const list=document.getElementById('summaryList');
+  if(!currentCustomer){ list.innerHTML='<div class="empty">กรุณาเข้าสู่ระบบก่อน</div>'; return; }
+  if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')){ list.innerHTML='<div class="empty">ยังไม่ได้ตั้งค่าระบบ</div>'; return; }
+  list.innerHTML='<div class="empty">⏳ กำลังโหลดออเดอร์...</div>';
+  const cb='__ordcb'+Date.now()+Math.floor(Math.random()*1e4);
+  window[cb]=(r)=>{ try{ renderShopOrders((r&&r.orders)||[]); }catch(e){ list.innerHTML='<div class="empty">โหลดไม่สำเร็จ ลองใหม่</div>'; } finally{ delete window[cb]; const s=document.getElementById(cb); if(s) s.remove(); } };
+  const s=document.createElement('script'); s.id=cb;
+  s.src=CFG.GAS_URL+'?action=getOrders&shop='+encodeURIComponent(currentCustomer.name||'')+'&callback='+cb+'&_='+Date.now();
+  s.onerror=()=>{ const l=document.getElementById('summaryList'); if(l) l.innerHTML='<div class="empty">โหลดไม่สำเร็จ ลองใหม่</div>'; delete window[cb]; s.remove(); };
+  document.head.appendChild(s);
+  setTimeout(()=>{ if(window[cb]){ delete window[cb]; const s2=document.getElementById(cb); if(s2) s2.remove(); } },10000);
+}
+function renderShopOrders(orders){
+  const list=document.getElementById('summaryList');
+  if(!orders||!orders.length){ list.innerHTML='<div class="empty">ยังไม่มีออเดอร์ที่อนุมัติ</div>'; return; }
+  const groups={}; orders.forEach(o=>{ (groups[o.orderId]=groups[o.orderId]||[]).push(o); });
+  const ids=Object.keys(groups).sort((a,b)=>Number(String(b).replace(/\D/g,''))-Number(String(a).replace(/\D/g,'')));
+  list.innerHTML=ids.map(id=>{
+    const rows=groups[id]; const date=rows[0].date||'', time=rows[0].time||'';
+    const sum=rows.reduce((s,o)=>s+(Number(o.total)||0),0);
+    const items=rows.map(o=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0">
+      <span class="txt-sm">${o.type==='แถม'?'🎁 ':''}${esc(o.name)} <span class="muted">× ${o.qty} ${esc(o.unit||'')}</span></span>
+      <span class="txt-sm" style="font-weight:600;white-space:nowrap">${o.type==='แถม'?'ฟรี':baht(o.total)}</span></div>`).join('');
+    return `<div class="cart-item" style="display:block">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <b style="font-size:13px">${esc(id)}</b>
+        <span style="font-size:11px;padding:2px 9px;border-radius:9px;background:#e8f7ee;color:#1e8449;font-weight:700">อนุมัติ</span></div>
+      <div class="txt-sm muted" style="margin-bottom:6px">${esc(date)} ${esc(time)}</div>
+      ${items}
+      <div class="s-total" style="margin-top:6px"><span>รวม</span><b>${baht(sum)}</b></div></div>`;
+  }).join('');
+}
 function goProfile(){ showView('viewProfile'); setNav('navProfile'); renderProfile(); }
 
 const CONTACT={ dept:'ฝ่ายขาย (สำนักงานใหญ่)', phone:'0803897765', lineOA:'@rpbsale' };
