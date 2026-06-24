@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.30</title>
+<title>Rattana Online Order v2.31</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.30</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.31</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -305,12 +305,6 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 
 <!-- ===== SHOP VIEW ===== -->
 <section class="view active" id="viewShop">
-  <div class="quick-row">
-    <button class="quick-btn" onclick="goShop()"><span class="qi">🏠</span>หน้าหลัก</button>
-    <button class="quick-btn" onclick="goCart()"><span class="qi">🛒</span>ตะกร้าสินค้า</button>
-    <button class="quick-btn" onclick="document.getElementById('searchInput').focus()"><span class="qi">🔎</span>ค้นหาสินค้า</button>
-  </div>
-
   <div id="promoSection">
     <div class="section-head sh-promo"><h2>โปรโมชั่นแนะนำ</h2><button class="see-all" onclick="setSpecial('promo')">ดูทั้งหมด ›</button></div>
     <div class="feat-scroll" id="promoScroll"></div>

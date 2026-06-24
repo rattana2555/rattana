@@ -1,5 +1,5 @@
 /****************************************************************
- * Rattana Online Order — Apps Script Backend  v1.4
+ * Rattana Online Order — Apps Script Backend  v1.8
  * --------------------------------------------------------------
  * รับข้อมูลจากแอป rattana-online-order.html แล้วบันทึกลง Google Sheet
  *   action: "register"  -> เขียนแถวลงชีทลงทะเบียน (gid 1357794184)
@@ -192,39 +192,89 @@ function applySalesmanFormat(d) {
   if (d.salemanCode) { d.salemanCode = String(d.salemanCode).replace(/^HSW/, 'ROH').replace(/^PM/, 'RO'); }
 }
 
-/* ───────── เขียนรายการออเดอร์ลงแท็บ "order" — replace ทั้งชุดตาม orderId กันซ้ำ + คอลัมน์ "สถานะ" ───────── */
+/* ───────── เขียน/อัปเดตรายการออเดอร์ลงแท็บ "order" ─────────
+   - แถวใหม่ (สินค้านี้ยังไม่เคยมีใน orderId นี้) → append เขียนครั้งเดียว
+   - แถวเดิม (orderId + บาร์โค้ด + รูปแบบ + หน่วย ตรงกัน) → อัปเดตเฉพาะ "สถานะอนุมัติ / จำนวน / ราคา / ยอดเงินรวม"
+     *ไม่ลบแถว ไม่แตะคอลัมน์อื่น* (ผู้อนุมัติ/วันกำหนดส่ง/billId/สถานะจัด ฯลฯ ที่แอดมินกรอกไว้ยังอยู่ครบ) */
+// รูปแบบมีแค่ "ขาย"/"แถม" — ค่าหน่วยที่หลุดมา (CS/PA/EA) หรืออื่นๆ ที่ไม่ใช่ "แถม" ถือเป็น "ขาย"
+function typeKey(t){ return String(t||'').trim()==='แถม' ? 'แถม' : 'ขาย'; }
+function lineKey(barcode, type, unit){
+  return String(barcode||'').trim() + '|' + typeKey(type) + '|' + String(unit||'').trim();
+}
 function writeOrderToSheet(d) {
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
   var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
   if (!sh) return { ok:false, error:'order sheet "' + ORDER_SHEET_NAME + '" not found', sh:null };
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  var bcCol = -1; for (var bi=0; bi<headers.length; bi++){ if (normHead(headers[bi])===normHead('Barcode')){ bcCol=bi; break; } }
-  deleteSheetRowsByOrderId(sh, headers, d.orderId);   // ลบของเดิม orderId นี้ก่อน แล้วเขียนชุดปัจจุบันทับ
-  var now = new Date();
-  var dateStr = Utilities.formatDate(now, 'Asia/Bangkok', 'dd/MM/yyyy');
-  var timeStr = Utilities.formatDate(now, 'Asia/Bangkok', 'HH.mm');
+  function col(name){ for (var i=0;i<headers.length;i++){ if (normHead(headers[i])===normHead(name)) return i; } return -1; }
+  var oidCol=col('orderId'), bcCol=col('Barcode'), typeCol=col('รูปแบบ'), unitCol=col('หน่วย');
+  var qtyCol=col('จำนวน'), priceCol=col('ราคา'), totalCol=col('ยอดเงินรวม'), statusCol=col('สถานะอนุมัติ');
   var items = d.items || [];
 
+  // map เฉพาะ "แถวที่ยังไม่จบ" (สถานะยังไม่ใช่ อนุมัติ/ไม่อนุมัติ) ของ orderId นี้ : key → {row}
+  // *แถวที่จบแล้ว (อนุมัติ/ไม่อนุมัติ) ไม่นับ ไม่แตะ* → กดเข้าตะกร้าใหม่จะกลายเป็นแถวใหม่ ไม่ปลุกแถวเดิม
+  var live = {};
+  var last = sh.getLastRow();
+  if (last >= 2 && oidCol >= 0) {
+    var data = sh.getRange(2, 1, last-1, headers.length).getValues();
+    for (var r=0; r<data.length; r++){
+      if (String(data[r][oidCol]).trim() !== String(d.orderId||'').trim()) continue;
+      var st = statusCol>=0 ? String(data[r][statusCol]||'') : '';
+      if (st === 'อนุมัติ' || st === 'ไม่อนุมัติ') continue;   // จบแล้ว — ข้าม ไม่จับคู่ ไม่แตะ
+      live[ lineKey(data[r][bcCol], data[r][typeCol], data[r][unitCol]) ] = { row: r+2 };
+    }
+  }
+
+  var sent = {};
   items.forEach(function(it){
-    var v = {
-      'วัน': dateStr, 'เวลา': timeStr, 'email': d.uid || '',
-      'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '', 'คลังส่ง': d.warehouse || '',
-      'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': d.shopCode || '',
-      'รูปแบบ': it.type || '', 'Barcode': (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
-      'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
-      'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
-      'สถานะอนุมัติ': it.status || d.status || '',   // รออนุมัติ / อนุมัติ / ไม่อนุมัติ
-      'lineId': d.uid || '',                         // LINE userId (คอลัมน์ใหม่)
-      'โปรที่ใช้': it.promo || '',
-      'หมายเหตุ': d.note || ''
-    };
-    var vmap = {};
-    for (var k in v) vmap[normHead(k)] = v[k];
-    var row = headers.map(function(h){ var n = normHead(h); return vmap.hasOwnProperty(n) ? vmap[n] : ''; });
-    sh.appendRow(row);
-    if (bcCol >= 0) { var lr = sh.getLastRow(); var bcell = sh.getRange(lr, bcCol+1); bcell.setNumberFormat('@'); bcell.setValue(String(it.barcode || '')); }
+    var st = it.status || d.status || '';
+    if (st === 'ไม่อนุมัติ') return;   // รายการที่ถูกลบ — ปล่อยให้ลูป "แถวที่ไม่ถูกส่ง" มาร์คครั้งเดียว (กันแถวซ้ำตอน sync ถี่ๆ)
+    var key = lineKey(it.barcode, it.type, it.unit);
+    sent[key] = 1;
+    var ex = live[key];
+    if (ex) {
+      // อัปเดตในแถวเดิม — แตะเฉพาะช่องที่เปลี่ยนได้ (สถานะ/จำนวน/ราคา/ยอด)
+      if (statusCol>=0) sh.getRange(ex.row, statusCol+1).setValue(st);
+      if (qtyCol>=0)    sh.getRange(ex.row, qtyCol+1).setValue(it.qty || 0);
+      if (priceCol>=0)  sh.getRange(ex.row, priceCol+1).setValue(it.price || 0);
+      if (totalCol>=0)  sh.getRange(ex.row, totalCol+1).setValue(it.total || 0);
+    } else {
+      appendOrderRow(sh, headers, bcCol, d, it);
+      live[key] = { row: sh.getLastRow() };
+    }
   });
+
+  // แถวที่ยังไม่จบ แต่ไม่ถูกส่งมาในรอบนี้ (สินค้าที่ลบ + ของแถมของมัน) → มาร์ค "ไม่อนุมัติ" ครั้งเดียว
+  if (statusCol >= 0) {
+    for (var kk in live) {
+      if (!sent[kk]) sh.getRange(live[kk].row, statusCol+1).setValue('ไม่อนุมัติ');
+    }
+  }
   return { ok:true, count:items.length, sh:sh };
+}
+
+// append แถวใหม่เต็มแถว (เฉพาะสินค้าที่ยังไม่เคยมีใน orderId นี้)
+function appendOrderRow(sh, headers, bcCol, d, it) {
+  var now = new Date();
+  var v = {
+    'วัน': Utilities.formatDate(now,'Asia/Bangkok','dd/MM/yyyy'),
+    'เวลา': Utilities.formatDate(now,'Asia/Bangkok','HH.mm'),
+    'email': d.uid || '',
+    'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '', 'คลังส่ง': d.warehouse || '',
+    'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': d.shopCode || '',
+    'รูปแบบ': typeKey(it.type), 'Barcode': (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
+    'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
+    'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
+    'สถานะอนุมัติ': it.status || d.status || '',   // รออนุมัติ / อนุมัติ / ไม่อนุมัติ
+    'lineId': d.uid || '',                         // LINE userId
+    'โปรที่ใช้': it.promo || '',
+    'หมายเหตุ': d.note || ''
+  };
+  var vmap = {};
+  for (var k in v) vmap[normHead(k)] = v[k];
+  var row = headers.map(function(h){ var n = normHead(h); return vmap.hasOwnProperty(n) ? vmap[n] : ''; });
+  sh.appendRow(row);
+  if (bcCol >= 0) { var lr = sh.getLastRow(); var bcell = sh.getRange(lr, bcCol+1); bcell.setNumberFormat('@'); bcell.setValue(String(it.barcode || '')); }
 }
 
 // ลบแถวในแท็บ order ที่ orderId ตรงกัน (ไล่จากล่างขึ้นบน) — ใช้กันซ้ำ/อัปเดตทั้งชุด
