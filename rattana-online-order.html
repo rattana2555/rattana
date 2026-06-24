@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.32</title>
+<title>Rattana Online Order v2.33</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.32</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.33</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -335,7 +335,6 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <!-- ===== CART VIEW ===== -->
 <section class="view" id="viewCart">
   <div class="section-head"><h2>สรุปออเดอร์</h2><button class="see-all" onclick="goShop()">← เลือกสินค้าต่อ</button></div>
-  <button class="btn btn-block" style="margin-bottom:12px;background:var(--navy-light);color:#fff" onclick="goSummary()">📋 ออเดอร์ที่สั่งแล้ว (อนุมัติ)</button>
   <div class="cart-wrap">
     <div id="cartList"></div>
     <div class="summary" id="cartSummary" style="display:none">
@@ -369,6 +368,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <nav class="bottom-nav">
   <button class="bn-btn active" id="navShop" onclick="goShop()"><span class="bi">🏠</span>หน้าหลัก</button>
   <button class="bn-btn" id="navCart" onclick="goCart()"><span class="bi">🛒</span>ตะกร้า<span class="bn-badge" id="cartBadgeNav" style="display:none">0</span></button>
+  <button class="bn-btn" id="navSummary" onclick="goSummary()"><span class="bi">📋</span>สรุปออเดอร์</button>
   <button class="bn-btn" id="navProfile" onclick="goProfile()"><span class="bi">👤</span>Profile</button>
 </nav>
 
@@ -1196,13 +1196,13 @@ function renderCart(){
 }
 
 /* ===================== NAV ===================== */
-function setNav(id){ ['navShop','navCart','navProfile'].forEach(n=>document.getElementById(n).classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function setNav(id){ ['navShop','navCart','navSummary','navProfile'].forEach(n=>{var el=document.getElementById(n); if(el) el.classList.remove('active');}); var a=document.getElementById(id); if(a) a.classList.add('active'); }
 function showView(v){ ['viewShop','viewCart','viewProfile','viewSummary'].forEach(x=>document.getElementById(x).classList.remove('active')); document.getElementById(v).classList.add('active'); window.scrollTo(0,0); }
 function goShop(){ showView('viewShop'); setNav('navShop'); }
 function goCart(){ showView('viewCart'); setNav('navCart'); renderCart(); pullCart(false); }
 
 /* ===================== สรุปออเดอร์ (ออเดอร์ "อนุมัติ" ของร้าน) ===================== */
-function goSummary(){ showView('viewSummary'); setNav('navCart'); fetchShopOrders(); }
+function goSummary(){ showView('viewSummary'); setNav('navSummary'); fetchShopOrders(); }
 function fetchShopOrders(){
   const list=document.getElementById('summaryList');
   if(!currentCustomer){ list.innerHTML='<div class="empty">กรุณาเข้าสู่ระบบก่อน</div>'; return; }
@@ -1216,25 +1216,57 @@ function fetchShopOrders(){
   document.head.appendChild(s);
   setTimeout(()=>{ if(window[cb]){ delete window[cb]; const s2=document.getElementById(cb); if(s2) s2.remove(); } },10000);
 }
+// แถบสถานะ: 1 รับออเดอร์ → 2 กำลังจัดออเดอร์(สถานะจัดไม่ว่าง) → 3 กำลังจัดส่ง(มีบิล) → 4 รับสินค้าแล้ว(เว้นไว้)
+function statusStage(rows){
+  let s=1;
+  if(rows.some(o=>String(o.pickStatus||'').trim())) s=2;
+  if(rows.some(o=>String(o.billId||'').trim())) s=3;
+  return s;
+}
+function trackerHtml(stage){
+  const STEPS=[['รับ<br>ออเดอร์','🧾'],['กำลังจัด<br>ออเดอร์','📦'],['กำลัง<br>จัดส่ง','🚚'],['รับสินค้า<br>แล้ว','✅']];
+  let dots='', labels='';
+  for(let i=0;i<4;i++){
+    const n=i+1, done=n<stage, active=n===stage, on=n<=stage;
+    const ring=active?'box-shadow:0 0 0 4px rgba(201,168,76,.25);':'';
+    dots+=`<div style="width:52px;text-align:center"><div style="width:28px;height:28px;margin:0 auto;border-radius:50%;background:${on?'#c9a84c':'#fff'};border:2px solid ${on?'#c9a84c':'#cfd6e6'};${ring}display:flex;align-items:center;justify-content:center;font-size:13px;color:${on?'#fff':'#aab2c5'}">${done?'✓':STEPS[i][1]}</div></div>`;
+    if(i<3) dots+=`<div style="flex:1;height:3px;margin-top:13px;background:${n<stage?'#c9a84c':'#dde3f0'}"></div>`;
+    labels+=`<div style="width:52px;text-align:center;font-size:10px;line-height:1.25;${active?'color:#a87800;font-weight:600':(on?'color:#1e8449':'color:#9aa6c0')}">${STEPS[i][0]}</div>`;
+    if(i<3) labels+=`<div style="flex:1"></div>`;
+  }
+  return `<div style="display:flex;align-items:flex-start;margin-bottom:4px">${dots}</div><div style="display:flex;margin-bottom:10px">${labels}</div>`;
+}
+function summaryHead(t,mt){ return `<div style="font-size:14px;font-weight:600;margin:${mt||'2px'} 0 8px;color:var(--navy)">${t}</div>`; }
 function renderShopOrders(orders){
   const list=document.getElementById('summaryList');
   if(!orders||!orders.length){ list.innerHTML='<div class="empty">ยังไม่มีออเดอร์ที่อนุมัติ</div>'; return; }
   const groups={}; orders.forEach(o=>{ (groups[o.orderId]=groups[o.orderId]||[]).push(o); });
   const ids=Object.keys(groups).sort((a,b)=>Number(String(b).replace(/\D/g,''))-Number(String(a).replace(/\D/g,'')));
-  list.innerHTML=ids.map(id=>{
-    const rows=groups[id]; const date=rows[0].date||'', time=rows[0].time||'';
-    const sum=rows.reduce((s,o)=>s+(Number(o.total)||0),0);
-    const items=rows.map(o=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0">
-      <span class="txt-sm">${o.type==='แถม'?'🎁 ':''}${esc(o.name)} <span class="muted">× ${o.qty} ${esc(o.unit||'')}</span></span>
-      <span class="txt-sm" style="font-weight:600;white-space:nowrap">${o.type==='แถม'?'ฟรี':baht(o.total)}</span></div>`).join('');
-    return `<div class="cart-item" style="display:block">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <b style="font-size:13px">${esc(id)}</b>
-        <span style="font-size:11px;padding:2px 9px;border-radius:9px;background:#e8f7ee;color:#1e8449;font-weight:700">อนุมัติ</span></div>
-      <div class="txt-sm muted" style="margin-bottom:6px">${esc(date)} ${esc(time)}</div>
-      ${items}
-      <div class="s-total" style="margin-top:6px"><span>รวม</span><b>${baht(sum)}</b></div></div>`;
-  }).join('');
+  const latest=ids[0], rest=ids.slice(1);
+  const cur=groups[latest], stage=statusStage(cur);
+  const curItems=cur.map(o=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0"><span class="txt-sm">${o.type==='แถม'?'🎁 ':''}${esc(o.name)} <span class="muted">× ${o.qty} ${esc(o.unit||'')}</span></span><span class="txt-sm" style="font-weight:600;white-space:nowrap">${o.type==='แถม'?'ฟรี':baht(o.total)}</span></div>`).join('');
+  const curSum=cur.reduce((s,o)=>s+(Number(o.total)||0),0);
+  const bill=(cur.map(o=>o.billId).find(b=>String(b||'').trim()))||'';
+  const ship=(cur.map(o=>o.shipDate).find(s=>String(s||'').trim()))||'';
+  let html=summaryHead('🚚 กำลังจะไปส่ง')+`<div class="cart-item" style="display:block">
+    ${trackerHtml(stage)}
+    ${(bill||ship)?`<div style="background:#fff7e6;border:0.5px solid #f0d9a0;border-radius:10px;padding:7px 11px;font-size:12px;color:#a87800;margin-bottom:10px">${ship?('กำหนดส่ง: '+esc(ship)):''}${(ship&&bill)?' · ':''}${bill?('บิล '+esc(bill)):''}</div>`:''}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="font-size:12px">${esc(latest)}</b><span class="txt-sm muted">${esc(cur[0].date||'')} ${esc(cur[0].time||'')}</span></div>
+    <div style="border-top:0.5px solid var(--border);padding-top:6px">${curItems}</div>
+    <div class="s-total" style="margin-top:6px"><span>รวม</span><b>${baht(curSum)}</b></div></div>`;
+  if(rest.length){
+    html+=summaryHead('🕘 เคยสั่งรอบก่อนๆ','16px');
+    html+=rest.map(id=>{
+      const rows=groups[id]; const sum=rows.reduce((s,o)=>s+(Number(o.total)||0),0);
+      const names=rows.filter(o=>o.type!=='แถม').map(o=>o.name).slice(0,3).join(', ');
+      return `<div class="cart-item" style="display:block;padding:11px 14px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="font-size:12px">${esc(id)}</b><span style="font-size:10.5px;padding:2px 9px;border-radius:9px;background:#e8f7ee;color:#1e8449;font-weight:700">อนุมัติ</span></div>
+        <div class="txt-sm muted" style="margin-bottom:5px">${esc(rows[0].date||'')} · ${rows.length} รายการ</div>
+        <div style="display:flex;justify-content:space-between;gap:8px"><span class="txt-sm" style="color:var(--navy-light)">${esc(names)}${rows.length>3?' ...':''}</span><b class="txt-sm">${baht(sum)}</b></div></div>`;
+    }).join('');
+  }
+  html+='<div class="empty" style="padding:10px;font-size:11px;color:var(--muted)">— แสดงเฉพาะออเดอร์ที่อนุมัติแล้ว —</div>';
+  list.innerHTML=html;
 }
 function goProfile(){ showView('viewProfile'); setNav('navProfile'); renderProfile(); }
 

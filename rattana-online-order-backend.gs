@@ -1,5 +1,5 @@
 /****************************************************************
- * Rattana Online Order — Apps Script Backend  v1.10
+ * Rattana Online Order — Apps Script Backend  v1.11
  * --------------------------------------------------------------
  * รับข้อมูลจากแอป rattana-online-order.html แล้วบันทึกลง Google Sheet
  *   action: "register"  -> เขียนแถวลงชีทลงทะเบียน (gid 1357794184)
@@ -162,10 +162,12 @@ function getOrdersFor(shop){
   function col(name){ for(var i=0;i<headers.length;i++){ if(normHead(headers[i])===normHead(name)) return i; } return -1; }
   var c = { date:col('วัน'), time:col('เวลา'), shop:col('ชื่อร้าน'), type:col('รูปแบบ'), bc:col('Barcode'),
             name:col('ชื่อสินค้า'), qty:col('จำนวน'), unit:col('หน่วย'), price:col('ราคา'),
-            total:col('ยอดเงินรวม'), oid:col('orderId'), status:col('สถานะอนุมัติ') };
+            total:col('ยอดเงินรวม'), oid:col('orderId'), status:col('สถานะอนุมัติ'),
+            pickStatus:col('สถานะจัด'), billId:col('billId'), pickDate:col('วันสั่งจัด'), shipDate:col('วันกำหนดส่ง') };
   if(c.shop<0 || c.status<0) return out;
   var last = sh.getLastRow(); if(last<2) return out;
   var data = sh.getRange(2,1,last-1,headers.length).getValues();
+  function gv(r, idx){ return idx>=0 ? String(r[idx]||'') : ''; }
   data.forEach(function(r){
     if(String(r[c.shop]).trim() !== shop) return;
     if(String(r[c.status]||'').trim() !== 'อนุมัติ') return;
@@ -173,7 +175,8 @@ function getOrdersFor(shop){
       date:String(r[c.date]||''), time:String(r[c.time]||''),
       type:String(r[c.type]||''), barcode:String(r[c.bc]||''), name:String(r[c.name]||''),
       qty:Number(r[c.qty])||0, unit:String(r[c.unit]||''), price:Number(r[c.price])||0,
-      total:Number(r[c.total])||0, orderId:String(r[c.oid]||'')
+      total:Number(r[c.total])||0, orderId:String(r[c.oid]||''),
+      pickStatus:gv(r,c.pickStatus), billId:gv(r,c.billId), pickDate:gv(r,c.pickDate), shipDate:gv(r,c.shipDate)
     });
   });
   return out;
