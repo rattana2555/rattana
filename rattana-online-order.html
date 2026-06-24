@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.27</title>
+<title>Rattana Online Order v2.30</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.27</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.30</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -506,6 +506,40 @@ let promoIndex={};                 // field -> Map(valueLower -> [promoObj])
 let EA_SET=new Set();              // CAT SIZE (lowercase) ที่ขายแบบชิ้น (EA) ได้
 let BARCODE_INDEX=new Map();       // barcode -> product (จาก CODE EA/PA/BP/CS)
 let cart=loadCart();               // { 'name__TYPE': {key,name,type,unitName,price,barcode,qty,img,promo} }
+
+/* ===================== ORDER DRAFT (สถานะรายชิ้น + orderId คงที่ต่อ draft) ===================== */
+let removedItems=(function(){ try{return JSON.parse(localStorage.getItem('rop_removed'))||{};}catch{return{}} })();
+function saveRemoved(){ localStorage.setItem('rop_removed',JSON.stringify(removedItems)); }
+function draftOrderId(){ let id=localStorage.getItem('rop_orderId'); if(!id){ id='ORD'+Date.now(); localStorage.setItem('rop_orderId',id); } return id; }
+function resetDraft(){ localStorage.removeItem('rop_orderId'); removedItems={}; saveRemoved(); }
+function cancelItem(key){ if(cart[key]){ removedItems[key]=Object.assign({},cart[key]); saveRemoved(); delete cart[key]; } }  // ลบจากตะกร้า = ทำเครื่องหมาย "ไม่อนุมัติ"
+// รายการสินค้าสำหรับส่ง backend: ในตะกร้า=activeStatus, ที่ลบแล้ว=ไม่อนุมัติ
+function buildOrderItems(activeStatus){
+  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | '),status:activeStatus};});
+  computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from,status:activeStatus}));
+  Object.values(removedItems).forEach(i=>{const up=itemUnitPrice(i);items.push({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:i.type||'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:((i.promo&&i.promo.join)?i.promo.join(' | '):''),status:'ไม่อนุมัติ'});});
+  return items;
+}
+function orderMeta(){
+  const sUser=salemanUserFor(currentCustomer), wh=warehouseForCustomer(currentCustomer);
+  return { customerName:(currentCustomer&&currentCustomer.name)||'', phone:(currentCustomer&&currentCustomer.phone)||'',
+    uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'',
+    salemanCode:sUser?clean(sUser['รหัสเซลล์']):((currentCustomer&&currentCustomer.salemanCode)||''),
+    salemanName:sUser?clean(sUser['ชื่อ - สกุล']):normName((currentCustomer&&currentCustomer.salemanName)||''),
+    warehouse:wh||'', shopCode:(currentCustomer&&currentCustomer.shopCode)||'' };
+}
+let _syncTimer=null;
+// ยิงสถานะ "รออนุมัติราคา" ลงแท็บ order + Supabase ทันทีที่ใส่/ลบ/แก้จำนวน (หน่วง 1.5 วิ)
+function syncOrderSoon(){
+  if(!currentCustomer) return;
+  if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
+  if(!Object.keys(cart).length && !Object.keys(removedItems).length) return;
+  if(_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>{
+    const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
+    postGAS(Object.assign({action:'syncOrder',orderId:draftOrderId(),note,total:cartTotal(),items:buildOrderItems('รออนุมัติ')},orderMeta()));
+  },1500);
+}
 let currentCustomer=null;
 let activeCat='ทั้งหมด';
 let searchTerm='';
@@ -522,7 +556,7 @@ const PROMO_FIELD={
 
 /* ===================== CART PERSIST ===================== */
 function loadCart(){ try{return JSON.parse(localStorage.getItem('rop_cart'))||{};}catch{return{}} }
-function saveCart(){ localStorage.setItem('rop_cart',JSON.stringify(cart)); pushCartSoon(); }
+function saveCart(){ localStorage.setItem('rop_cart',JSON.stringify(cart)); syncOrderSoon(); }   // เลิกเขียนแท็บ "ตะกร้า" → ออเดอร์ลงแท็บ order ตรงๆ ผ่าน syncOrder
 
 /* ===================== SHARED CART (ซิงค์ข้ามเครื่องของร้านเดียวกัน ผูกด้วยเบอร์) ===================== */
 let _cartTs=0,_cartPushTimer=null,_cartSyncOn=false;
@@ -536,8 +570,9 @@ function pushCartSoon(){
     postGAS({action:'saveCart', phone, name:(currentCustomer&&currentCustomer.name)||'', uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'', cart:JSON.stringify(cartArrForSync()), ts:_cartTs});
   },1500);
 }
-/* ดึงตะกร้าล่าสุดของร้านจากเซิร์ฟเวอร์ (JSONP — อ่านข้าม origin ได้) */
+/* ดึงตะกร้าล่าสุดของร้านจากเซิร์ฟเวอร์ (JSONP) — ปิดไว้ เพราะเลิกใช้แท็บ "ตะกร้า" แล้ว (กันล้างตะกร้า local) */
 function pullCart(force){
+  return;   // disabled: ออเดอร์อยู่ที่แท็บ order, ไม่ sync ผ่านแท็บ ตะกร้า อีกต่อไป
   const phone=cartShopKey(); if(!phone) return;
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
   const cb='__cartcb'+Date.now()+Math.floor(Math.random()*1e4);
@@ -1032,6 +1067,7 @@ function pdSetQty(v){ const pd=window._pd; pd.qty=Math.max(1,parseInt(v)||1); do
 function confirmAddToCart(){
   const pd=window._pd; if(!pd) return; const u=pd.units.find(x=>x.type===pd.sel); const p=findProduct(pd.name);
   const key=pd.name+'__'+u.type;
+  if(removedItems[key]){ delete removedItems[key]; saveRemoved(); }   // กดเพิ่มใหม่ = ยกเลิกสถานะ "ไม่อนุมัติ" เดิม
   if(!cart[key]) cart[key]={key,name:pd.name,type:u.type,unitName:u.name,unitDetail:u.detail,price:u.price,tiers:u.tiers||null,barcode:u.barcode,img:imgUrl(p['SKU_USAGE']),promo:promosFor(p),qty:0};
   cart[key].qty+=pd.qty; saveCart();
   renderProducts(); renderCartBadge(); closeModal('productModal');
@@ -1102,9 +1138,9 @@ function unitsFor(p){
   return u;
 }
 function inCartQtyOf(name){ return Object.values(cart).filter(c=>c.name===name).reduce((s,c)=>s+c.qty,0); }
-function changeQty(key,d){ if(!cart[key])return; cart[key].qty+=d; if(cart[key].qty<=0) delete cart[key]; saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
-function setQty(key,v){ const q=parseInt(v)||0; if(!cart[key])return; if(q<=0) delete cart[key]; else cart[key].qty=q; saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
-function removeItem(key){ delete cart[key]; saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
+function changeQty(key,d){ if(!cart[key])return; cart[key].qty+=d; if(cart[key].qty<=0) cancelItem(key); saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
+function setQty(key,v){ const q=parseInt(v)||0; if(!cart[key])return; if(q<=0) cancelItem(key); else cart[key].qty=q; saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
+function removeItem(key){ cancelItem(key); saveCart(); renderProducts(); renderCart(); renderCartBadge(); }
 function cartCount(){ return Object.values(cart).reduce((s,i)=>s+i.qty,0); }
 function cartTotal(){ return Object.values(cart).reduce((s,i)=>s+i.qty*itemUnitPrice(i),0); }
 function renderCartBadge(){
@@ -1303,24 +1339,15 @@ async function submitRegister(){
 async function submitOrder(){
   if(!Object.keys(cart).length){ showToast('ตะกร้าว่าง','warning'); return; }
   if(!currentCustomer){ showToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ','warning'); openModal('loginModal'); return; }
-  const wh=warehouseForCustomer(currentCustomer);
-  const sUser=salemanUserFor(currentCustomer);
-  const sCode=sUser?clean(sUser['รหัสเซลล์']):(currentCustomer.salemanCode||'');
-  const sName=sUser?clean(sUser['ชื่อ - สกุล']):normName(currentCustomer.salemanName||'');   // ชื่อเซลล์ไม่มี "คุณ"
-  const orderId='ORD'+Date.now();
-  // รูปแบบ = ขาย/แถม , หน่วย = หน่วยละเอียดตามบาร์โค้ด (เช่น ลังx30(CS))
-  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | ')};});
-  computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from}));
+  const orderId=draftOrderId();   // ใช้ orderId เดิมของ draft (ที่ sync รออนุมัติราคา ไว้แล้ว) → ยืนยันทับเป็นอนุมัติราคา
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
-  const payload={ action:'order', orderId,
-    customerName:currentCustomer.name, phone:currentCustomer.phone, uid:currentCustomer.uid||window._lineUid||'',
-    salemanCode:sCode, salemanName:sName, warehouse:wh||'', shopCode:currentCustomer.shopCode||'',
-    note, total:cartTotal(), items };
+  // รูปแบบ = ขาย/แถม/ไม่อนุมัติ , หน่วย = หน่วยละเอียดตามบาร์โค้ด ; สถานะตอนยืนยัน = อนุมัติราคา
+  const payload=Object.assign({ action:'order', orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
   showSpinner('กำลังส่งออเดอร์...');
   const ok=await postGAS(payload);
   hideSpinner();
   if(ok!==false){
-    cart={}; saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
+    cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
     showToast('ส่งออเดอร์สำเร็จ! เลขที่ '+orderId,'success');
     goShop();
   } else { showToast('ส่งออเดอร์ไม่สำเร็จ ลองใหม่','error'); }

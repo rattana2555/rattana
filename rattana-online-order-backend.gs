@@ -1,5 +1,5 @@
 /****************************************************************
- * Rattana Online Order — Apps Script Backend  v1.0
+ * Rattana Online Order — Apps Script Backend  v1.4
  * --------------------------------------------------------------
  * รับข้อมูลจากแอป rattana-online-order.html แล้วบันทึกลง Google Sheet
  *   action: "register"  -> เขียนแถวลงชีทลงทะเบียน (gid 1357794184)
@@ -27,7 +27,7 @@ var LINE_TOKEN = 'PASTE_LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN';
 // ───── Supabase (เก็บออเดอร์ลงฐานข้อมูลด้วย — dual-write) ─────
 // SUPABASE_URL = Project URL (เช่น https://abcd.supabase.co)
 // SUPABASE_KEY = service_role key (Settings > API) — เก็บใน .gs เท่านั้น ห้ามใส่ในฝั่งเว็บ
-var SUPABASE_URL = 'https://PASTE_PROJECT_REF.supabase.co';
+var SUPABASE_URL = 'https://ncmgqigufxmlgiqfisdf.supabase.co';
 var SUPABASE_KEY = 'PASTE_SERVICE_ROLE_KEY';
 /* ── ทดสอบ: เลือกฟังก์ชันนี้ใน Apps Script แล้วกด Run → ดู Execution log ว่าได้ HTTP อะไร ── */
 function testSupabaseInsert(){
@@ -53,15 +53,29 @@ function pushOrderToSupabase(d){
       salesman_name: d.salemanName||'', salesman_code: d.salemanCode||'',
       wh: d.warehouse||'', customer_name: d.customerName||'', customer_code: d.shopCode||'',
       tran_type: it.type||'', barcode: String(it.barcode||''), product_name: it.name||'',
-      status: '', qty: Number(it.qty)||0, unit: it.unit||'',
+      status: '',                                       // = "ยกเลิก" (ว่าง = ไม่ยกเลิก)
+      qty: Number(it.qty)||0, unit: it.unit||'',
       price: Number(it.price)||0, total: Number(it.total)||0,
       orderid: d.orderId||'', note: d.note||'',
-      wh_ship: d.warehouse||'', user_code: d.salemanCode||'',
+      wh_ship: d.warehouse||'',
+      approve_status: it.status||d.status||'',          // สถานะอนุมัติ: รออนุมัติ/อนุมัติ/ไม่อนุมัติ
       promotion: it.promo||''
     };
   });
   if(!rows.length) return;
-  UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/roo_sales', {
+  var base = SUPABASE_URL + '/rest/v1/roo_sales';
+  // ── กันออเดอร์ซ้ำ (upsert แบบยึด orderId) ──
+  // ถ้า orderId นี้เคยบันทึกแล้ว (กดยืนยันรัว / เน็ตส่งซ้ำ / แก้ออเดอร์แล้วส่งใหม่ด้วย orderId เดิม)
+  // ลบแถวเดิมของ orderId นั้นทิ้งก่อน แล้วค่อยเขียนชุดใหม่ → เหลือชุดเดียวเสมอ ไม่มีแถวซ้ำ
+  var oid = d.orderId || '';
+  if(oid){
+    UrlFetchApp.fetch(base + '?orderid=eq.' + encodeURIComponent(oid), {
+      method:'delete',
+      headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' },
+      muteHttpExceptions:true
+    });
+  }
+  UrlFetchApp.fetch(base, {
     method:'post', contentType:'application/json',
     headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' },
     payload: JSON.stringify(rows), muteHttpExceptions:true
@@ -73,6 +87,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     if (data.action === 'register') return json(handleRegister(data));
     if (data.action === 'order')    return json(handleOrder(data));
+    if (data.action === 'syncOrder') return json(handleSyncOrder(data));
     if (data.action === 'linkUid')  return json(handleLinkUid(data));
     if (data.action === 'saveCart') return json(handleSaveCart(data));
     return json({ ok:false, error:'unknown action' });
@@ -171,19 +186,26 @@ function handleRegister(d) {
   return { ok:true, message:'registered' };
 }
 
-/* ───────── บันทึกออเดอร์ → แท็บ gid 1594322176 (แมปตามชื่อหัวคอลัมน์) ───────── */
-function handleOrder(d) {
+/* แปลงชื่อ/รหัสเซลล์สำหรับออเดอร์จาก Roo: ชื่อ + " (ROO)"; รหัส PMW102→ROW102 (PM→RO), HSW104→ROH104 (HSW→ROH) */
+function applySalesmanFormat(d) {
+  if (d.salemanName) { var n = String(d.salemanName).trim(); if (n && n.indexOf('(ROO)') < 0) d.salemanName = n + ' (ROO)'; }
+  if (d.salemanCode) { d.salemanCode = String(d.salemanCode).replace(/^HSW/, 'ROH').replace(/^PM/, 'RO'); }
+}
+
+/* ───────── เขียนรายการออเดอร์ลงแท็บ "order" — replace ทั้งชุดตาม orderId กันซ้ำ + คอลัมน์ "สถานะ" ───────── */
+function writeOrderToSheet(d) {
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
   var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
-  if (!sh) return { ok:false, error:'order sheet "' + ORDER_SHEET_NAME + '" not found' };
+  if (!sh) return { ok:false, error:'order sheet "' + ORDER_SHEET_NAME + '" not found', sh:null };
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
   var bcCol = -1; for (var bi=0; bi<headers.length; bi++){ if (normHead(headers[bi])===normHead('Barcode')){ bcCol=bi; break; } }
+  deleteSheetRowsByOrderId(sh, headers, d.orderId);   // ลบของเดิม orderId นี้ก่อน แล้วเขียนชุดปัจจุบันทับ
   var now = new Date();
   var dateStr = Utilities.formatDate(now, 'Asia/Bangkok', 'dd/MM/yyyy');
   var timeStr = Utilities.formatDate(now, 'Asia/Bangkok', 'HH.mm');
   var items = d.items || [];
 
-  items.forEach(function(it, idx){
+  items.forEach(function(it){
     var v = {
       'วัน': dateStr, 'เวลา': timeStr, 'email': d.uid || '',
       'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '', 'คลังส่ง': d.warehouse || '',
@@ -191,21 +213,140 @@ function handleOrder(d) {
       'รูปแบบ': it.type || '', 'Barcode': (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
       'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
       'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
-      'โปรที่ใช้': it.promo || '',        // โปร/ของแถมที่ใช้ -> คอลัมน์ "โปรที่ใช้"
-      'หมายเหตุ': d.note || ''            // หมายเหตุที่ลูกค้าพิมพ์ถึงร้านค้า
+      'สถานะอนุมัติ': it.status || d.status || '',   // รออนุมัติ / อนุมัติ / ไม่อนุมัติ
+      'lineId': d.uid || '',                         // LINE userId (คอลัมน์ใหม่)
+      'โปรที่ใช้': it.promo || '',
+      'หมายเหตุ': d.note || ''
     };
-    // map ไม่สนเรื่องช่องว่าง/ตัวพิมพ์
     var vmap = {};
     for (var k in v) vmap[normHead(k)] = v[k];
     var row = headers.map(function(h){ var n = normHead(h); return vmap.hasOwnProperty(n) ? vmap[n] : ''; });
     sh.appendRow(row);
-    // Barcode: เก็บเป็น "ข้อความ" ด้วย number format @ (ไม่ต้องใส่ ' นำหน้า, ไม่เพี้ยนเป็น scientific)
     if (bcCol >= 0) { var lr = sh.getLastRow(); var bcell = sh.getRange(lr, bcCol+1); bcell.setNumberFormat('@'); bcell.setValue(String(it.barcode || '')); }
   });
-  try { pushLineOrder(d, sh); } catch (e) {}        // ส่งสรุปเข้าไลน์ลูกค้า
-  try { pushOrderToSupabase(d); } catch (e) {}      // เก็บลง Supabase ด้วย (dual-write)
-  clearCartFor(d.phone);   // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน (ทุกเครื่องตะกร้าว่างพร้อมกัน)
-  return { ok:true, message:'order saved', count:items.length };
+  return { ok:true, count:items.length, sh:sh };
+}
+
+// ลบแถวในแท็บ order ที่ orderId ตรงกัน (ไล่จากล่างขึ้นบน) — ใช้กันซ้ำ/อัปเดตทั้งชุด
+function deleteSheetRowsByOrderId(sh, headers, orderId) {
+  if (!orderId) return;
+  var oidCol = -1;
+  for (var i=0; i<headers.length; i++){ if (normHead(headers[i])===normHead('orderId')){ oidCol=i; break; } }
+  if (oidCol < 0) return;
+  var last = sh.getLastRow(); if (last < 2) return;
+  var col = sh.getRange(2, oidCol+1, last-1, 1).getValues();
+  for (var r=col.length-1; r>=0; r--){
+    if (String(col[r][0]).trim() === String(orderId).trim()) sh.deleteRow(r+2);
+  }
+}
+
+/* ───────── ยืนยันออเดอร์ (สถานะ "อนุมัติ") → เขียนชีท+Supabase + ส่ง LINE + ล้างตะกร้า ───────── */
+function handleOrder(d) {
+  applySalesmanFormat(d);                            // ชื่อ +" (ROO)", รหัส PM→RO
+  if (!d.status) d.status = 'อนุมัติ';              // กดยืนยัน = อนุมัติ (ถ้าแอปไม่ได้ส่ง status รายชิ้นมา)
+  var r = writeOrderToSheet(d);
+  if (!r.ok) return r;
+  try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า
+  try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase
+  clearCartFor(d.phone);                            // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน
+  return { ok:true, message:'order saved', count:r.count };
+}
+
+/* ───────── ซิงค์ตะกร้าแบบ real-time (ใส่=รออนุมัติ / ลบ=ไม่อนุมัติ) → เขียนชีท+Supabase (ไม่ส่ง LINE/ไม่ล้างตะกร้า) ───────── */
+function handleSyncOrder(d) {
+  if (!d.orderId) return { ok:false, error:'no orderId' };
+  applySalesmanFormat(d);                            // ชื่อ +" (ROO)", รหัส PM→RO
+  var r = writeOrderToSheet(d);
+  if (!r.ok) return r;
+  try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase ด้วยสถานะรายชิ้น
+  return { ok:true, message:'order synced', count:r.count };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   เฟส 4 — onEdit sync: แก้ในแท็บ "order" ด้วยมือ → ดันขึ้น Supabase อัตโนมัติ
+   *** ต้องตั้งเป็น INSTALLABLE trigger (UrlFetchApp ใช้ใน simple onEdit ไม่ได้) ***
+   วิธีตั้ง: เลือกฟังก์ชัน createOrderEditTrigger() แล้วกด Run หนึ่งครั้ง (อนุญาตสิทธิ์)
+   ═══════════════════════════════════════════════════════════════════ */
+function createOrderEditTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(t){ if (t.getHandlerFunction()==='onOrderEdit') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('onOrderEdit').forSpreadsheet(SpreadsheetApp.openById(REG_SPREADSHEET_ID)).onEdit().create();
+  return 'onOrderEdit trigger installed';
+}
+
+// fire ทุกครั้งที่ "คน" แก้เซลล์ในชีท (การเขียนจาก Apps Script ไม่ trigger → ไม่วน loop)
+function onOrderEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var sh = e.range.getSheet();
+    if (sh.getName() !== ORDER_SHEET_NAME) return;          // เฉพาะแท็บ order
+    if (e.range.getRow() < 2) return;                        // ข้าม header
+    var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    var oidCol = -1; for (var i=0; i<headers.length; i++){ if (normHead(headers[i])===normHead('orderId')){ oidCol=i; break; } }
+    if (oidCol < 0) return;
+    // แก้หลายแถวพร้อมกัน (เช่น วาง/ลบหลายแถว) → ไล่ทุก orderId ที่เกี่ยวข้อง
+    var startRow = e.range.getRow(), nRows = e.range.getNumRows();
+    var seen = {};
+    var oids = sh.getRange(startRow, oidCol+1, nRows, 1).getValues();
+    for (var k=0; k<oids.length; k++){
+      var oid = String(oids[k][0]).trim();
+      if (oid && !seen[oid]) { seen[oid]=1; syncOrderIdToSupabase(sh, headers, oid); }
+    }
+  } catch (err) { /* เงียบ — กัน trigger ล้ม */ }
+}
+
+// อ่านทุกแถวของ orderId จากชีท → upsert ขึ้น Supabase (ลบ orderid เดิม + insert ชุดล่าสุด)
+function syncOrderIdToSupabase(sh, headers, orderId) {
+  if (!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE')>=0 || !SUPABASE_KEY || SUPABASE_KEY.indexOf('PASTE')>=0) return;
+  if (!orderId) return;
+  var last = sh.getLastRow(); if (last < 2) return;
+  function ci(name){ for (var i=0;i<headers.length;i++){ if (normHead(headers[i])===normHead(name)) return i; } return -1; }
+  var c = {
+    date:ci('วัน'), time:ci('เวลา'), uid:ci('email'), sname:ci('ชื่อ-สกุล'), scode:ci('รหัสเซลล์'),
+    wh:ci('คลัง'), whship:ci('คลังส่ง'), cname:ci('ชื่อร้าน'), ccode:ci('รหัสร้าน'),
+    type:ci('รูปแบบ'), barcode:ci('Barcode'), pname:ci('ชื่อสินค้า'),
+    cancel:ci('ยกเลิก'), qty:ci('จำนวน'), unit:ci('หน่วย'), price:ci('ราคา'), total:ci('ยอดเงินรวม'),
+    oid:ci('orderId'), note:ci('หมายเหตุ'), promo:ci('โปรที่ใช้'),
+    shipDate:ci('วันกำหนดส่ง'), apprStatus:ci('สถานะอนุมัติ'), apprUser:ci('ผู้อนุมัติ'), apprTime:ci('เวลาอนุมัติ'),
+    saleNote:ci('เหตุผลที่ขอ'), diffPrice:ci('ส่วนต่างราคา'), recPrice:ci('ราคาแนะนำ'), reqPrice:ci('ราคาขอขาย')
+  };
+  if (c.oid < 0) return;
+  function g(r, idx){ return idx>=0 ? r[idx] : ''; }
+  function toISO(v){
+    if (v instanceof Date) return Utilities.formatDate(v,'Asia/Bangkok','yyyy-MM-dd');
+    var s=String(v||''); var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    return m ? (m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)) : s;
+  }
+  function txt(v){ var s=String(v==null?'':v); return s===''?null:s; }                                            // text → null ถ้าว่าง
+  function numOrNull(v){ var s=String(v==null?'':v).replace(/,/g,'').trim(); if(s==='') return null; var n=Number(s); return isNaN(n)?null:n; }
+  function dOrNull(v){ if(v==null||String(v)==='') return null; return toISO(v); }
+  var data = sh.getRange(2, 1, last-1, headers.length).getValues();
+  var rows = [];
+  data.forEach(function(r){
+    if (String(g(r,c.oid)).trim() !== String(orderId).trim()) return;
+    rows.push({
+      date:toISO(g(r,c.date)), time:String(g(r,c.time)||''), email:String(g(r,c.uid)||''),
+      salesman_name:String(g(r,c.sname)||''), salesman_code:String(g(r,c.scode)||''),
+      wh:String(g(r,c.wh)||''), customer_name:String(g(r,c.cname)||''), customer_code:String(g(r,c.ccode)||''),
+      tran_type:String(g(r,c.type)||''), barcode:String(g(r,c.barcode)||''), product_name:String(g(r,c.pname)||''),
+      status:String(g(r,c.cancel)||''), qty:Number(g(r,c.qty))||0, unit:String(g(r,c.unit)||''),
+      price:Number(g(r,c.price))||0, total:Number(g(r,c.total))||0, orderid:String(orderId),
+      note:String(g(r,c.note)||''), wh_ship:String(g(r,c.whship)||g(r,c.wh)||''),
+      promotion:String(g(r,c.promo)||''),
+      approve_status:String(g(r,c.apprStatus)||''),
+      approve_user:txt(g(r,c.apprUser)), approve_time:txt(g(r,c.apprTime)), ship_date:dOrNull(g(r,c.shipDate)),
+      sale_note:txt(g(r,c.saleNote)),
+      diff_price:numOrNull(g(r,c.diffPrice)), recommend_price:numOrNull(g(r,c.recPrice)), request_price:numOrNull(g(r,c.reqPrice))
+    });
+  });
+  var base = SUPABASE_URL + '/rest/v1/roo_sales';
+  UrlFetchApp.fetch(base + '?orderid=eq.' + encodeURIComponent(orderId), {
+    method:'delete', headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' }, muteHttpExceptions:true
+  });
+  if (rows.length) UrlFetchApp.fetch(base, {
+    method:'post', contentType:'application/json',
+    headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' },
+    payload: JSON.stringify(rows), muteHttpExceptions:true
+  });
 }
 
 /* ───────── ส่งสรุปออเดอร์เป็น Flex Message เข้าไลน์ลูกค้า ───────── */
