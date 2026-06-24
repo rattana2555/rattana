@@ -1,5 +1,5 @@
 /****************************************************************
- * Rattana Online Order — Apps Script Backend  v1.11
+ * Rattana Online Order — Apps Script Backend  v1.12
  * --------------------------------------------------------------
  * รับข้อมูลจากแอป rattana-online-order.html แล้วบันทึกลง Google Sheet
  *   action: "register"  -> เขียนแถวลงชีทลงทะเบียน (gid 1357794184)
@@ -168,11 +168,13 @@ function getOrdersFor(shop){
   var last = sh.getLastRow(); if(last<2) return out;
   var data = sh.getRange(2,1,last-1,headers.length).getValues();
   function gv(r, idx){ return idx>=0 ? String(r[idx]||'') : ''; }
+  function fdate(v){ return (v instanceof Date) ? Utilities.formatDate(v,'Asia/Bangkok','dd/MM/yyyy') : String(v||''); }
+  function ftime(v){ return (v instanceof Date) ? Utilities.formatDate(v,'Asia/Bangkok','HH.mm') : String(v||''); }
   data.forEach(function(r){
     if(String(r[c.shop]).trim() !== shop) return;
     if(String(r[c.status]||'').trim() !== 'อนุมัติ') return;
     out.orders.push({
-      date:String(r[c.date]||''), time:String(r[c.time]||''),
+      date:fdate(r[c.date]), time:ftime(r[c.time]),
       type:String(r[c.type]||''), barcode:String(r[c.bc]||''), name:String(r[c.name]||''),
       qty:Number(r[c.qty])||0, unit:String(r[c.unit]||''), price:Number(r[c.price])||0,
       total:Number(r[c.total])||0, orderId:String(r[c.oid]||''),
