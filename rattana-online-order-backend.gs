@@ -114,6 +114,10 @@ function doGet(e) {
     var rp = getPendingFor(p.shop);
     return p.callback ? jsonp(p.callback, rp) : json(rp);
   }
+  if (p.action === 'getOrderStatus') {                   // เช็คว่า orderId นี้ถูกเขียน "อนุมัติ" ลงหลังบ้านแล้วยัง (ใช้ยืนยันการส่งออเดอร์)
+    var os = getOrderStatus(p.orderId);
+    return p.callback ? jsonp(p.callback, os) : json(os);
+  }
   return json({ ok:true, service:'Rattana Online Order', time:new Date() });
 }
 function jsonp(cb, obj){ return ContentService.createTextOutput(cb + '(' + JSON.stringify(obj) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT); }
@@ -213,6 +217,28 @@ function getPendingFor(shop){
     out.items.push({ name:String(data[r][c.name]||''), barcode:String(data[r][c.bc]||''),
       qty:Number(data[r][c.qty])||0, unit:String(data[r][c.unit]||''), price:Number(data[r][c.price])||0,
       promo: c.promo>=0 ? String(data[r][c.promo]||'') : '' });
+  }
+  return out;
+}
+
+/* ───────── เช็คสถานะออเดอร์ (ใช้ยืนยันว่าส่งถึงหลังบ้านจริง กันออเดอร์หาย/ส่งซ้ำ) ───────── */
+function getOrderStatus(orderId){
+  var out = { ok:true, orderId:String(orderId||''), approved:false, pending:false };
+  orderId = String(orderId||'').trim(); if(!orderId) return out;
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
+  if(!sh) return out;
+  var headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+  function col(n){ for(var i=0;i<headers.length;i++){ if(normHead(headers[i])===normHead(n)) return i; } return -1; }
+  var oidC=col('orderId'), stC=col('สถานะอนุมัติ');
+  if(oidC<0) return out;
+  var last=sh.getLastRow(); if(last<2) return out;
+  var data=sh.getRange(2,1,last-1,headers.length).getValues();
+  for(var r=0;r<data.length;r++){
+    if(String(data[r][oidC]).trim()!==orderId) continue;
+    var st = stC>=0 ? String(data[r][stC]||'').trim() : '';
+    if(st==='อนุมัติ') out.approved=true;
+    else if(st==='รออนุมัติ') out.pending=true;
   }
   return out;
 }

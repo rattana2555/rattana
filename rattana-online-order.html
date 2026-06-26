@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.43</title>
+<title>Rattana Online Order v2.44</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -289,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.43</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.44</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -971,9 +971,40 @@ function clearSearch(){ document.getElementById('searchInput').value=''; searchT
 
 /* ===================== SCAN BARCODE ===================== */
 let _scanner=null,_scanLib=false,_scanBusy=false;
+let _scanStream=null,_scanRAF=0,_scanVideo=null,_scanNative=false,_scanDetector=null;
 function ensureScanLib(){
   if(_scanLib) return Promise.resolve(true);
   return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'; s.onload=()=>{_scanLib=true;res(true);}; s.onerror=rej; document.head.appendChild(s); });
+}
+/* ⚡ ตัวอ่านบาร์โค้ดของเครื่อง (BarcodeDetector) — เร็วกว่า html5-qrcode มาก (รองรับบน Android Chrome) */
+function nativeScanSupported(){ return 'BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia; }
+async function startNativeScan(hint){
+  const box=document.getElementById('scanReader');
+  box.innerHTML='<video playsinline muted autoplay style="width:100%;border-radius:12px;display:block;background:#000"></video>';
+  _scanVideo=box.querySelector('video');
+  _scanStream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } });
+  _scanVideo.srcObject=_scanStream; _scanVideo.setAttribute('playsinline','');
+  try{ await _scanVideo.play(); }catch(e){}
+  if(!_scanDetector){ try{ _scanDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']}); }catch(e){ _scanDetector=new BarcodeDetector(); } }
+  _scanNative=true;
+  hint.textContent='เล็งกล้องไปที่บาร์โค้ดสินค้า';
+  const tick=async()=>{
+    if(!_scanNative) return;
+    if(_scanVideo && _scanVideo.readyState>=2){
+      try{ const codes=await _scanDetector.detect(_scanVideo);
+        if(codes&&codes.length){ if(onScanHit(String(codes[0].rawValue||''))) return; }   // เจอ+ตรงสินค้า → หยุดลูป
+      }catch(e){}
+    }
+    _scanRAF=requestAnimationFrame(tick);
+  };
+  _scanRAF=requestAnimationFrame(tick);
+}
+async function stopNativeScan(){
+  _scanNative=false;
+  if(_scanRAF){ cancelAnimationFrame(_scanRAF); _scanRAF=0; }
+  if(_scanStream){ try{ _scanStream.getTracks().forEach(t=>t.stop()); }catch(e){} _scanStream=null; }
+  if(_scanVideo){ try{ _scanVideo.srcObject=null; }catch(e){} _scanVideo=null; }
+  const box=document.getElementById('scanReader'); if(box) box.innerHTML='';
 }
 /* หาสินค้าจากบาร์โค้ดที่สแกน (เผื่อ leading zero / pad 13 หลัก แบบ EAN/UPC) */
 function findByScan(code){
@@ -994,6 +1025,11 @@ async function openScan(){
     showToast('กล้องถูกบล็อก — เปิดสิทธิ์กล้องในเบราว์เซอร์ก่อน','warning'); return;
   }
   hint.textContent = st==='granted' ? 'กำลังเปิดกล้อง...' : 'แตะ "อนุญาต" เพื่อใช้กล้องสแกน (ครั้งเดียว ระบบจะจำไว้)';
+  // ⚡ ลองใช้ตัวอ่านของเครื่องก่อน (เร็วมาก) — ถ้าไม่รองรับ/ล้มเหลว ค่อย fallback html5-qrcode
+  if(nativeScanSupported()){
+    try{ await startNativeScan(hint); return; }
+    catch(e){ console.warn('native scan fallback:',e); await stopNativeScan(); }
+  }
   try{
     await ensureScanLib();
     const F=Html5QrcodeSupportedFormats;
@@ -1009,18 +1045,23 @@ async function openScan(){
     showToast('เปิดกล้องไม่ได้: '+(e&&e.message?e.message:'ตรวจสอบสิทธิ์กล้อง'),'error');
   }
 }
-async function stopScan(){ if(_scanner){ try{ await _scanner.stop(); _scanner.clear(); }catch(e){} _scanner=null; } }
+async function stopScan(){
+  await stopNativeScan();
+  if(_scanner){ try{ await _scanner.stop(); _scanner.clear(); }catch(e){} _scanner=null; }
+}
 async function closeScan(){ await stopScan(); closeModal('scanModal'); }
+/* คืน true ถ้าเจอสินค้า (หยุดสแกน), false ถ้าไม่เจอ (สแกนต่อ) */
 function onScanHit(text){
-  if(_scanBusy) return;
+  if(_scanBusy) return true;
   const e=findByScan(text);
   if(e){
     _scanBusy=true;
     const nm=clean(e.p['PRODUCT NAME']);
     closeScan().then(()=>{ openProduct(nm, e.type); showToast('พบสินค้า: '+nm,'success'); });
-  } else {
-    document.getElementById('scanHint').textContent='ไม่พบสินค้าบาร์โค้ด '+text+' — ลองเล็งใหม่';
+    return true;
   }
+  document.getElementById('scanHint').textContent='ไม่พบสินค้าบาร์โค้ด '+text+' — ลองเล็งใหม่';
+  return false;
 }
 
 /* ── หน้ารายละเอียดสินค้า + เลือกหน่วย + ยืนยันเพิ่มลงตะกร้า ── */
@@ -1357,15 +1398,64 @@ async function submitOrder(){
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   // รูปแบบ = ขาย/แถม/ไม่อนุมัติ , หน่วย = หน่วยละเอียดตามบาร์โค้ด ; สถานะตอนยืนยัน = อนุมัติราคา
   const payload=Object.assign({ action:'order', orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
+  localStorage.setItem('rop_pendingSend', JSON.stringify({orderId, ts:Date.now()}));   // 📦 outbox: กันออเดอร์หายถ้าเน็ตหลุดตอนกดส่ง
   showSpinner('กำลังส่งออเดอร์...');
-  const ok=await postGAS(payload);
+  const ok=await sendAndConfirm(payload, orderId);
   hideSpinner();
-  if(ok!==false){
+  if(ok){
+    localStorage.removeItem('rop_pendingSend');
     cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
     showToast('ส่งออเดอร์สำเร็จ! เลขที่ '+orderId,'success');
     goShop();
-  } else { showToast('ส่งออเดอร์ไม่สำเร็จ ลองใหม่','error'); }
+  } else {
+    // ❗ ยังยืนยันไม่ได้ (เน็ตไม่ดี) → ไม่ล้างตะกร้า ออเดอร์ยังอยู่กับลูกค้า + จะลองส่งให้อัตโนมัติเมื่อเน็ตกลับมา
+    showToast('เน็ตไม่เสถียร ⚠️ ออเดอร์ยังอยู่ในตะกร้า — ระบบจะส่งให้อัตโนมัติเมื่อเน็ตกลับมา หรือกดส่งใหม่ได้','warning');
+  }
 }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* อ่านผลจากเซิร์ฟเวอร์แบบ JSONP (ต่างจาก postGAS no-cors ที่อ่านผลไม่ได้) */
+function jsonpGet(params, timeoutMs){
+  return new Promise(resolve=>{
+    if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')){ resolve(null); return; }
+    const cb='__jp'+Date.now()+Math.floor(Math.random()*1e4); let done=false;
+    const fin=v=>{ if(done)return; done=true; try{delete window[cb];}catch(e){} const s=document.getElementById(cb); if(s)s.remove(); resolve(v); };
+    window[cb]=r=>fin(r);
+    const qs=Object.keys(params).map(k=>k+'='+encodeURIComponent(params[k])).join('&');
+    const s=document.createElement('script'); s.id=cb; s.src=CFG.GAS_URL+'?'+qs+'&callback='+cb+'&_='+Date.now();
+    s.onerror=()=>fin(null); document.head.appendChild(s);
+    setTimeout(()=>fin(null), timeoutMs||5000);
+  });
+}
+async function orderStatusRaw(orderId){ return await jsonpGet({action:'getOrderStatus',orderId}, 5000); }
+function statusSupported(r){ return !!(r && Object.prototype.hasOwnProperty.call(r,'approved')); }   // backend รองรับ getOrderStatus ไหม
+/* ยิงออเดอร์ + ยืนยันว่าเขียน "อนุมัติ" ลงหลังบ้านจริง — เช็คก่อนกันส่งซ้ำ, ตรวจซ้ำ 3 รอบ
+   • backend ใหม่ + เน็ตดี → ยืนยันจริง  • backend เก่า (ยังไม่ deploy) → โหมดเดิม  • เน็ตอ่านผลไม่ได้ → ถือว่ายังไม่ยืนยัน (เก็บตะกร้าไว้) */
+async function sendAndConfirm(payload, orderId){
+  const pre=await orderStatusRaw(orderId);
+  if(statusSupported(pre) && pre.approved) return true;   // ส่งไปแล้วก่อนหน้า (เน็ตเด้ง) → ไม่ส่งซ้ำ
+  await postGAS(payload);
+  for(let i=0;i<3;i++){
+    await sleep(1300);
+    const st=await orderStatusRaw(orderId);
+    if(st===null) continue;                  // เน็ตล่ม อ่านผลไม่ได้ → รอรอบต่อไป
+    if(!statusSupported(st)) return true;     // backend ยังไม่มี getOrderStatus → โหมดเดิม (postGAS ไม่ throw=สำเร็จ)
+    if(st.approved) return true;              // ยืนยันแล้ว ✓
+  }
+  return false;
+}
+/* ลองส่ง "ออเดอร์ค้าง" (เน็ตหลุดตอนกดส่ง) อัตโนมัติ — เรียกตอนเปิดแอป/เน็ตกลับมา */
+async function retryPendingSend(){
+  let p; try{ p=JSON.parse(localStorage.getItem('rop_pendingSend')); }catch(e){ p=null; }
+  if(!p||!p.orderId||!currentCustomer) return;
+  const pre=await orderStatusRaw(p.orderId);
+  if(statusSupported(pre) && pre.approved){ localStorage.removeItem('rop_pendingSend'); return; }   // ถึงหลังบ้านแล้ว
+  if(!Object.keys(cart).length){ localStorage.removeItem('rop_pendingSend'); return; }              // ไม่มีของจะส่งแล้ว
+  const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
+  const payload=Object.assign({ action:'order', orderId:p.orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
+  const ok=await sendAndConfirm(payload, p.orderId);
+  if(ok){ localStorage.removeItem('rop_pendingSend'); cart={}; resetDraft(); saveCart(); renderCart(); renderProducts(); renderCartBadge(); showToast('ส่งออเดอร์ที่ค้างไว้สำเร็จแล้ว ✓','success'); }
+}
+window.addEventListener('online', retryPendingSend);
 
 async function postGAS(payload){
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')){
@@ -1422,6 +1512,7 @@ async function loadAll(silent){
     ensureUidLinked(currentCustomer);   // เผื่อมี LINE uid ใหม่ที่ยังไม่ผูกกับร้าน
     renderAll();
     pullCart(true); startCartSync();    // ซิงค์ตะกร้าร่วมของร้าน
+    retryPendingSend();                 // ลองส่งออเดอร์ที่ค้างไว้ (ถ้าเน็ตเคยหลุดตอนกดส่ง)
   }catch(e){ console.error(e); if(!haveCache) showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต','error'); }
   finally{ if(!silent) hideSpinner(); }
 }
