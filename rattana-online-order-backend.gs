@@ -468,47 +468,90 @@ function pushLineOrder(d, sh){
   if(!LINE_TOKEN || LINE_TOKEN.indexOf('PASTE')===0) return;   // ยังไม่ตั้ง token
   var uid = d.uid; if(!uid) return;                            // ส่งได้เฉพาะลูกค้าที่เข้าผ่านไลน์
   var items = d.items || [];
-  var lines = items.map(function(it){
-    var isGift = it.type==='แถม';
-    return { type:'box', layout:'vertical', margin:'sm', contents:[
-      { type:'text', text:String(it.name||''), size:'sm', wrap:true, color:(isGift?'#2ecc71':'#0d1b3e') },
-      { type:'box', layout:'horizontal', contents:[
-        { type:'text', text:(it.qty||0)+' '+(it.unit||''), size:'xs', color:'#6b7896', flex:3, wrap:true },
-        { type:'text', text:(isGift?'🎁 ฟรี':numFmt(it.total)+' .-'), size:'xs', align:'end', color:(isGift?'#2ecc71':'#0d1b3e'), flex:2 }
-      ]}
-    ]};
-  });
-  var cum = cumulativeFor(sh, uid);
-  var dateStr = Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy');
-  var body = [
-    { type:'text', text:'สรุปรายการสั่งซื้อสินค้า', weight:'bold', size:'lg', color:'#0d1b3e', align:'center' },
-    { type:'text', text:'NO. '+(d.orderId||''), size:'sm', weight:'bold', color:'#2ecc71' },
-    { type:'text', text:'วันที่: '+dateStr, size:'sm', color:'#6b7896' },
-    { type:'text', text:'ร้าน: '+(d.customerName||''), size:'sm', color:'#6b7896', wrap:true },
-    { type:'separator', margin:'md' },
-    { type:'text', text:'รายการสินค้า', weight:'bold', size:'sm', margin:'md' }
-  ].concat(lines).concat([
-    { type:'separator', margin:'md' },
-    { type:'box', layout:'horizontal', margin:'md', contents:[
-      { type:'text', text:'ยอดเงินรวม', weight:'bold', color:'#0d1b3e' },
-      { type:'text', text:numFmt(d.total)+' บาท', weight:'bold', align:'end', color:'#0d1b3e' }
-    ]},
-    { type:'text', text:'* ราคาอ้างอิง ยอดจริงยืนยันโดยฝ่ายขาย', size:'xxs', color:'#9aa6c0', wrap:true, margin:'sm' }
-  ]);
-  if(cum.spend>0 || cum.items>0){
-    body.push({ type:'separator', margin:'md' });
-    body.push({ type:'box', layout:'horizontal', margin:'sm', contents:[
-      { type:'text', text:'🛒 ยอดซื้อสะสม', size:'xs', color:'#6b7896' },
-      { type:'text', text:numFmt(cum.spend)+' บาท', size:'xs', align:'end', weight:'bold', color:'#1a6fb8' } ]});
-    body.push({ type:'box', layout:'horizontal', contents:[
-      { type:'text', text:'⭐ รายการสินค้าสะสม', size:'xs', color:'#6b7896' },
-      { type:'text', text:String(cum.items), size:'xs', align:'end', weight:'bold', color:'#a87800' } ]});
-  }
-  body.push({ type:'separator', margin:'md' });
-  body.push({ type:'text', text:'ระบบอัตโนมัติ RATTANA OFFICIAL', size:'xs', color:'#e74c3c', align:'center', weight:'bold', margin:'md' });
 
-  var msg = { to: uid, messages:[ { type:'flex', altText:'สรุปคำสั่งซื้อ '+(d.orderId||''),
-    contents:{ type:'bubble', body:{ type:'box', layout:'vertical', spacing:'sm', contents:body } } } ] };
+  // ── พาเลตต์แบรนด์ (ฟ้าพาสเทลสดใส) ──
+  var NAVY='#2b6fd0', GOLD='#bfe0ff', GREEN='#2ecc71', INK='#3a4663', MUTE='#8a94ad', LINE='#e3edf9', CREAM='#eef5fd';
+
+  // ── แถวรายการสินค้า (zebra + ไอคอน) ──
+  var rows = items.map(function(it, i){
+    var isGift = it.type==='แถม';
+    var bg = isGift ? '#f1fbf4' : (i%2 ? '#f7f8fc' : '#ffffff');
+    return { type:'box', layout:'vertical', paddingAll:'10px', cornerRadius:'10px', backgroundColor:bg, margin:'sm',
+      contents:[
+        { type:'box', layout:'baseline', contents:[
+          { type:'text', text:(isGift?'🎁':'🛍️'), size:'sm', flex:0 },
+          { type:'text', text:String(it.name||''), size:'sm', weight:'bold', wrap:true, color:(isGift?'#1e9e57':NAVY), margin:'sm' }
+        ]},
+        { type:'box', layout:'horizontal', margin:'sm', contents:[
+          { type:'text', text:'× '+(it.qty||0)+' '+(it.unit||''), size:'xs', color:MUTE, flex:3, wrap:true, gravity:'center' },
+          { type:'text', text:(isGift?'ฟรี ♥':numFmt(it.total)+' ฿'), size:'sm', align:'end', weight:'bold', color:(isGift?'#1e9e57':NAVY), flex:2, gravity:'center' }
+        ]}
+      ]};
+  });
+
+  var dateStr = Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy • HH:mm');
+
+  // helper: แถวข้อมูลหัวบิล
+  function infoRow(label, val){ return { type:'box', layout:'horizontal', margin:'sm', contents:[
+    { type:'text', text:label, size:'xs', color:MUTE, flex:2 },
+    { type:'text', text:String(val||'-'), size:'xs', color:INK, flex:4, align:'end', wrap:true, weight:'bold' } ]}; }
+
+  // ── HEADER (navy + gold) ──
+  var header = { type:'box', layout:'vertical', backgroundColor:NAVY, paddingAll:'18px', paddingBottom:'16px', contents:[
+    { type:'box', layout:'horizontal', contents:[
+      { type:'text', text:'RATTANA', size:'sm', weight:'bold', color:GOLD, flex:1, gravity:'center' },
+      { type:'text', text:'OFFICIAL', size:'xs', color:'#aeb8d4', align:'end', flex:1, gravity:'center' }
+    ]},
+    { type:'text', text:'🧾 สรุปคำสั่งซื้อ', size:'xl', weight:'bold', color:'#ffffff', margin:'md' },
+    { type:'box', layout:'baseline', margin:'sm', contents:[
+      { type:'text', text:'เลขที่ออเดอร์', size:'xs', color:'#aeb8d4', flex:0 },
+      { type:'text', text:String(d.orderId||'-'), size:'sm', weight:'bold', color:GOLD, align:'end', margin:'sm' }
+    ]}
+  ]};
+
+  // ── BODY ──
+  var body = [];
+  body.push({ type:'box', layout:'vertical', backgroundColor:'#f7f8fc', cornerRadius:'12px', paddingAll:'12px', contents:[
+    infoRow('🗓️ วันที่', dateStr),
+    infoRow('🏪 ร้าน', d.customerName),
+    infoRow('🚚 คลังส่ง', d.warehouse),
+    infoRow('👤 ฝ่ายขาย', d.salemanName)
+  ].filter(function(r){ return r.contents[1].text!=='-'; }) });
+
+  body.push({ type:'text', text:'รายการสินค้า', weight:'bold', size:'sm', color:NAVY, margin:'lg' });
+  body = body.concat(rows);
+
+  // ── ยอดรวม (กล่องทองเด่น) ──
+  body.push({ type:'box', layout:'horizontal', margin:'lg', backgroundColor:CREAM, cornerRadius:'12px', paddingAll:'14px',
+    borderWidth:'1px', borderColor:'#cfe2f7', contents:[
+    { type:'text', text:'ยอดเงินรวม', weight:'bold', size:'md', color:NAVY, gravity:'center' },
+    { type:'text', text:numFmt(d.total)+' ฿', weight:'bold', size:'xl', align:'end', color:'#1d4e9e', gravity:'center' }
+  ]});
+  body.push({ type:'text', text:'* ราคาอ้างอิง ยอดจริงยืนยันโดยฝ่ายขาย', size:'xxs', color:MUTE, wrap:true, margin:'sm', align:'center' });
+
+  if(d.note){
+    body.push({ type:'box', layout:'vertical', margin:'lg', backgroundColor:'#fff8f3', cornerRadius:'10px', paddingAll:'10px',
+      borderWidth:'1px', borderColor:'#ffe0cc', contents:[
+      { type:'text', text:'📝 หมายเหตุ', size:'xxs', color:'#c0392b', weight:'bold' },
+      { type:'text', text:String(d.note), size:'xs', color:INK, wrap:true, margin:'xs' }
+    ]});
+  }
+
+  // ── FOOTER ──
+  var footer = { type:'box', layout:'vertical', paddingAll:'16px', backgroundColor:'#fafbfd', spacing:'xs', contents:[
+    { type:'text', text:'ขอบคุณที่อุดหนุนนะคะ 🙏💛', size:'sm', weight:'bold', color:NAVY, align:'center' },
+    { type:'text', text:'ฝ่ายขาย ☎ 080-389-7765 · จ–ส 08:00–17:00', size:'xxs', color:MUTE, align:'center', wrap:true, margin:'sm' },
+    { type:'text', text:'ส่งโดยระบบอัตโนมัติ RATTANA OFFICIAL', size:'xxs', color:NAVY, align:'center', weight:'bold', margin:'sm' }
+  ]};
+
+  var bubble = { type:'bubble',
+    header: header,
+    body: { type:'box', layout:'vertical', spacing:'sm', paddingAll:'16px', contents:body },
+    footer: footer,
+    styles:{ header:{ backgroundColor:NAVY }, footer:{ separator:true, separatorColor:LINE } }
+  };
+
+  var msg = { to: uid, messages:[ { type:'flex', altText:'🧾 สรุปคำสั่งซื้อ '+(d.orderId||''), contents:bubble } ] };
   UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
     method:'post', contentType:'application/json',
     headers:{ Authorization:'Bearer '+LINE_TOKEN },

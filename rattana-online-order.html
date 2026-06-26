@@ -4,18 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.36</title>
+<title>Rattana Online Order v2.37</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
-  --navy:#0d1b3e;--navy-mid:#1a2f5e;--navy-light:#243b73;--gold:#c9a84c;--gold-light:#e8c86a;
+  --navy:#2b6fd0;--navy-mid:#4f8be0;--navy-light:#79a9ec;--gold:#9fd0ff;--gold-light:#cfe8ff;
   --success:#2ecc71;--danger:#e74c3c;--warning:#f39c12;--info:#3498db;
-  --bg:#f4f6fb;--text:#0d1b3e;--card-bg:#fff;--border:#dde3f0;--muted:#6b7896;--row-alt:#fafbfd;
+  --bg:#eef5fd;--text:#16315f;--card-bg:#fff;--border:#d6e6f8;--muted:#6b7c9c;--row-alt:#f5f9fe;
   --space-xs:4px;--space-sm:8px;--space-md:16px;--space-lg:24px;--space-xl:32px;
   --radius-sm:6px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
   --shadow-sm:0 1px 4px rgba(0,0,0,.06);--shadow-md:0 2px 8px rgba(0,0,0,.08);
-  --shadow-lg:0 8px 24px rgba(13,27,62,.12);--shadow-gold:0 4px 12px rgba(201,168,76,.35);
+  --shadow-lg:0 8px 24px rgba(43,111,208,.14);--shadow-gold:0 4px 12px rgba(110,168,233,.40);
 }
 body.dark{--bg:#0a1020;--text:#e8eaf0;--card-bg:#111c35;--border:#243b73;--muted:#8a98b8;--row-alt:#0f1830}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -251,13 +251,13 @@ body.dark .pd-price{color:var(--gold-light)}
 .pd-units{display:flex;gap:8px;flex-wrap:wrap}
 .unit-btn{flex:1;min-width:92px;padding:10px 8px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:10px;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;line-height:1.25}
 .unit-btn small{font-weight:500;font-size:11px;color:var(--muted)}
-.unit-btn.active{border-color:var(--gold);background:rgba(201,168,76,.14);color:var(--navy)}
+.unit-btn.active{border-color:var(--gold);background:rgba(43,111,208,.12);color:var(--navy)}
 body.dark .unit-btn.active{color:var(--gold-light)}
 .pd-qty{max-width:170px}
 .pd-tiers{margin:14px 0}
 .pd-tiers-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .pd-tier-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;padding:8px 12px;border-radius:8px;margin-bottom:5px;background:var(--row-alt);border:1px solid var(--border)}
-.pd-tier-row.active{background:rgba(201,168,76,.16);border-color:var(--gold)}
+.pd-tier-row.active{background:rgba(43,111,208,.14);border-color:var(--gold)}
 .pd-tier-row b{color:var(--navy)}body.dark .pd-tier-row b{color:var(--gold-light)}
 /* Profile contact / hub */
 .info-note{background:#fff4f4;border:1px solid #ffd5d0;color:#c0392b;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;line-height:1.5;margin-bottom:14px}
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.36</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.37</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -484,6 +484,10 @@ const TTL=5*60*1000;
 function getCached(k,ignore){ try{const i=JSON.parse(localStorage.getItem(k)); if(!i)return null; if(!ignore && Date.now()-i.ts>TTL) return null; return i.data;}catch{return null} }
 function setCache(k,d){ try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),data:d}));}catch{} }
 async function getData(key,fn){ try{const d=await fn(); setCache(key,d); return d;}catch(e){ const c=getCached(key,true); if(c) return c; throw e; } }
+/* IndexedDB cache — สำหรับข้อมูลก้อนใหญ่ (สินค้า ~10MB) ที่ใหญ่เกิน localStorage บนมือถือ */
+function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open('rop_db',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ try{ const db=await idbOpen(); return await new Promise(res=>{ const t=db.transaction('kv').objectStore('kv').get(k); t.onsuccess=()=>res((t.result&&t.result.data)||null); t.onerror=()=>res(null); }); }catch(e){ return null; } }
+async function idbSet(k,d){ try{ const db=await idbOpen(); await new Promise(res=>{ const t=db.transaction('kv','readwrite').objectStore('kv').put({ts:Date.now(),data:d},k); t.onsuccess=res; t.onerror=res; }); }catch(e){} }
 
 /* spinner / toast / ui bits */
 const showSpinner=(m='กำลังโหลด...')=>{document.getElementById('spinnerMsg').textContent=m;document.getElementById('spinner').classList.add('show');};
@@ -550,7 +554,7 @@ const PROMO_FIELD={
 
 /* ===================== CART PERSIST ===================== */
 function loadCart(){ try{return JSON.parse(localStorage.getItem('rop_cart'))||{};}catch{return{}} }
-function saveCart(){ localStorage.setItem('rop_cart',JSON.stringify(cart)); syncOrderSoon(); }   // เลิกเขียนแท็บ "ตะกร้า" → ออเดอร์ลงแท็บ order ตรงๆ ผ่าน syncOrder
+function saveCart(){ localStorage.setItem('rop_cart',JSON.stringify(cart)); syncOrderSoon(); pushCartSoon(); }   // เขียนแท็บ "ตะกร้า" (ซิงค์ข้ามเครื่อง) + ออเดอร์ลงแท็บ order ผ่าน syncOrder
 
 /* ===================== SHARED CART (ซิงค์ข้ามเครื่องของร้านเดียวกัน ผูกด้วยเบอร์) ===================== */
 let _cartTs=0,_cartPushTimer=null,_cartSyncOn=false;
@@ -564,17 +568,20 @@ function pushCartSoon(){
     postGAS({action:'saveCart', phone, name:(currentCustomer&&currentCustomer.name)||'', uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'', cart:JSON.stringify(cartArrForSync()), ts:_cartTs});
   },1500);
 }
-/* ดึงตะกร้าล่าสุดของร้านจากเซิร์ฟเวอร์ (JSONP) — ปิดไว้ เพราะเลิกใช้แท็บ "ตะกร้า" แล้ว (กันล้างตะกร้า local) */
+/* ดึงตะกร้าล่าสุดของร้านจากเซิร์ฟเวอร์ (JSONP) — ซิงค์ข้ามเครื่องของร้านเดียวกัน */
 function pullCart(force){
-  return;   // disabled: ออเดอร์อยู่ที่แท็บ order, ไม่ sync ผ่านแท็บ ตะกร้า อีกต่อไป
   const phone=cartShopKey(); if(!phone) return;
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
   const cb='__cartcb'+Date.now()+Math.floor(Math.random()*1e4);
   window[cb]=(r)=>{ try{
     if(r&&r.ok){
       const serverTs=Number(r.ts)||0;
-      if(force||serverTs>_cartTs){
-        const obj={}; (r.cart||[]).forEach(i=>{ if(i&&i.key) obj[i.key]=i; });
+      const serverArr=r.cart||[];
+      const localCount=Object.keys(cart).length;
+      // เซิร์ฟเวอร์ว่าง แต่เครื่องนี้มีของที่ยังไม่ได้ซิงค์ → ดันของเครื่องนี้ขึ้นแทน (กันตะกร้าหาย)
+      if(force && !serverArr.length && localCount && !(serverTs>_cartTs)){ pushCartSoon(); }
+      else if(force||serverTs>_cartTs){
+        const obj={}; serverArr.forEach(i=>{ if(i&&i.key) obj[i.key]=i; });
         cart=obj; _cartTs=serverTs; localStorage.setItem('rop_cart',JSON.stringify(cart)); // ไม่ push กลับ
         renderCartBadge(); if(document.getElementById('viewCart').classList.contains('active')) renderCart(); renderProducts();
       }
@@ -649,10 +656,10 @@ async function lineLogin(){
   }catch(e){ hideSpinner(); console.warn('LINE login error:',e); showToast('LINE: '+(e&&e.message?e.message:'เชื่อมต่อไม่สำเร็จ'),'error'); }
 }
 async function resolveLogin(){
-  if(currentCustomer) return;
   let uid = await tryLiff(); if(!uid) uid=getUrlUid();
+  if(uid) window._lineUid=uid;
+  if(currentCustomer){ ensureUidLinked(currentCustomer); return; }   // มี session อยู่แล้ว → แค่ผูก uid ใหม่ถ้ามี
   if(uid){
-    window._lineUid=uid;
     const hit=custByUid(uid);
     if(hit){ currentCustomer=hit; saveSession(hit); showToast('ยินดีต้อนรับ '+(hit.name||''),'success'); }
   }
@@ -1158,7 +1165,7 @@ function renderCart(){
   const itemHtml=i=>`<div class="cart-item">
     <img class="ci-img" src="${i.img||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'">
     <div class="ci-body">
-      <div class="ci-name">${i.name} <span style="font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(201,168,76,.18);color:var(--navy);font-weight:700">${i.unitName}</span></div>
+      <div class="ci-name">${i.name} <span style="font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(43,111,208,.16);color:var(--navy);font-weight:700">${i.unitName}</span></div>
       ${i.promo&&i.promo.length?`<div class="ci-promo">🎁 ${i.promo.join(' • ')}</div>`:''}
       <div class="ci-row">
         <div class="cart-step">
@@ -1266,17 +1273,21 @@ function loginByPhone(){
   const hit=CUSTOMERS.find(c=>c.phone===ph);
   if(!hit){ showToast('ไม่พบเบอร์นี้ในระบบ กรุณาลงทะเบียน','error'); return; }
   // ถ้าเข้าผ่าน LINE แล้ว และ uid นี้ยังไม่เคยผูกกับร้าน -> ผูกเพิ่ม (ไลน์ที่ 2,3.. เก็บช่อง User ID เพิ่ม, ไม่ทับตัวหลัก)
-  const uid=window._lineUid||getUrlUid();
-  if(uid && !uidList(hit).includes(uid)){
-    if(!clean(hit.uid)) hit.uid=uid; else hit.uidsExtra=(clean(hit.uidsExtra)?hit.uidsExtra+', ':'')+uid;
-    linkUidToServer(hit.phone,uid);
-  }
-  currentCustomer=hit; saveSession(hit); closeModal('loginModal');
+  currentCustomer=hit; ensureUidLinked(hit); saveSession(hit); closeModal('loginModal');
   renderAll(); goShop(); pullCart(true); startCartSync(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success');
 }
 async function linkUidToServer(phone,uid){
   if(!phone||!uid) return;
   try{ await postGAS({action:'linkUid', phone:String(phone), uid:String(uid)}); }catch(e){ console.warn('linkUid',e); }
+}
+/* ผูก LINE uid ปัจจุบันเข้ากับร้าน ถ้ายังไม่เคยผูก (ไลน์ที่ 2,3.. → เก็บช่อง "User ID เพิ่ม", ไม่ทับตัวหลัก) */
+function ensureUidLinked(c){
+  const uid=window._lineUid||getUrlUid();
+  if(!c||!uid) return;
+  if(uidList(c).includes(uid)) return;                 // ผูกแล้ว ไม่ต้องทำซ้ำ
+  if(!clean(c.uid)) c.uid=uid; else c.uidsExtra=(clean(c.uidsExtra)?c.uidsExtra+', ':'')+uid;
+  saveSession(c);
+  linkUidToServer(c.phone,uid);                        // เขียนขึ้นชีท (User ID / User ID เพิ่ม)
 }
 async function openRegister(){
   const uid=window._lineUid||getUrlUid();
@@ -1367,24 +1378,42 @@ async function refreshData(){
   b.disabled=false; setTimeout(()=>{b.style.transform='';b.style.transition='';},600);
   showToast('อัพเดทข้อมูลแล้ว ✓','success');
 }
+// ชีทสินค้ามี 122 คอลัมน์ (~28MB) แต่แอปใช้จริงแค่ ~35 → ตัดทิ้งก่อนแคช/ใช้งาน (เล็กลง 4-5 เท่า, แคชลง localStorage ได้, เร็วขึ้นมาก)
+const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT GROUP','CAT BRAND','CAT SIZE','CAT TYPE','FIRST STOCK DATE','CS PALLET',
+  'PRICE S01 CS','PRICE S02 CS','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
+  'IB W1','IB W2','IB W3','IB W4','IB C4','STOCK W1','STOCK W2','STOCK W3','STOCK W4','STOCK C4','RANK W1','RANK W2','RANK W3','RANK W4','RANK C4'];
+function slimProducts(rows){ return (rows||[]).map(r=>{ const o={}; for(const k of PRODUCT_COLS){ if(r[k]!==undefined) o[k]=r[k]; } return o; }); }
+// เซ็ตข้อมูลเข้าตัวแปร + สร้าง index (ใช้ซ้ำทั้งตอนวาดจากแคชและจากเน็ต)
+function applyData(prod,promo,users,cust,ea){
+  PRODUCTS=prod||[]; PROMOS=promo||[]; USERS=users||[]; CUSTOMERS=(cust||[]).map(mapCustomer);
+  EA_SET=new Set((ea||[]).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(Boolean));
+  buildBarcodeIndex(); buildPromoIndex();
+  refreshCurrentCustomer();   // ดึงข้อมูลร้านล่าสุดจากชีท (ที่อยู่/เซลล์/คลัง/สถานะ)
+}
 async function loadAll(silent){
-  if(!silent) showSpinner('กำลังโหลดสินค้า...');
+  localStorage.removeItem('rop_products');   // ของเก่าเคยเก็บที่นี่ (28MB) — ย้ายไป IndexedDB แล้ว คืนพื้นที่
+  // ── วาดทันทีจากแคช: สินค้าอ่านจาก IndexedDB, ที่เหลืออ่านจาก localStorage ──
+  const small=['rop_promo','rop_users','rop_customers','rop_ea'].map(k=>getCached(k,true));
+  const prodCache=await idbGet('rop_products');
+  const haveCache=prodCache && small.every(Boolean);
+  if(haveCache){ applyData(prodCache,small[0],small[1],small[2],small[3]); renderAll(); }   // ⚡ instant paint
+  else if(!silent){ showSpinner('กำลังโหลดสินค้า...'); }
   try{
-    const [prod,promo,users,cust,ea]=await Promise.all([
-      getData('rop_products',()=>fetchCsvGid(CFG.productsSheetId,CFG.productsGid)),
+    let prod;
+    try{ prod=await fetchCsvGid(CFG.productsSheetId,CFG.productsGid).then(slimProducts); idbSet('rop_products',prod); }
+    catch(e){ if(!prodCache) throw e; prod=prodCache; }   // เน็ตล่ม → ใช้แคช
+    const [promo,users,cust,ea]=await Promise.all([
       getData('rop_promo',()=>fetchCsvExport(CFG.promoSheetId,CFG.promoGid)),
       getData('rop_users',()=>fetchCsvGid(CFG.usersSheetId,CFG.usersGid)),
       getData('rop_customers',()=>fetchCsvGid(CFG.regSheetId,CFG.regGid)),
       getData('rop_ea',()=>fetchCsvGid(CFG.regSheetId,CFG.eaGid)),
     ]);
-    PRODUCTS=prod; PROMOS=promo; USERS=users; CUSTOMERS=cust.map(mapCustomer);
-    EA_SET=new Set((ea||[]).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(Boolean));
-    buildBarcodeIndex(); buildPromoIndex();
-    refreshCurrentCustomer();   // ดึงข้อมูลร้านล่าสุดจากชีท (ที่อยู่/เซลล์/คลัง/สถานะ)
+    applyData(prod,promo,users,cust,ea);
     await resolveLogin();
+    ensureUidLinked(currentCustomer);   // เผื่อมี LINE uid ใหม่ที่ยังไม่ผูกกับร้าน
     renderAll();
-    pullCart(true); startCartSync();   // ซิงค์ตะกร้าร่วมของร้าน
-  }catch(e){ console.error(e); showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต','error'); }
+    pullCart(true); startCartSync();    // ซิงค์ตะกร้าร่วมของร้าน
+  }catch(e){ console.error(e); if(!haveCache) showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต','error'); }
   finally{ if(!silent) hideSpinner(); }
 }
 window.addEventListener('scroll',()=>document.getElementById('backToTop').classList.toggle('show',window.scrollY>300));
