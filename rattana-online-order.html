@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.40</title>
+<title>Rattana Online Order v2.41</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -127,8 +127,9 @@ body.dark .pcard{border-color:var(--border)}
 
 /* qty stepper */
 .stepper{display:flex;align-items:center;gap:0;margin-top:auto;border:1.5px solid var(--gold);border-radius:var(--radius-sm);overflow:hidden}
-.stepper button{width:34px;height:38px;background:var(--gold);color:var(--navy);font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.stepper input{flex:1;width:100%;text-align:center;border:none;background:var(--card-bg);color:var(--text);font-size:15px;font-weight:700;height:38px}
+.stepper button{width:34px;height:38px;color:var(--navy);font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.stepper button:first-child{background:#ffbfc5}.stepper button:last-child{background:#d0f4de}
+.stepper input{flex:1;width:100%;text-align:center;border:none;background:#fff8f8;color:var(--text);font-size:15px;font-weight:700;height:38px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none}
 
 /* empty / load more */
@@ -164,8 +165,9 @@ body.dark .pcard{border-color:var(--border)}
 body.dark .cart-item .ci-price{color:var(--gold-light)}
 .cart-item .ci-del{background:none;color:var(--danger);font-size:18px;padding:4px}
 .cart-step{display:flex;align-items:center;border:1.5px solid var(--gold);border-radius:var(--radius-sm);overflow:hidden}
-.cart-step button{width:32px;height:34px;background:var(--gold);color:var(--navy);font-size:18px;font-weight:700}
-.cart-step input{width:46px;text-align:center;border:none;background:var(--card-bg);color:var(--text);font-weight:700;font-size:14px;height:34px}
+.cart-step button{width:32px;height:34px;color:var(--navy);font-size:18px;font-weight:700}
+.cart-step button:first-child{background:#ffbfc5}.cart-step button:last-child{background:#d0f4de}
+.cart-step input{width:46px;text-align:center;border:none;background:#fff8f8;color:var(--text);font-weight:700;font-size:14px;height:34px}
 .summary{background:var(--card-bg);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-md);padding:16px;margin-top:8px;box-shadow:var(--shadow-md)}
 .summary .s-line{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
 .summary .s-total{display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:1px dashed var(--border);padding-top:10px;margin-top:4px}
@@ -287,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.40</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.41</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
