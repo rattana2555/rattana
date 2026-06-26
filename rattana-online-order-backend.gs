@@ -106,6 +106,10 @@ function doGet(e) {
     var ro = getOrdersFor(p.shop);
     return p.callback ? jsonp(p.callback, ro) : json(ro);
   }
+  if (p.action === 'getPending') {                       // ตะกร้าร่วม = รายการ "รออนุมัติ" ของร้าน (ซิงค์ทุกเครื่องผ่านสถานะ)
+    var rp = getPendingFor(p.shop);
+    return p.callback ? jsonp(p.callback, rp) : json(rp);
+  }
   return json({ ok:true, service:'Rattana Online Order', time:new Date() });
 }
 function jsonp(cb, obj){ return ContentService.createTextOutput(cb + '(' + JSON.stringify(obj) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT); }
@@ -117,26 +121,8 @@ function getCartSheet(){
   if(!sh){ sh = ss.insertSheet('ตะกร้า'); sh.appendRow(['เบอร์','ชื่อร้าน','User ID','อัปเดตเมื่อ','จำนวนรายการ','ยอดรวม','รายการ(JSON)','ts','orderId']); }
   return sh;
 }
-function handleSaveCart(d){
-  var sh = getCartSheet();
-  var phone = String(d.phone||'').replace(/\D/g,''); if(!phone) return { ok:false, error:'no phone' };
-  var cartStr = d.cart || '[]'; var cart=[]; try{ cart=JSON.parse(cartStr); }catch(e){}
-  var orderId = String(d.orderId||'');
-  var count=0, total=0; cart.forEach(function(it){ var q=Number(it.qty)||0; count+=q; total+=q*(Number(it.price)||0); });
-  var ts = Number(d.ts) || (new Date().getTime());
-  var now = Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy HH:mm');
-  var last = sh.getLastRow(), rowIdx=-1;
-  if(last>=2){ var col=sh.getRange(2,1,last-1,1).getValues();
-    for(var i=0;i<col.length;i++){ if(String(col[i][0]).replace(/\D/g,'')===phone){ rowIdx=i+2; break; } } }
-  // ตะกร้าว่าง -> ไม่ลบแถว แต่บันทึกว่าง + ts ใหม่ + orderId ว่าง (ส่งสัญญาณให้เครื่องอื่นเคลียร์ตะกร้า+เริ่ม draft ใหม่)
-  if(!cart.length){
-    if(rowIdx>0) sh.getRange(rowIdx,1,1,9).setValues([[ "'"+phone, d.name||'', d.uid||'', now, 0, 0, '[]', ts, '' ]]);
-    return { ok:true, cleared:true, ts:ts };
-  }
-  var row = [ "'"+phone, d.name||'', d.uid||'', now, count, total, cartStr, ts, orderId ];
-  if(rowIdx>0) sh.getRange(rowIdx,1,1,row.length).setValues([row]); else sh.appendRow(row);
-  return { ok:true, ts:ts, orderId:orderId };
-}
+// เลิกใช้แท็บ "ตะกร้า" แล้ว — ตะกร้าร่วมซิงค์ผ่านสถานะ "รออนุมัติ" ในชีท order (getPendingFor) แทน
+function handleSaveCart(d){ return { ok:true, disabled:true }; }
 function getCartFor(phone){
   var target=String(phone||'').replace(/\D/g,''); if(!target) return { ok:true, cart:[], ts:0, orderId:'' };
   var sh=getCartSheet(); var last=sh.getLastRow(); if(last<2) return { ok:true, cart:[], ts:0, orderId:'' };
@@ -191,6 +177,39 @@ function getOrdersFor(shop){
       pickStatus:gv(r,c.pickStatus), billId:gv(r,c.billId), pickDate:gv(r,c.pickDate), shipDate:gv(r,c.shipDate)
     });
   });
+  return out;
+}
+
+/* ───────── ตะกร้าร่วม (ซิงค์ผ่านสถานะ): รายการ "รออนุมัติ" ของร้าน — ทุกเครื่องเห็นเหมือนกัน, พออนุมัติแล้วหาย ─────────
+   เลือก orderId ของออเดอร์รออนุมัติ "ใหม่สุด" ของร้าน (รวมเป็นออเดอร์เดียว) แล้วคืนรายการขายในนั้น */
+function getPendingFor(shop){
+  var out = { ok:true, items:[], orderId:'' };
+  shop = String(shop||'').trim(); if(!shop) return out;
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
+  if(!sh) return out;
+  var headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+  function col(n){ for(var i=0;i<headers.length;i++){ if(normHead(headers[i])===normHead(n)) return i; } return -1; }
+  var c = { shop:col('ชื่อร้าน'), type:col('รูปแบบ'), bc:col('Barcode'), name:col('ชื่อสินค้า'),
+            qty:col('จำนวน'), unit:col('หน่วย'), price:col('ราคา'), oid:col('orderId'),
+            status:col('สถานะอนุมัติ'), promo:col('โปรที่ใช้') };
+  if(c.shop<0 || c.status<0 || c.oid<0) return out;
+  var last = sh.getLastRow(); if(last<2) return out;
+  var data = sh.getRange(2,1,last-1,headers.length).getValues();
+  function isPending(r){ return String(data[r][c.shop]).trim()===shop && String(data[r][c.status]||'').trim()==='รออนุมัติ'; }
+  // ใหม่สุด = orderId มากสุด (ORD+เวลา ความยาวเท่ากัน เทียบสตริงได้)
+  var bestOid='';
+  for(var r=0;r<data.length;r++){ if(isPending(r)){ var oid=String(data[r][c.oid]||'').trim(); if(oid>bestOid) bestOid=oid; } }
+  if(!bestOid) return out;
+  out.orderId = bestOid;
+  for(var r=0;r<data.length;r++){
+    if(!isPending(r)) continue;
+    if(String(data[r][c.oid]||'').trim()!==bestOid) continue;
+    if(c.type>=0 && String(data[r][c.type]).trim()==='แถม') continue;   // ของแถมคำนวณเองในแอป
+    out.items.push({ name:String(data[r][c.name]||''), barcode:String(data[r][c.bc]||''),
+      qty:Number(data[r][c.qty])||0, unit:String(data[r][c.unit]||''), price:Number(data[r][c.price])||0,
+      promo: c.promo>=0 ? String(data[r][c.promo]||'') : '' });
+  }
   return out;
 }
 
@@ -376,7 +395,7 @@ function handleOrder(d) {
   if (!r.ok) return r;
   try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า (ทุก User ID ของร้าน)
   try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase
-  clearCartFor(d.phone);                            // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน
+  // ยืนยันแล้ว = แถวกลายเป็น "อนุมัติ" → เครื่องอื่น getPending ไม่เจอ "รออนุมัติ" → เคลียร์ตะกร้าเอง (ไม่ต้องแตะแท็บตะกร้า)
   return { ok:true, message:'order saved', count:r.count };
 }
 
