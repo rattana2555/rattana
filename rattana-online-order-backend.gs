@@ -591,7 +591,6 @@ function pushLineOrder(d, sh){
   body.push({ type:'box', layout:'vertical', backgroundColor:'#f7f8fc', cornerRadius:'12px', paddingAll:'12px', contents:[
     infoRow('🗓️ วันที่', dateStr),
     infoRow('🏪 ร้าน', d.customerName),
-    infoRow('🚚 คลังส่ง', d.warehouse),
     infoRow('👤 ฝ่ายขาย', d.salemanName)
   ].filter(function(r){ return r.contents[1].text!=='-'; }) });
 
