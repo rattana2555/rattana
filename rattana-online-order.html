@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.41</title>
+<title>Rattana Online Order v2.42</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
-  --navy:#14457e;--navy-mid:#4f8be0;--navy-light:#79a9ec;--gold:#d1eaf5;--gold-light:#e8f4fb;--bar:#aacce2;
+  --navy:#14457e;--navy-mid:#4f8be0;--navy-light:#79a9ec;--gold:#8bd2ec;--gold-light:#b8e2f3;--bar:#c0e4f6;
   --success:#2ecc71;--danger:#e74c3c;--warning:#f39c12;--info:#3498db;
   --bg:#ffffff;--text:#14457e;--card-bg:#fff;--border:#d6e6f8;--muted:#6b7c9c;--row-alt:#f7fafe;
   --space-xs:4px;--space-sm:8px;--space-md:16px;--space-lg:24px;--space-xl:32px;
@@ -34,8 +34,8 @@ header{background:var(--bar);color:var(--navy);padding:12px 18px;position:sticky
 .logo-text span{color:var(--navy);opacity:.7;font-size:10px;font-weight:600;letter-spacing:.16em;margin-top:3px}
 .logo-text .ver{font-style:normal;font-size:8px;font-weight:400;opacity:.5;letter-spacing:0;margin-top:2px}
 .h-spacer{flex:1}
-.icon-btn{background:rgba(20,69,126,.08);color:var(--navy);border:none;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .15s;position:relative;flex-shrink:0}
-.icon-btn:hover{background:rgba(20,69,126,.15)}
+.icon-btn{background:var(--gold);color:var(--navy);border:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .15s;position:relative;flex-shrink:0}
+.icon-btn:hover{background:#6fc5e6}
 .user-chip{display:flex;align-items:center;gap:9px;background:rgba(20,69,126,.08);border:none;border-radius:12px;padding:6px 13px 6px 7px;cursor:pointer;color:var(--navy);flex-shrink:0}
 .user-chip:hover{background:rgba(20,69,126,.15)}
 .uc-ava{width:32px;height:32px;border-radius:9px;background:#fff;color:var(--navy);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -129,7 +129,7 @@ body.dark .pcard{border-color:var(--border)}
 .stepper{display:flex;align-items:center;gap:0;margin-top:auto;border:1.5px solid var(--gold);border-radius:var(--radius-sm);overflow:hidden}
 .stepper button{width:34px;height:38px;color:var(--navy);font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .stepper button:first-child{background:#ffbfc5}.stepper button:last-child{background:#d0f4de}
-.stepper input{flex:1;width:100%;text-align:center;border:none;background:#fff8f8;color:var(--text);font-size:15px;font-weight:700;height:38px}
+.stepper input{flex:1;width:100%;text-align:center;border:none;background:transparent;color:var(--text);font-size:15px;font-weight:700;height:38px}
 .stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none}
 
 /* empty / load more */
@@ -167,7 +167,7 @@ body.dark .cart-item .ci-price{color:var(--gold-light)}
 .cart-step{display:flex;align-items:center;border:1.5px solid var(--gold);border-radius:var(--radius-sm);overflow:hidden}
 .cart-step button{width:32px;height:34px;color:var(--navy);font-size:18px;font-weight:700}
 .cart-step button:first-child{background:#ffbfc5}.cart-step button:last-child{background:#d0f4de}
-.cart-step input{width:46px;text-align:center;border:none;background:#fff8f8;color:var(--text);font-weight:700;font-size:14px;height:34px}
+.cart-step input{width:46px;text-align:center;border:none;background:transparent;color:var(--text);font-weight:700;font-size:14px;height:34px}
 .summary{background:var(--card-bg);border:1px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-md);padding:16px;margin-top:8px;box-shadow:var(--shadow-md)}
 .summary .s-line{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
 .summary .s-total{display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:1px dashed var(--border);padding-top:10px;margin-top:4px}
@@ -289,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.41</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.42</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
