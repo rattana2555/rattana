@@ -24,6 +24,10 @@ var ORDER_SHEET_GID    = 1594322176;   // สำรอง: เผื่อเป
 // เอา Channel access token (long-lived) จาก LINE Developers > channel Messaging API ของ OA Rattana_Official
 var LINE_TOKEN = 'PASTE_LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN';
 
+// ───── Discord (แจ้งเตือน "เปิดร้านค้าใหม่" เข้าห้อง Discord) ─────
+// วิธีเอา URL: ใน Discord → คลิกขวาห้องที่จะให้เด้ง → แก้ไขช่อง → Integrations → Webhooks → New Webhook → Copy Webhook URL
+var DISCORD_WEBHOOK = 'PASTE_DISCORD_WEBHOOK_URL';
+
 // ───── Supabase (เก็บออเดอร์ลงฐานข้อมูลด้วย — dual-write) ─────
 // SUPABASE_URL = Project URL (เช่น https://abcd.supabase.co)
 // SUPABASE_KEY = service_role key (Settings > API) — เก็บใน .gs เท่านั้น ห้ามใส่ในฝั่งเว็บ
@@ -249,7 +253,36 @@ function handleRegister(d) {
 
   var row = headers.map(function(h){ return values.hasOwnProperty(h) ? values[h] : ''; });
   sh.appendRow(row);
+  try { pushDiscordNewShop(d); } catch (e) {}   // เด้งแจ้ง "เปิดร้านค้าใหม่" เข้า Discord
   return { ok:true, message:'registered' };
+}
+
+/* ───────── แจ้งเตือน "เปิดร้านค้าใหม่" เข้า Discord (ตอนลงทะเบียน) ───────── */
+function pushDiscordNewShop(d){
+  if(!DISCORD_WEBHOOK || DISCORD_WEBHOOK.indexOf('PASTE')>=0) return;   // ยังไม่ตั้ง webhook
+  var addr = [ d['บ้านเลขที่'], d['หมู่']?('หมู่ '+d['หมู่']):'', d['ตำบล'], d['อำเภอ'], d['จังหวัด'], d['รหัสไปรษณีย์'] ]
+    .map(function(x){ return String(x||'').trim(); }).filter(String).join(' ');
+  var hasGeo = d['Latitude'] && d['Longitude'];
+  var mapLink = hasGeo ? ('https://www.google.com/maps?q=' + d['Latitude'] + ',' + d['Longitude']) : '';
+  var lines = [
+    '**ชื่อร้านค้า :** ' + (d['ชื่อ / ร้านค้า'] || '-'),
+    '**ที่อยู่ :** ' + (addr || '-'),
+    '**เบอร์โทร :** ' + (d['เบอร์โทรศัพท์'] || '-'),
+    '**พิกัด :** ' + (hasGeo ? ('[เปิดแผนที่](' + mapLink + ')') : 'ไม่มี'),
+    '**เลขภพ.20 :** ' + (d['เลขบัตร/ภพ.20'] || '-')
+  ];
+  if (d['หมายเหตุ']) lines.push('**หมายเหตุ :** ' + d['หมายเหตุ']);
+  lines.push('**ที่มา :** ลงทะเบียนผ่านแอป Rattana Online Order');
+  var payload = { embeds:[ {
+    title: '🏠 เปิดร้านค้าใหม่',
+    description: lines.join('\n'),
+    color: 0x2b6fd0,
+    footer: { text: 'Rattana Online Order • รอแอดมินยืนยัน' }
+  } ] };
+  UrlFetchApp.fetch(DISCORD_WEBHOOK, {
+    method:'post', contentType:'application/json',
+    payload: JSON.stringify(payload), muteHttpExceptions:true
+  });
 }
 
 /* แปลงชื่อ/รหัสเซลล์สำหรับออเดอร์จาก Roo: ชื่อ + " (ROO)"; รหัส PMW102→ROW102 (PM→RO), HSW104→ROH104 (HSW→ROH) */
