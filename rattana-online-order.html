@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.37</title>
+<title>Rattana Online Order v2.38</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -287,7 +287,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.37</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.38</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -565,7 +565,7 @@ function pushCartSoon(){
   const phone=cartShopKey(); if(!phone) return;
   if(_cartPushTimer) clearTimeout(_cartPushTimer);
   _cartPushTimer=setTimeout(()=>{ _cartTs=Date.now();
-    postGAS({action:'saveCart', phone, name:(currentCustomer&&currentCustomer.name)||'', uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'', cart:JSON.stringify(cartArrForSync()), ts:_cartTs});
+    postGAS({action:'saveCart', phone, name:(currentCustomer&&currentCustomer.name)||'', uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'', cart:JSON.stringify(cartArrForSync()), ts:_cartTs, orderId:draftOrderId()});
   },1500);
 }
 /* ดึงตะกร้าล่าสุดของร้านจากเซิร์ฟเวอร์ (JSONP) — ซิงค์ข้ามเครื่องของร้านเดียวกัน */
@@ -583,6 +583,8 @@ function pullCart(force){
       else if(force||serverTs>_cartTs){
         const obj={}; serverArr.forEach(i=>{ if(i&&i.key) obj[i.key]=i; });
         cart=obj; _cartTs=serverTs; localStorage.setItem('rop_cart',JSON.stringify(cart)); // ไม่ push กลับ
+        if(serverArr.length){ if(r.orderId) localStorage.setItem('rop_orderId',r.orderId); }   // ใช้ orderId เดียวกันทุกเครื่อง → กันออเดอร์เบิ้ล
+        else { resetDraft(); }                                                                 // ตะกร้าถูกเคลียร์ (อีกเครื่องยืนยันแล้ว) → เริ่ม draft ใหม่
         renderCartBadge(); if(document.getElementById('viewCart').classList.contains('active')) renderCart(); renderProducts();
       }
     }
@@ -593,7 +595,7 @@ function pullCart(force){
   document.head.appendChild(s);
   setTimeout(()=>{ if(window[cb]){ delete window[cb]; const s2=document.getElementById(cb); if(s2) s2.remove(); } },8000);
 }
-function startCartSync(){ if(_cartSyncOn) return; _cartSyncOn=true; setInterval(()=>pullCart(false),25000); }
+function startCartSync(){ if(_cartSyncOn) return; _cartSyncOn=true; setInterval(()=>pullCart(false),8000); }
 
 /* ===================== CUSTOMER / SESSION ===================== */
 function mapCustomer(row){

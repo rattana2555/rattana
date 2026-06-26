@@ -114,41 +114,51 @@ function jsonp(cb, obj){ return ContentService.createTextOutput(cb + '(' + JSON.
 function getCartSheet(){
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
   var sh = ss.getSheetByName('ตะกร้า');
-  if(!sh){ sh = ss.insertSheet('ตะกร้า'); sh.appendRow(['เบอร์','ชื่อร้าน','User ID','อัปเดตเมื่อ','จำนวนรายการ','ยอดรวม','รายการ(JSON)','ts']); }
+  if(!sh){ sh = ss.insertSheet('ตะกร้า'); sh.appendRow(['เบอร์','ชื่อร้าน','User ID','อัปเดตเมื่อ','จำนวนรายการ','ยอดรวม','รายการ(JSON)','ts','orderId']); }
   return sh;
 }
 function handleSaveCart(d){
   var sh = getCartSheet();
   var phone = String(d.phone||'').replace(/\D/g,''); if(!phone) return { ok:false, error:'no phone' };
   var cartStr = d.cart || '[]'; var cart=[]; try{ cart=JSON.parse(cartStr); }catch(e){}
+  var orderId = String(d.orderId||'');
   var count=0, total=0; cart.forEach(function(it){ var q=Number(it.qty)||0; count+=q; total+=q*(Number(it.price)||0); });
   var ts = Number(d.ts) || (new Date().getTime());
   var now = Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy HH:mm');
   var last = sh.getLastRow(), rowIdx=-1;
   if(last>=2){ var col=sh.getRange(2,1,last-1,1).getValues();
     for(var i=0;i<col.length;i++){ if(String(col[i][0]).replace(/\D/g,'')===phone){ rowIdx=i+2; break; } } }
-  if(!cart.length){ if(rowIdx>0) sh.deleteRow(rowIdx); return { ok:true, cleared:true }; }   // ตะกร้าว่าง -> ลบแถว
-  var row = [ "'"+phone, d.name||'', d.uid||'', now, count, total, cartStr, ts ];
+  // ตะกร้าว่าง -> ไม่ลบแถว แต่บันทึกว่าง + ts ใหม่ + orderId ว่าง (ส่งสัญญาณให้เครื่องอื่นเคลียร์ตะกร้า+เริ่ม draft ใหม่)
+  if(!cart.length){
+    if(rowIdx>0) sh.getRange(rowIdx,1,1,9).setValues([[ "'"+phone, d.name||'', d.uid||'', now, 0, 0, '[]', ts, '' ]]);
+    return { ok:true, cleared:true, ts:ts };
+  }
+  var row = [ "'"+phone, d.name||'', d.uid||'', now, count, total, cartStr, ts, orderId ];
   if(rowIdx>0) sh.getRange(rowIdx,1,1,row.length).setValues([row]); else sh.appendRow(row);
-  return { ok:true, ts:ts };
+  return { ok:true, ts:ts, orderId:orderId };
 }
 function getCartFor(phone){
-  var target=String(phone||'').replace(/\D/g,''); if(!target) return { ok:true, cart:[], ts:0 };
-  var sh=getCartSheet(); var last=sh.getLastRow(); if(last<2) return { ok:true, cart:[], ts:0 };
-  var vals=sh.getRange(2,1,last-1,8).getValues();
+  var target=String(phone||'').replace(/\D/g,''); if(!target) return { ok:true, cart:[], ts:0, orderId:'' };
+  var sh=getCartSheet(); var last=sh.getLastRow(); if(last<2) return { ok:true, cart:[], ts:0, orderId:'' };
+  var w=Math.max(9, sh.getLastColumn());
+  var vals=sh.getRange(2,1,last-1,w).getValues();
   for(var i=0;i<vals.length;i++){
     if(String(vals[i][0]).replace(/\D/g,'')===target){
       var cart=[]; try{ cart=JSON.parse(String(vals[i][6]||'[]')); }catch(e){}
-      return { ok:true, cart:cart, ts:Number(vals[i][7])||0, name:vals[i][1]||'' };
+      return { ok:true, cart:cart, ts:Number(vals[i][7])||0, name:vals[i][1]||'', orderId:String(vals[i][8]||'') };
     }
   }
-  return { ok:true, cart:[], ts:0 };
+  return { ok:true, cart:[], ts:0, orderId:'' };
 }
+// เคลียร์ตะกร้าร่วม (หลังยืนยันออเดอร์) — ไม่ลบแถว แต่ตั้งว่าง + ts ใหม่ → เครื่องอื่นพอ pull เจอ ts ใหม่ จะเคลียร์ตะกร้าตาม
 function clearCartFor(phone){
   var target=String(phone||'').replace(/\D/g,''); if(!target) return;
   var sh=getCartSheet(); var last=sh.getLastRow(); if(last<2) return;
   var col=sh.getRange(2,1,last-1,1).getValues();
-  for(var i=0;i<col.length;i++){ if(String(col[i][0]).replace(/\D/g,'')===target){ sh.deleteRow(i+2); return; } }
+  var now=Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy HH:mm');
+  for(var i=0;i<col.length;i++){ if(String(col[i][0]).replace(/\D/g,'')===target){
+    sh.getRange(i+2,1,1,9).setValues([[ "'"+target, '', '', now, 0, 0, '[]', new Date().getTime(), '' ]]); return;
+  } }
 }
 
 /* ───────── ดึงออเดอร์ "อนุมัติ" ทั้งหมดของร้าน (จับจากชื่อร้าน) — ใช้ในหน้า "สรุปออเดอร์" ───────── */
@@ -337,13 +347,34 @@ function deleteSheetRowsByOrderId(sh, headers, orderId) {
   }
 }
 
+/* ลายเซ็นออเดอร์ = ร้าน(เบอร์) + รายการขายทั้งหมด (บาร์โค้ด:จำนวน:หน่วย) เรียงแล้ว — ใช้ตรวจออเดอร์ซ้ำ */
+function orderSignature(d) {
+  var its = (d.items || []).filter(function(it){ return typeKey(it.type)!=='แถม' && String(it.status||'')!=='ไม่อนุมัติ'; })
+    .map(function(it){ return String(it.barcode||it.name||'')+':'+(it.qty||0)+':'+String(it.unit||''); }).sort();
+  return its.join('|');
+}
 /* ───────── ยืนยันออเดอร์ (สถานะ "อนุมัติ") → เขียนชีท+Supabase + ส่ง LINE + ล้างตะกร้า ───────── */
 function handleOrder(d) {
   applySalesmanFormat(d);                            // ชื่อ +" (ROO)", รหัส PM→RO
   if (!d.status) d.status = 'อนุมัติ';              // กดยืนยัน = อนุมัติ (ถ้าแอปไม่ได้ส่ง status รายชิ้นมา)
+  // ── กันออเดอร์เบิ้ลจากหลายเครื่อง/กดซ้ำ: ร้านเดียวกัน + รายการเหมือนเดิม ภายใน 2 นาที = ซ้ำ → ไม่เขียน/ไม่ push ซ้ำ ──
+  var phone = String(d.phone||'').replace(/\D/g,'');
+  var sig = orderSignature(d);
+  var props = PropertiesService.getScriptProperties();
+  var pkey = 'lastorder_' + phone;
+  if (phone && sig) {
+    var prev = props.getProperty(pkey);              // รูปแบบ "sig~~epochMillis"
+    if (prev) {
+      var sep = prev.lastIndexOf('~~');
+      if (sep > 0 && prev.slice(0,sep)===sig && (new Date().getTime() - Number(prev.slice(sep+2)||0)) < 120000) {
+        return { ok:true, message:'duplicate ignored', dedup:true };
+      }
+    }
+    props.setProperty(pkey, sig + '~~' + new Date().getTime());   // จองสิทธิ์ก่อนเขียน (กันสองเครื่องชนกัน)
+  }
   var r = writeOrderToSheet(d);
   if (!r.ok) return r;
-  try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า
+  try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า (ทุก User ID ของร้าน)
   try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase
   clearCartFor(d.phone);                            // ยืนยันแล้ว -> ล้างตะกร้าร่วมของร้าน
   return { ok:true, message:'order saved', count:r.count };
@@ -464,9 +495,36 @@ function cumulativeFor(sh, uid){
   });
   return out;
 }
+/* รวม User ID ทุกไลน์ของร้าน (เบอร์เดียวกัน): User ID + User ID เพิ่ม จากชีทลงทะเบียน + d.uid */
+function allUidsForShop(phone, fallbackUid){
+  var recips = {};
+  if(fallbackUid){ var f=String(fallbackUid).trim(); if(f) recips[f]=1; }
+  phone = String(phone||'').replace(/\D/g,'');
+  if(phone){ try{
+    var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var sh = getSheetByGid(ss, REG_SHEET_GID);
+    if(sh){
+      var H = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(function(h){return String(h).trim();});
+      var pC=H.indexOf('เบอร์โทรศัพท์'), uC=H.indexOf('User ID'), eC=H.indexOf('User ID เพิ่ม');
+      var last=sh.getLastRow();
+      if(pC>=0 && last>=2){
+        var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+        for(var i=0;i<vals.length;i++){
+          if(String(vals[i][pC]).replace(/\D/g,'')===phone){
+            if(uC>=0){ var u=String(vals[i][uC]||'').trim(); if(u) recips[u]=1; }
+            if(eC>=0){ String(vals[i][eC]||'').split(/[,\n;]+/).forEach(function(s){ s=s.trim(); if(s) recips[s]=1; }); }
+            break;
+          }
+        }
+      }
+    }
+  }catch(e){} }
+  return Object.keys(recips);
+}
 function pushLineOrder(d, sh){
   if(!LINE_TOKEN || LINE_TOKEN.indexOf('PASTE')===0) return;   // ยังไม่ตั้ง token
-  var uid = d.uid; if(!uid) return;                            // ส่งได้เฉพาะลูกค้าที่เข้าผ่านไลน์
+  var recipients = allUidsForShop(d.phone, d.uid);            // ส่งทุกไลน์ของร้าน (เบอร์เดียวกัน)
+  if(!recipients.length) return;                              // ไม่มีใครเข้าผ่านไลน์
   var items = d.items || [];
 
   // ── พาเลตต์แบรนด์ (ฟ้าพาสเทลสดใส) ──
@@ -551,11 +609,13 @@ function pushLineOrder(d, sh){
     styles:{ header:{ backgroundColor:NAVY }, footer:{ separator:true, separatorColor:LINE } }
   };
 
-  var msg = { to: uid, messages:[ { type:'flex', altText:'🧾 สรุปคำสั่งซื้อ '+(d.orderId||''), contents:bubble } ] };
-  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
-    method:'post', contentType:'application/json',
-    headers:{ Authorization:'Bearer '+LINE_TOKEN },
-    payload: JSON.stringify(msg), muteHttpExceptions:true
+  recipients.forEach(function(uid){
+    var msg = { to: uid, messages:[ { type:'flex', altText:'🧾 สรุปคำสั่งซื้อ '+(d.orderId||''), contents:bubble } ] };
+    UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+      method:'post', contentType:'application/json',
+      headers:{ Authorization:'Bearer '+LINE_TOKEN },
+      payload: JSON.stringify(msg), muteHttpExceptions:true
+    });
   });
 }
 /* ───────── เชื่อม LINE User ID เข้ากับลูกค้าที่ลงทะเบียนด้วยเบอร์แล้ว ─────────
