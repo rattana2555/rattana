@@ -695,6 +695,98 @@ function pushLineOrder(d, sh){
     });
   });
 }
+/* ═══════════════════════════════════════════════════════════════════
+   ⏰ เตือนร้านที่ "ลืมกดยืนยันออเดอร์" — รันทุกวัน 17:00 (เวลาไทย)
+   เงื่อนไข: วันนี้ = "วันจด" (รูท) ของร้าน + มีออเดอร์ "รออนุมัติ" ค้างในตะกร้า + ยังไม่เคยเตือนออเดอร์นี้
+   ส่งไลน์เข้า "User ID ตัวหลัก" ของร้าน  → ตั้ง trigger ครั้งเดียวด้วย setupRemindTrigger()
+   ═══════════════════════════════════════════════════════════════════ */
+function setupRemindTrigger(){
+  ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==='remindUnconfirmedOrders') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('remindUnconfirmedOrders').timeBased().everyDays(1).atHour(17).inTimezone('Asia/Bangkok').create();
+  return 'ตั้งเตือน 17:00 ทุกวันแล้ว';
+}
+// ชื่อวันไทยของวันนี้ (โซนเวลาไทย)
+function thaiWeekday_(){
+  var en = Utilities.formatDate(new Date(),'Asia/Bangkok','EEEE');   // Monday..Sunday
+  var map = {Monday:'จันทร์',Tuesday:'อังคาร',Wednesday:'พุธ',Thursday:'พฤหัสบดี',Friday:'ศุกร์',Saturday:'เสาร์',Sunday:'อาทิตย์'};
+  return map[en] || '';
+}
+function normDay_(v){
+  var s = String(v||'').trim().replace(/^วัน/,'');
+  if(s==='พฤหัส'||s==='พฤหัสฯ') s='พฤหัสบดี';
+  if(s==='อาทิตย์'||s==='อา') s='อาทิตย์';
+  return s;
+}
+// อ่านชีท order ครั้งเดียว → map ชื่อร้าน → orderId ของออเดอร์ "รออนุมัติ" ใหม่สุด (มีสินค้าขายค้างอยู่)
+function pendingByShop_(){
+  var out = {};
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
+  if(!sh) return out;
+  var headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+  function col(n){ for(var i=0;i<headers.length;i++){ if(normHead(headers[i])===normHead(n)) return i; } return -1; }
+  var shopC=col('ชื่อร้าน'), stC=col('สถานะอนุมัติ'), oidC=col('orderId'), typeC=col('รูปแบบ');
+  if(shopC<0||stC<0||oidC<0) return out;
+  var last=sh.getLastRow(); if(last<2) return out;
+  var data=sh.getRange(2,1,last-1,headers.length).getValues();
+  for(var r=0;r<data.length;r++){
+    if(String(data[r][stC]||'').trim()!=='รออนุมัติ') continue;
+    if(typeC>=0 && String(data[r][typeC]).trim()==='แถม') continue;   // ของแถมไม่นับ
+    var shop=String(data[r][shopC]||'').trim(); if(!shop) continue;
+    var oid=String(data[r][oidC]||'').trim();
+    if(!out[shop] || oid>out[shop]) out[shop]=oid;                    // เก็บ orderId ใหม่สุด
+  }
+  return out;
+}
+function remindUnconfirmedOrders(){
+  if(!LINE_TOKEN || LINE_TOKEN.indexOf('PASTE')===0) return;
+  var today = thaiWeekday_(); if(!today) return;
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var reg = getSheetByGid(ss, REG_SHEET_GID); if(!reg) return;
+  var H = reg.getRange(1,1,1,reg.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+  var nameC=H.indexOf('ชื่อ / ร้านค้า'), uidC=H.indexOf('User ID'), dayC=H.indexOf('วันจด');
+  if(nameC<0||uidC<0||dayC<0) return;          // ไม่มีคอลัมน์ที่ต้องใช้
+  var last=reg.getLastRow(); if(last<2) return;
+  var rows=reg.getRange(2,1,last-1,reg.getLastColumn()).getValues();
+  var pending=pendingByShop_();                 // ชื่อร้าน → orderId ค้าง
+  var props=PropertiesService.getScriptProperties();
+  for(var i=0;i<rows.length;i++){
+    var shop=String(rows[i][nameC]||'').trim();
+    var uid=String(rows[i][uidC]||'').trim();
+    if(!shop || !uid) continue;
+    if(normDay_(rows[i][dayC]) !== today) continue;     // ไม่ใช่วันจดของร้านนี้
+    var oid=pending[shop];
+    if(!oid) continue;                                  // ไม่มีออเดอร์ค้าง → ไม่เตือน
+    var rkey='reminded_'+oid;
+    if(props.getProperty(rkey)) continue;               // เตือนออเดอร์นี้ไปแล้ว (ครั้งเดียว)
+    pushLineRemind_(uid);
+    props.setProperty(rkey,'1');
+  }
+}
+// Flex น่ารักๆ เตือนลืมกดยืนยัน + ปุ่มเปิดแอป
+function pushLineRemind_(uid){
+  var LIFF='https://liff.line.me/2010518208-qWNksPcn';
+  var bubble = { type:'bubble',
+    header:{ type:'box', layout:'vertical', backgroundColor:'#2b6fd0', paddingAll:'16px', contents:[
+      { type:'text', text:'🛍️ ลืมกดยืนยันออเดอร์รึเปล่าคะ?', weight:'bold', size:'md', color:'#ffffff', wrap:true } ]},
+    body:{ type:'box', layout:'vertical', spacing:'md', paddingAll:'18px', contents:[
+      { type:'text', text:'🥺 น้องสินค้าแอบบอกว่า...', size:'sm', weight:'bold', color:'#2b6fd0', wrap:true },
+      { type:'text', text:'“พาผมกลับบ้านด้วยได้ไหม~” 🛍️💕', size:'sm', weight:'bold', color:'#3a4663', wrap:true },
+      { type:'text', text:'เหมือนจะยังมีสินค้าอยู่ในตะกร้าของคุณลูกค้านะคะ หากลืมกดยืนยันออเดอร์ สามารถกลับมากดได้ทุกเมื่อเลยค่ะ', size:'sm', color:'#3a4663', wrap:true },
+      { type:'text', text:'หากต้องการสอบถามเพิ่มเติม แอดมินพร้อมช่วยเสมอนะคะ 😊', size:'xs', color:'#8a94ad', wrap:true }
+    ]},
+    footer:{ type:'box', layout:'vertical', paddingAll:'12px', contents:[
+      { type:'button', style:'primary', color:'#2b6fd0', height:'sm',
+        action:{ type:'uri', label:'🛒 เปิดแอป กดยืนยันออเดอร์', uri:LIFF } } ]}
+  };
+  var msg = { to:uid, messages:[ { type:'flex', altText:'🛍️ ลืมกดยืนยันออเดอร์รึเปล่าคะ? มีสินค้าค้างในตะกร้านะคะ', contents:bubble } ] };
+  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    method:'post', contentType:'application/json',
+    headers:{ Authorization:'Bearer '+LINE_TOKEN },
+    payload: JSON.stringify(msg), muteHttpExceptions:true
+  });
+}
+
 /* ───────── เชื่อม LINE User ID เข้ากับลูกค้าที่ลงทะเบียนด้วยเบอร์แล้ว ─────────
    ร้านเดียวกัน (เบอร์เดียวกัน) มีหลายไลน์ได้:
    - uid ตัวแรก → เก็บที่คอลัมน์ 'User ID' (ไม่เคยทับ)
