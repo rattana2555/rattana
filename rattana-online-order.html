@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.44</title>
+<title>Rattana Online Order v2.45</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -289,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.44</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.45</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1398,18 +1398,16 @@ async function submitOrder(){
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   // รูปแบบ = ขาย/แถม/ไม่อนุมัติ , หน่วย = หน่วยละเอียดตามบาร์โค้ด ; สถานะตอนยืนยัน = อนุมัติราคา
   const payload=Object.assign({ action:'order', orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
-  localStorage.setItem('rop_pendingSend', JSON.stringify({orderId, ts:Date.now()}));   // 📦 outbox: กันออเดอร์หายถ้าเน็ตหลุดตอนกดส่ง
   showSpinner('กำลังส่งออเดอร์...');
   const ok=await sendAndConfirm(payload, orderId);
   hideSpinner();
   if(ok){
-    localStorage.removeItem('rop_pendingSend');
     cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
     showToast('ส่งออเดอร์สำเร็จ! เลขที่ '+orderId,'success');
     goShop();
   } else {
-    // ❗ ยังยืนยันไม่ได้ (เน็ตไม่ดี) → ไม่ล้างตะกร้า ออเดอร์ยังอยู่กับลูกค้า + จะลองส่งให้อัตโนมัติเมื่อเน็ตกลับมา
-    showToast('เน็ตไม่เสถียร ⚠️ ออเดอร์ยังอยู่ในตะกร้า — ระบบจะส่งให้อัตโนมัติเมื่อเน็ตกลับมา หรือกดส่งใหม่ได้','warning');
+    // ❗ ยังยืนยันไม่ได้ (เน็ตไม่ดี) → ไม่ล้างตะกร้า ออเดอร์ยังอยู่ในตะกร้าลูกค้า ให้กดส่งใหม่เอง (ไม่ส่งอัตโนมัติ)
+    showToast('เน็ตไม่เสถียร ⚠️ ออเดอร์ยังอยู่ในตะกร้า กรุณากดส่งใหม่อีกครั้ง','warning');
   }
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1443,19 +1441,6 @@ async function sendAndConfirm(payload, orderId){
   }
   return false;
 }
-/* ลองส่ง "ออเดอร์ค้าง" (เน็ตหลุดตอนกดส่ง) อัตโนมัติ — เรียกตอนเปิดแอป/เน็ตกลับมา */
-async function retryPendingSend(){
-  let p; try{ p=JSON.parse(localStorage.getItem('rop_pendingSend')); }catch(e){ p=null; }
-  if(!p||!p.orderId||!currentCustomer) return;
-  const pre=await orderStatusRaw(p.orderId);
-  if(statusSupported(pre) && pre.approved){ localStorage.removeItem('rop_pendingSend'); return; }   // ถึงหลังบ้านแล้ว
-  if(!Object.keys(cart).length){ localStorage.removeItem('rop_pendingSend'); return; }              // ไม่มีของจะส่งแล้ว
-  const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
-  const payload=Object.assign({ action:'order', orderId:p.orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
-  const ok=await sendAndConfirm(payload, p.orderId);
-  if(ok){ localStorage.removeItem('rop_pendingSend'); cart={}; resetDraft(); saveCart(); renderCart(); renderProducts(); renderCartBadge(); showToast('ส่งออเดอร์ที่ค้างไว้สำเร็จแล้ว ✓','success'); }
-}
-window.addEventListener('online', retryPendingSend);
 
 async function postGAS(payload){
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')){
@@ -1512,7 +1497,6 @@ async function loadAll(silent){
     ensureUidLinked(currentCustomer);   // เผื่อมี LINE uid ใหม่ที่ยังไม่ผูกกับร้าน
     renderAll();
     pullCart(true); startCartSync();    // ซิงค์ตะกร้าร่วมของร้าน
-    retryPendingSend();                 // ลองส่งออเดอร์ที่ค้างไว้ (ถ้าเน็ตเคยหลุดตอนกดส่ง)
   }catch(e){ console.error(e); if(!haveCache) showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต','error'); }
   finally{ if(!silent) hideSpinner(); }
 }
