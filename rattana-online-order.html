@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.46</title>
+<title>Rattana Online Order v2.47</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -289,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.46</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.47</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -793,9 +793,11 @@ function isNewProduct(p){ const d=Date.parse(clean(p['FIRST STOCK DATE']).replac
 /* พื้นกล่องรูป = ขาวแบบเดิม */
 function cardTint(p){ return '#fff'; }
 function priceOf(p){
-  let v=numOr0(p['PRICE S03 PA']), unit=clean(p['UNIT PA'])||'แพ็ค';
-  if(!v){ v=numOr0(p['PRICE S03 CS']); unit=clean(p['UNIT CS'])||'ลัง'; }
+  // โชว์ราคาหน้าการ์ด: ยึด "ลัง" (CS) เสมอ → ไม่มีลังค่อยตกไป แพ็ค/ชิ้น; ไม่มีราคาเลย = ฿0/ลัง (ไม่โชว์ /ชิ้น)
+  let v=numOr0(p['PRICE S03 CS']), unit=clean(p['UNIT CS'])||'ลัง';
+  if(!v){ v=numOr0(p['PRICE S03 PA']); unit=clean(p['UNIT PA'])||'แพ็ค'; }
   if(!v){ v=numOr0(p['PRICE S03 EA']); unit=clean(p['UNIT EA'])||'ชิ้น'; }
+  if(!v){ unit=clean(p['UNIT CS'])||'ลัง'; }
   return {value:v,unit};
 }
 function visibleProducts(){
@@ -1470,8 +1472,8 @@ function slimProducts(rows){ return (rows||[]).map(r=>{ const o={}; for(const k 
 // เซ็ตข้อมูลเข้าตัวแปร + สร้าง index (ใช้ซ้ำทั้งตอนวาดจากแคชและจากเน็ต)
 function applyData(prod,promo,users,cust,ea){
   PRODUCTS=prod||[]; PROMOS=promo||[]; USERS=users||[]; CUSTOMERS=(cust||[]).map(mapCustomer);
-  // เปิดขายชิ้น (EA) เฉพาะ CAT SIZE ที่คอลัมน์ Allow_EA ไม่ว่าง → สินค้าที่ CAT SIZE เดียวกันก็ขายชิ้นได้
-  EA_SET=new Set((ea||[]).filter(r=>clean(r['Allow_EA'])).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(Boolean));
+  // เปิดขายชิ้น (EA) เฉพาะ CAT SIZE ที่คอลัมน์ Allow_EA ไม่ว่าง → สินค้าที่ CAT SIZE เดียวกันก็ขายชิ้นได้ ("ไม่กำหนดขนาด" ห้ามขายชิ้นเสมอ)
+  EA_SET=new Set((ea||[]).filter(r=>clean(r['Allow_EA'])).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(s=>s && s!=='ไม่กำหนดขนาด'));
   buildBarcodeIndex(); buildPromoIndex();
   refreshCurrentCustomer();   // ดึงข้อมูลร้านล่าสุดจากชีท (ที่อยู่/เซลล์/คลัง/สถานะ)
 }
