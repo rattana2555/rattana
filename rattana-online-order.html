@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.47</title>
+<title>Rattana Online Order v2.48</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -289,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.47</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.48</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -800,9 +800,14 @@ function priceOf(p){
   if(!v){ unit=clean(p['UNIT CS'])||'ลัง'; }
   return {value:v,unit};
 }
+// มีราคาขายจริงอย่างน้อย 1 หน่วย (ลัง/แพ็ค หรือ ชิ้นที่เปิดขาย) — ราคา 0/ว่าง = ไม่โชว์ในแอป
+function hasPrice(p){
+  return numOr0(p['PRICE S03 CS'])>0 || numOr0(p['PRICE S03 PA'])>0
+      || (numOr0(p['PRICE S03 EA'])>0 && EA_SET.has(clean(p['CAT SIZE']).toLowerCase()));
+}
 function visibleProducts(){
   const wh=displayWarehouse(currentCustomer);
-  return PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && isSellable(p,wh));
+  return PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && isSellable(p,wh));
 }
 function newestProducts(){
   return visibleProducts()
