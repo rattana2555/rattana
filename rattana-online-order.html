@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.56</title>
+<title>Rattana Online Order v2.57</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -307,7 +307,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.56</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.57</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -924,7 +924,7 @@ function scrollCard(p,tag,isNew){
     </div>
     <div class="f-body">
       <div class="f-name">${name}</div>
-      ${currentCustomer?`<div class="f-price">${baht(value)} <small>/${word}</small></div>`:`<div class="f-locked">🔒 ลงทะเบียนดูราคา</div>`}
+      ${currentCustomer?`<div class="f-price">${baht(value)} <small>/${word}</small></div>`:''}
     </div></div>`;
 }
 function renderPromoScroll(){
@@ -1264,8 +1264,8 @@ function renderProducts(){
       <div class="p-body">
         <div class="p-name">${name}</div>
         ${currentCustomer?`<div class="p-price"><b>${baht(value)}</b><small>/${word}</small></div>
-        ${unit&&unit!==word?`<div class="p-unit">${unit}</div>`:''}`:`<div class="p-locked">🔒 ลงทะเบียนดูราคา</div>`}
-        <button class="p-add ${inCart?'in':''}" onclick="event.stopPropagation();openProduct('${esc(name)}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg> ${!currentCustomer?'ลงทะเบียนเพื่อสั่ง':(inCart?('ในตะกร้า '+inCart):'เพิ่มลงตะกร้า')}</button>
+        ${unit&&unit!==word?`<div class="p-unit">${unit}</div>`:''}
+        <button class="p-add ${inCart?'in':''}" onclick="event.stopPropagation();openProduct('${esc(name)}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg> ${inCart?('ในตะกร้า '+inCart):'เพิ่มลงตะกร้า'}</button>`:''}
       </div></div>`;
   }).join('') + (all.length>renderLimit?`<div class="load-more"><button class="btn btn-outline" onclick="renderLimit+=60;renderProducts()">แสดงเพิ่ม (${all.length-renderLimit})</button></div>`:'');
 }
