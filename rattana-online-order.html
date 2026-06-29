@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.49</title>
+<title>Rattana Online Order v2.50</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -289,7 +289,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.49</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.50</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -707,17 +707,19 @@ function buildWhByArea(rows){
   function major(m){ const o={}; for(const k in m){ let best='',n=-1; for(const wh in m[k]){ if(m[k][wh]>n){ n=m[k][wh]; best=wh; } } o[k]=best; } return o; }
   return { full:major(lvl.full), ao:major(lvl.ao), jw:major(lvl.jw) };
 }
-/* คลังของร้านตามพื้นที่: ต/อ/จ → อ/จ → จ (ไล่จากเจาะจงสุด) */
+/* คลังของร้านตามพื้นที่ (ใช้เฉพาะร้านที่ยังไม่มีเซลล์): ยึด "อำเภอ,จังหวัด" → ไม่เจอใช้ "จังหวัด" */
 function warehouseByArea(c){
   if(!c||!WH_BY_AREA) return null;
-  const t=normArea(c.subdist), a=normArea(c.district), j=normArea(c.province);
-  if(t&&a&&j && WH_BY_AREA.full[t+','+a+','+j]) return WH_BY_AREA.full[t+','+a+','+j];
-  if(a&&j && WH_BY_AREA.ao[a+','+j]) return WH_BY_AREA.ao[a+','+j];
-  if(j && WH_BY_AREA.jw[j]) return WH_BY_AREA.jw[j];
+  const a=normArea(c.district), j=normArea(c.province);
+  if(a&&j && WH_BY_AREA.ao[a+','+j]) return WH_BY_AREA.ao[a+','+j];   // ยึดตามอำเภอ
+  if(j && WH_BY_AREA.jw[j]) return WH_BY_AREA.jw[j];                  // ไม่เจอ → จังหวัด
   return null;
 }
-/* คลังสำหรับ "โชว์สินค้า/สต๊อก/rank/ราคา": ยึดพื้นที่ของร้านก่อน → ไม่เจอใช้คลังเซลล์ → สุดท้าย W1 */
-function displayWarehouse(c){ return warehouseByArea(c) || warehouseForCustomer(c) || 'W1'; }
+/* คลังสำหรับ "โชว์สินค้า/สต๊อก/rank/ราคา":
+   - มีเซลล์แล้ว → ยึดคลังส่งของเซลล์ (เหมือนเดิมทุกอย่าง)
+   - ยังไม่มีเซลล์ (ร้านพึ่งลงทะเบียน) → ยึดตามอำเภอของร้าน
+   - ไม่เจอเลย → W1 */
+function displayWarehouse(c){ return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
 
 /* ===================== PROMOTIONS ===================== */
 function promoActive(p){
