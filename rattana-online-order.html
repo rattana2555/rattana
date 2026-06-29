@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.60</title>
+<title>Rattana Online Order v2.61</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -323,7 +323,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.60</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.61</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -814,30 +814,42 @@ function productByBarcode(bc){ const e=barcodeEntry(bc); return e?e.p:null; }
 /* ของแถม: ยึด "หน่วยที่ซื้อ" (รูปแบบขาย CS/PA/EA) — โปรหน่วยไหนใช้กับสินค้าหน่วยนั้นเท่านั้น
    แล้วดู Barcode สินค้าแถม + จำนวนแถม เทียบ threshold "จำนวน" */
 function computeGifts(){
-  const gifts={};
+  /* รวมจำนวนซื้อ "ทั้งกลุ่มโปร" ก่อนค่อยเทียบ threshold — รองรับโปรคละรส
+     (สินค้าหลายตัวที่อยู่โปรเดียวกัน เช่น หนองโพ 225 ทุกรส ให้บวกจำนวนรวมกัน) */
+  const groups=new Map();   // gkey = ชื่อโปร|หน่วย -> { qty, items:[{key,name}], tiers:Map(threshold|barcode -> tier) }
   Object.values(cart).forEach(it=>{
     const p=findProduct(it.name); if(!p) return;
-    // รวบรวมโปรของแถมที่ "ถึงจำนวน" และตรงหน่วยที่ซื้อ
-    const cands=[];
+    const unit=String(it.type).toUpperCase();
+    const counted=new Set();   // กันบวก qty ของสินค้าตัวเดิมซ้ำ เมื่อโปรเดียวมีหลายขั้น
     promoObjsFor(p).forEach(promo=>{
       const promoUnit=clean(promo['รูปแบบขาย']).toUpperCase();          // CS / PA / EA
-      if(promoUnit && promoUnit!==String(it.type).toUpperCase()) return; // ต้องตรงหน่วยที่ซื้อ
+      if(promoUnit && promoUnit!==unit) return;                         // ต้องตรงหน่วยที่ซื้อ
       const barcode=clean(promo['Barcode สินค้าแถมEA']||promo['Barcode สินค้าแถม']);
       const giftEach=numOr0(promo['จำนวนแถมEA']||promo['จำนวนแถม']), threshold=numOr0(promo['จำนวน']);
-      if(!barcode || giftEach<=0 || threshold<=0 || it.qty<threshold) return;
-      cands.push({barcode,giftEach,threshold,giftName:clean(promo['แถมสินค้า'])});
+      if(!barcode || giftEach<=0 || threshold<=0) return;
+      const gkey=(clean(promo['ชื่อ'])||barcode)+'|'+unit;
+      let g=groups.get(gkey); if(!g){ g={qty:0,items:[],tiers:new Map()}; groups.set(gkey,g); }
+      if(!counted.has(gkey)){ g.qty+=it.qty; g.items.push({key:it.key,name:it.name}); counted.add(gkey); }
+      const tk=threshold+'|'+barcode;
+      if(!g.tiers.has(tk)) g.tiers.set(tk,{barcode,giftEach,threshold,giftName:clean(promo['แถมสินค้า'])});
     });
-    if(!cands.length) return;
-    // เอาเฉพาะ "ขั้นสูงสุด" ที่ถึง (ไม่เอาขั้นล่างมารวม)
-    const maxTh=Math.max.apply(null,cands.map(c=>c.threshold));
-    cands.filter(c=>c.threshold===maxTh).forEach(c=>{
-      const mult=Math.floor(it.qty/c.threshold);
-      const ent=barcodeEntry(c.barcode); const gp=ent?ent.p:null;
-      const giftName=c.giftName||(gp?clean(gp['PRODUCT NAME']):'')||('บาร์โค้ด '+c.barcode);
+  });
+  const gifts={};
+  groups.forEach(g=>{
+    const tiers=[...g.tiers.values()];
+    const reached=tiers.filter(t=>g.qty>=t.threshold);
+    if(!reached.length) return;
+    // เอาเฉพาะ "ขั้นสูงสุด" ที่จำนวนรวมถึง (ไม่เอาขั้นล่างมารวม)
+    const maxTh=Math.max.apply(null,reached.map(t=>t.threshold));
+    const rep=g.items[0]||{key:'',name:''};   // ผูกของแถมไว้ใต้สินค้าตัวแรกของกลุ่ม
+    reached.filter(t=>t.threshold===maxTh).forEach(t=>{
+      const mult=Math.floor(g.qty/t.threshold);
+      const ent=barcodeEntry(t.barcode); const gp=ent?ent.p:null;
+      const giftName=t.giftName||(gp?clean(gp['PRODUCT NAME']):'')||('บาร์โค้ด '+t.barcode);
       const giftUnit=ent?clean(ent.p['UNIT '+ent.type]):'';
-      const k=it.key+'|'+c.barcode;   // แยกของแถมตามสินค้าที่ซื้อ (ให้แสดงใต้สินค้านั้น)
-      if(!gifts[k]) gifts[k]={barcode:c.barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:it.name,fromKey:it.key,unitDetail:giftUnit};
-      gifts[k].qty+=c.giftEach*mult;
+      const k=rep.key+'|'+t.barcode;
+      if(!gifts[k]) gifts[k]={barcode:t.barcode,name:giftName,img:(gp?imgUrl(gp['SKU_USAGE']):'')||'',qty:0,from:rep.name,fromKey:rep.key,unitDetail:giftUnit};
+      gifts[k].qty+=t.giftEach*mult;
     });
   });
   return Object.values(gifts);
