@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.54</title>
+<title>Rattana Online Order v2.55</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -305,7 +305,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.54</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.55</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1155,6 +1155,7 @@ function recommendFor(p, limit){
 }
 function recommendHtml(p){
   const recs=recommendFor(p,8); if(!recs.length) return '';
+  const title = stockBadge(p)==='out' ? '✨ สินค้าแนะนำ (แทนตัวที่หมด)' : '✨ สินค้าแนะนำ';
   const cards=recs.map(x=>{
     const nm=clean(x['PRODUCT NAME']); const pr=priceOf(x); const word=unitWord(pr.unit,pr.unit);
     return `<div class="rec-card" onclick="openProduct('${esc(nm)}')">
@@ -1163,7 +1164,7 @@ function recommendHtml(p){
       <div class="rec-price">${baht(pr.value)} <small>/${word}</small></div>
     </div>`;
   }).join('');
-  return `<div class="pd-rec"><div class="pd-rec-title">✨ สินค้าแนะนำ (มีสต๊อก)</div><div class="pd-rec-row">${cards}</div></div>`;
+  return `<div class="pd-rec"><div class="pd-rec-title">${title}</div><div class="pd-rec-row">${cards}</div></div>`;
 }
 /* ── หน้ารายละเอียดสินค้า + เลือกหน่วย + ยืนยันเพิ่มลงตะกร้า ── */
 function openProduct(name,preferType){
@@ -1191,7 +1192,7 @@ function openProduct(name,preferType){
     </div>
     ${inCart?`<div class="txt-sm muted" style="margin-top:8px">🛒 ในตะกร้าแล้ว ${inCart} หน่วย</div>`:''}
     <button class="btn btn-gold btn-block" style="margin-top:14px" onclick="confirmAddToCart()">🛒 เพิ่มลงตะกร้า</button>
-    ${stockBadge(p)==='out' ? recommendHtml(p) : ''}`;
+    ${recommendHtml(p)}`;
   renderPdUnits(); renderPdPrice(); renderPdTiers(); openModal('productModal');
 }
 function renderPdUnits(){
