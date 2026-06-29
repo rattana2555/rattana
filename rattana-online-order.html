@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.61</title>
+<title>Rattana Online Order v2.62</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -323,7 +323,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.61</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.62</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -841,7 +841,7 @@ function computeGifts(){
     if(!reached.length) return;
     // เอาเฉพาะ "ขั้นสูงสุด" ที่จำนวนรวมถึง (ไม่เอาขั้นล่างมารวม)
     const maxTh=Math.max.apply(null,reached.map(t=>t.threshold));
-    const rep=g.items[0]||{key:'',name:''};   // ผูกของแถมไว้ใต้สินค้าตัวแรกของกลุ่ม
+    const rep=g.items[g.items.length-1]||{key:'',name:''};   // ผูกของแถมไว้ใต้สินค้า "ตัวสุดท้ายที่หยิบเข้าตะกร้า" ของกลุ่ม → โชว์ล่างสุด
     reached.filter(t=>t.threshold===maxTh).forEach(t=>{
       const mult=Math.floor(g.qty/t.threshold);
       const ent=barcodeEntry(t.barcode); const gp=ent?ent.p:null;
