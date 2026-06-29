@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.50</title>
+<title>Rattana Online Order v2.51</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -106,6 +106,12 @@ body.dark .feat-card{border-color:var(--border)}
 body.dark .pcard{border-color:var(--border)}
 .pcard:active{transform:scale(.985)}
 .pcard .p-thumb{position:relative;height:128px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* แถบคาดสถานะสต๊อก (พาสเทล) */
+.stock-band{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-size:11px;font-weight:800;padding:5px 4px;letter-spacing:.2px;z-index:3;box-shadow:0 1px 5px rgba(0,0,0,.12)}
+.stock-band.low{background:#ffeaa0;color:#9a7b1f}
+.stock-band.out{background:#ffc9cf;color:#b23b45}
+.pd-imgwrap{position:relative}
+.pd-imgwrap .stock-band{font-size:14px;padding:9px 4px}
 .pcard .p-img{max-width:80%;max-height:86%;object-fit:contain;mix-blend-mode:multiply}
 .pcard .p-tag{position:absolute;top:9px;left:9px;font-size:10px;font-weight:700;color:#fff;padding:3px 9px;border-radius:999px;z-index:2;letter-spacing:.3px}
 .pcard .tag-promo{background:#E23B3B}
@@ -289,7 +295,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.50</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.51</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -818,6 +824,29 @@ function isLowStock(p){
   const stock=stockForWh(p,wh);
   return stock>0 && stock < lowStockLimit(productRank(p,wh));
 }
+/* OR (ของที่กำลังจะเข้า) ของคลัง — W4 รวม W4+C4 เหมือน STOCK */
+function incomingForWh(p,wh){
+  if(wh==='W4') return numOr0(p['OR_CS.EA W4'])+numOr0(p['OR_CS.EA C4']);
+  if(['W1','W2','W3'].includes(wh)) return numOr0(p['OR_CS.EA '+wh]);
+  return ['W1','W2','W3','W4','C4'].reduce((s,w)=>s+numOr0(p['OR_CS.EA '+w]),0);
+}
+/* เกณฑ์เหลือน้อย (ลัง) ตาม RANK: A,B<10 | C<5 | D,E,F,New,ว่าง<2 */
+function stockLimit(rank){ rank=(rank||'').toUpperCase(); if(rank==='A'||rank==='B') return 10; if(rank==='C') return 5; return 2; }
+/* ป้ายสต๊อก: 'out'=หมดชั่วคราว | 'low'=อาจจะหมด | '' ปกติ — เช็ค OR ที่จะเข้าก่อนเสมอ */
+function stockBadge(p){
+  const wh=displayWarehouse(currentCustomer);
+  const stock=stockForWh(p,wh), incoming=incomingForWh(p,wh);
+  if(stock<=0) return incoming>0 ? '' : 'out';               // ว่างเลย + ไม่มี OR → หมดชั่วคราว
+  const thr=stockLimit(productRank(p,wh));
+  if(stock<thr && (stock+incoming)<=thr) return 'low';       // เหลือน้อย + OR ยังไม่พอ → อาจจะหมด
+  return '';
+}
+function stockBandHtml(p){
+  const s=stockBadge(p);
+  if(s==='out') return '<div class="stock-band out">🚫 สินค้าหมดชั่วคราว</div>';
+  if(s==='low') return '<div class="stock-band low">⚠️ สินค้าอาจจะหมด</div>';
+  return '';
+}
 /* สินค้าใหม่: FIRST STOCK DATE ภายใน 60 วัน */
 function isNewProduct(p){ const d=Date.parse(clean(p['FIRST STOCK DATE']).replace(/\//g,'-')); return !isNaN(d) && (Date.now()-d) < 60*864e5; }
 /* พื้นกล่องรูป = ขาวแบบเดิม */
@@ -1110,10 +1139,9 @@ function openProduct(name,preferType){
   const meta=[clean(p['CAT BRAND']),clean(p['CAT GROUP']),clean(p['CAT SIZE'])].filter(Boolean).join(' • ');
   const inCart=inCartQtyOf(name);
   document.getElementById('pdBody').innerHTML=`
-    <img class="pd-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'">
+    <div class="pd-imgwrap"><img class="pd-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'">${stockBandHtml(p)}</div>
     <div class="pd-name">${name}</div>
     ${meta?`<div class="pd-meta">${meta}</div>`:''}
-    ${isLowStock(p)?'<div class="pd-low">⚠️ สินค้าใกล้หมด</div>':''}
     <div id="pdPrice" class="pd-price"></div>
     ${promo.length?`<div class="pd-promo">🎁 ${promo.join('<br>')}</div>`:''}
     ${clean(p['DESCRIPTION'])?`<div class="pd-desc">${clean(p['DESCRIPTION'])}</div>`:''}
@@ -1169,18 +1197,18 @@ function renderProducts(){
   const list=all.slice(0,renderLimit);
   grid.innerHTML=list.map(p=>{
     const name=clean(p['PRODUCT NAME']); const {value,unit}=priceOf(p); const word=unitWord(unit,unit);
-    const promo=promosFor(p); const inCart=inCartQtyOf(name); const low=isLowStock(p); const isNew=isNewProduct(p); const tint=cardTint(p);
+    const promo=promosFor(p); const inCart=inCartQtyOf(name); const band=stockBandHtml(p); const isNew=isNewProduct(p); const tint=cardTint(p);
     return `<div class="pcard" onclick="openProduct('${esc(name)}')">
       <div class="p-thumb" style="background:${tint}">
         <img class="p-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
         ${promo.length?'<span class="p-tag tag-promo">โปร</span>':(isNew?'<span class="p-tag tag-new">ใหม่</span>':'')}
         ${inCart?`<span class="p-qty">${inCart}</span>`:''}
+        ${band}
       </div>
       <div class="p-body">
         <div class="p-name">${name}</div>
         <div class="p-price"><b>${baht(value)}</b><small>/${word}</small></div>
         ${unit&&unit!==word?`<div class="p-unit">${unit}</div>`:''}
-        ${low?'<div class="p-low">⚠️ สินค้าใกล้หมด</div>':''}
         <button class="p-add ${inCart?'in':''}" onclick="event.stopPropagation();openProduct('${esc(name)}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg> ${inCart?('ในตะกร้า '+inCart):'เพิ่มลงตะกร้า'}</button>
       </div></div>`;
   }).join('') + (all.length>renderLimit?`<div class="load-more"><button class="btn btn-outline" onclick="renderLimit+=60;renderProducts()">แสดงเพิ่ม (${all.length-renderLimit})</button></div>`:'');
@@ -1502,7 +1530,8 @@ async function refreshData(){
 // ชีทสินค้ามี 122 คอลัมน์ (~28MB) แต่แอปใช้จริงแค่ ~35 → ตัดทิ้งก่อนแคช/ใช้งาน (เล็กลง 4-5 เท่า, แคชลง localStorage ได้, เร็วขึ้นมาก)
 const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT GROUP','CAT BRAND','CAT SIZE','CAT TYPE','FIRST STOCK DATE','CS PALLET',
   'PRICE S01 CS','PRICE S02 CS','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
-  'IB W1','IB W2','IB W3','IB W4','IB C4','STOCK W1','STOCK W2','STOCK W3','STOCK W4','STOCK C4','RANK W1','RANK W2','RANK W3','RANK W4','RANK C4'];
+  'IB W1','IB W2','IB W3','IB W4','IB C4','STOCK W1','STOCK W2','STOCK W3','STOCK W4','STOCK C4','RANK W1','RANK W2','RANK W3','RANK W4','RANK C4',
+  'OR_CS.EA W1','OR_CS.EA W2','OR_CS.EA W3','OR_CS.EA W4','OR_CS.EA C4'];
 function slimProducts(rows){ return (rows||[]).map(r=>{ const o={}; for(const k of PRODUCT_COLS){ if(r[k]!==undefined) o[k]=r[k]; } return o; }); }
 // เซ็ตข้อมูลเข้าตัวแปร + สร้าง index (ใช้ซ้ำทั้งตอนวาดจากแคชและจากเน็ต)
 function applyData(prod,promo,users,cust,ea,whmap){
