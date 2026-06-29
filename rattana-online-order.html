@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.58</title>
+<title>Rattana Online Order v2.59</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -321,7 +321,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.58</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.59</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1203,7 +1203,7 @@ function recommendHtml(p){
 /* guest ที่ยังไม่ลงทะเบียน → เด้ง popup กรุณาลงทะเบียนก่อน (ดูราคา/รายละเอียด/สั่งซื้อไม่ได้) */
 function requireLogin(){ if(currentCustomer) return true; openModal('gateModal'); return false; }
 /* ── หน้ารายละเอียดสินค้า + เลือกหน่วย + ยืนยันเพิ่มลงตะกร้า ── */
-function openProduct(name,preferType){
+function openProduct(name,preferType,hideRec){
   if(!requireLogin()) return;            // ยังไม่ลงทะเบียน → ดูรายละเอียดไม่ได้
   const p=findProduct(name); if(!p) return;
   const units=unitsFor(p); const promo=promosFor(p);
@@ -1229,7 +1229,7 @@ function openProduct(name,preferType){
     </div>
     ${inCart?`<div class="txt-sm muted" style="margin-top:8px">🛒 ในตะกร้าแล้ว ${inCart} หน่วย</div>`:''}
     <button class="btn btn-gold btn-block" style="margin-top:14px" onclick="confirmAddToCart()">🛒 เพิ่มลงตะกร้า</button>
-    ${recommendHtml(p)}`;
+    ${hideRec?'':recommendHtml(p)}`;
   renderPdUnits(); renderPdPrice(); renderPdTiers(); openModal('productModal');
 }
 function renderPdUnits(){
@@ -1260,7 +1260,7 @@ function confirmAddToCart(){
   if(removedItems[key]){ delete removedItems[key]; saveRemoved(); }   // กดเพิ่มใหม่ = ยกเลิกสถานะ "ไม่อนุมัติ" เดิม
   if(!cart[key]) cart[key]={key,name:pd.name,type:u.type,unitName:u.name,unitDetail:u.detail,price:u.price,tiers:u.tiers||null,barcode:u.barcode,img:imgUrl(p['SKU_USAGE']),promo:promosFor(p),qty:0};
   cart[key].qty+=pd.qty; saveCart();
-  renderProducts(); renderCartBadge(); closeModal('productModal');
+  renderProducts(); renderCart(); renderCartHistory(); renderCartBadge(); closeModal('productModal');
   showToast(`เพิ่ม ${pd.name} (${pd.qty} ${u.name}) ลงตะกร้าแล้ว`,'success');
 }
 
@@ -1391,16 +1391,10 @@ function renderCartHistory(){
 }
 function addFromHistory(name, barcode, unit){
   const p=findProduct(name)||((barcodeEntry(barcode)||{}).p); if(!p) return;
-  const units=unitsFor(p);
-  let u=units.find(z=> clean(z.detail)===clean(unit) || clean(z.name)===clean(unit))   // หน่วยที่เคยสั่ง
-      || units.find(z=>z.type==='CS') || units.find(z=>z.type==='PA') || units[0];
-  if(!u) return;
-  const nm=clean(p['PRODUCT NAME']); const key=nm+'__'+u.type;
-  if(removedItems[key]){ delete removedItems[key]; saveRemoved(); }
-  if(!cart[key]) cart[key]={key,name:nm,type:u.type,unitName:u.name,unitDetail:u.detail,price:u.price,tiers:u.tiers||null,barcode:u.barcode,img:imgUrl(p['SKU_USAGE']),promo:promosFor(p),qty:0};
-  cart[key].qty+=1; saveCart();
-  renderCart(); renderCartHistory(); renderCartBadge(); renderProducts();
-  showToast('เพิ่ม '+nm+' ลงตะกร้าแล้ว','success');
+  // เลือกหน่วยที่เคยสั่ง (จากบาร์โค้ด หรือเทียบ unit detail) → ส่งให้ popup เลือกไว้ให้
+  const e=barcodeEntry(clean(barcode));
+  let preferType = e ? e.type : (unitsFor(p).find(z=>clean(z.detail)===clean(unit)||clean(z.name)===clean(unit))||{}).type;
+  openProduct(clean(p['PRODUCT NAME']), preferType, true);   // เปิด popup เหมือนสั่งปกติ แต่ไม่โชว์สินค้าแนะนำ
 }
 function renderCart(){
   const list=document.getElementById('cartList'); const sum=document.getElementById('cartSummary');
