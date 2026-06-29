@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.59</title>
+<title>Rattana Online Order v2.60</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -138,6 +138,8 @@ body.dark .pcard{border-color:var(--border)}
 .hist-add{flex-shrink:0;background:var(--gold);color:var(--navy);border:none;border-radius:10px;font-weight:800;font-size:13px;padding:8px 14px;cursor:pointer}
 .hist-add:active{transform:scale(.96)}
 .hist-load{color:var(--muted);font-size:13px;padding:6px 2px}
+.hist-more{width:100%;margin-top:10px;background:rgba(43,111,208,.07);color:var(--navy);border:none;border-radius:10px;font-weight:700;font-size:12.5px;padding:9px;cursor:pointer}
+.hist-more:active{transform:scale(.98)}
 .pcard .p-img{max-width:80%;max-height:86%;object-fit:contain;mix-blend-mode:multiply}
 .pcard .p-tag{position:absolute;top:9px;left:9px;font-size:10px;font-weight:700;color:#fff;padding:3px 9px;border-radius:999px;z-index:2;letter-spacing:.3px}
 .pcard .tag-promo{background:#E23B3B}
@@ -321,7 +323,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.59</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.60</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1347,7 +1349,7 @@ function renderCartBadge(){
   }
 }
 /* ===================== เคยสั่งบ่อย (ประวัติจาก Supabase roo_sales) ===================== */
-let _history=null, _historyShop='';
+let _history=null, _historyShop='', _histShowAll=false;
 async function fetchHistory(shop){
   shop=clean(shop); if(!shop||!CFG.SUPABASE_URL||!CFG.SUPABASE_ANON_KEY) return [];
   const h={apikey:CFG.SUPABASE_ANON_KEY,Authorization:'Bearer '+CFG.SUPABASE_ANON_KEY};
@@ -1355,8 +1357,13 @@ async function fetchHistory(shop){
     +'&approve_status=eq.'+encodeURIComponent('อนุมัติ')+'&tran_type=eq.'+encodeURIComponent('ขาย')
     +'&select=product_name,barcode,unit,price,date&order=date.desc&limit=800';
   try{ const r=await fetch(u,{headers:h}); if(!r.ok) return [];
-    const rows=await r.json(); const seen=new Set(), out=[];
-    rows.forEach(x=>{ const k=clean(x.barcode)||clean(x.product_name); if(!k||seen.has(k)) return; seen.add(k); out.push(x); });  // เก็บล่าสุดต่อสินค้า
+    const rows=await r.json(); const map=new Map();
+    rows.forEach(x=>{ const k=clean(x.barcode)||clean(x.product_name); if(!k) return;
+      if(!map.has(k)) map.set(k, Object.assign({count:0}, x));   // เก็บล่าสุด (date desc → แถวแรก)
+      map.get(k).count++;                                        // นับจำนวนครั้งที่เคยสั่ง
+    });
+    const out=[...map.values()];
+    out.sort((a,b)=> b.count-a.count || String(b.date||'').localeCompare(String(a.date||'')));  // ซื้อบ่อยสุดก่อน
     return out;
   }catch(e){ console.warn('history',e); return []; }
 }
@@ -1376,10 +1383,12 @@ function renderCartHistory(){
     const name=clean(x.product_name); if(!name||inCartByName(name)) continue;   // รอบนี้สั่งแล้ว → ข้าม
     const p=findProduct(name)||((barcodeEntry(x.barcode)||{}).p);
     if(!p||!visSet.has(p)) continue;                                            // ต้องยังขายได้ในคลังร้าน
-    sugg.push({x,p}); if(sugg.length>=15) break;
+    sugg.push({x,p});                                                           // (เรียงตามซื้อบ่อยมาแล้วจาก fetchHistory)
   }
   if(!sugg.length){ box.innerHTML=''; return; }
-  const cards=sugg.map(({x,p})=>{
+  const LIMIT=5;
+  const shown = _histShowAll ? sugg : sugg.slice(0,LIMIT);
+  const cards=shown.map(({x,p})=>{
     const nm=clean(p['PRODUCT NAME']); const pr=priceOf(p); const word=unitWord(pr.unit,pr.unit);
     return `<div class="hist-card">
       <img class="hist-img" src="${imgUrl(p['SKU_USAGE'])||PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'" loading="lazy">
@@ -1387,7 +1396,11 @@ function renderCartHistory(){
       <button class="hist-add" onclick="addFromHistory('${esc(nm)}','${esc(x.barcode||'')}','${esc(x.unit||'')}')">+ สั่ง</button>
     </div>`;
   }).join('');
-  box.innerHTML=`<div class="hist-sec"><div class="hist-title">🧾 เคยสั่งบ่อย</div><div class="hist-sub">สินค้าที่เคยสั่ง แต่รอบนี้ยังไม่ได้สั่ง — แตะ "+ สั่ง" เพิ่มเข้าตะกร้าได้เลย</div><div class="hist-list">${cards}</div></div>`;
+  let more='';
+  if(sugg.length>LIMIT) more = _histShowAll
+    ? `<button class="hist-more" onclick="_histShowAll=false;renderCartHistory()">ย่อ ▴</button>`
+    : `<button class="hist-more" onclick="_histShowAll=true;renderCartHistory()">ดูเพิ่ม (${sugg.length-LIMIT}) ▾</button>`;
+  box.innerHTML=`<div class="hist-sec"><div class="hist-title">🧾 เคยสั่งบ่อย</div><div class="hist-sub">สินค้าที่เคยสั่ง แต่รอบนี้ยังไม่ได้สั่ง — แตะ "+ สั่ง" เพิ่มเข้าตะกร้าได้เลย</div><div class="hist-list">${cards}</div>${more}</div>`;
 }
 function addFromHistory(name, barcode, unit){
   const p=findProduct(name)||((barcodeEntry(barcode)||{}).p); if(!p) return;
@@ -1437,7 +1450,7 @@ function renderCart(){
 function setNav(id){ ['navShop','navCart','navProfile'].forEach(n=>document.getElementById(n).classList.remove('active')); document.getElementById(id).classList.add('active'); }
 function showView(v){ ['viewShop','viewCart','viewProfile'].forEach(x=>document.getElementById(x).classList.remove('active')); document.getElementById(v).classList.add('active'); window.scrollTo(0,0); }
 function goShop(){ showView('viewShop'); setNav('navShop'); }
-function goCart(){ showView('viewCart'); setNav('navCart'); renderCart(); renderCartHistory(); loadHistory().then(renderCartHistory); pullCart(false); }
+function goCart(){ _histShowAll=false; showView('viewCart'); setNav('navCart'); renderCart(); renderCartHistory(); loadHistory().then(renderCartHistory); pullCart(false); }
 function goProfile(){ showView('viewProfile'); setNav('navProfile'); renderProfile(); }
 
 const CONTACT={ dept:'ฝ่ายขาย (สำนักงานใหญ่)', phone:'0803897765', lineOA:'@rpbsale' };
