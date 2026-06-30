@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.73</title>
+<title>Rattana Online Order v2.74</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -334,7 +334,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.73</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.74</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1626,12 +1626,13 @@ function renderProfile(){
 }
 
 /* ===================== AUTH ACTIONS ===================== */
-function loginByPhone(){
+async function loginByPhone(){
   const ph=digits(document.getElementById('loginPhone').value);
   if(ph.length<9){ showToast('กรุณากรอกเบอร์ให้ครบ','warning'); return; }
   const hit=CUSTOMERS.find(c=>c.phone===ph);
   if(!hit){ showToast('ไม่พบเบอร์นี้ในระบบ กรุณาลงทะเบียน','error'); return; }
-  // ถ้าเข้าผ่าน LINE แล้ว และ uid นี้ยังไม่เคยผูกกับร้าน -> ผูกเพิ่ม (ไลน์ที่ 2,3.. เก็บช่อง User ID เพิ่ม, ไม่ทับตัวหลัก)
+  // เครื่องนี้เพิ่งเข้าผ่านไลน์แต่ยังไม่ได้จับ uid → ลองดึงจาก LIFF ก่อน เพื่อผูกไลน์เครื่องที่ 2,3.. (เก็บช่อง "User ID เพิ่ม")
+  if(!window._lineUid){ try{ const u=await tryLiff(); if(u) window._lineUid=u; }catch(e){} }
   currentCustomer=hit; ensureUidLinked(hit); saveSession(hit); closeModal('loginModal');
   renderAll(); goShop(); pullCart(true); startCartSync(); showToast('ยินดีต้อนรับ '+(hit.name||''),'success');
 }
