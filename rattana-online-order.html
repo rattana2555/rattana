@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.70</title>
+<title>Rattana Online Order v2.73</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -289,7 +289,9 @@ body.dark .special-banner{color:var(--gold-light)}
 .pd-meta{font-size:13px;color:var(--muted);margin-bottom:12px}
 .pd-price{font-size:24px;font-weight:700;color:var(--navy)}
 body.dark .pd-price{color:var(--gold-light)}
-.pd-promo{background:rgba(231,76,60,.08);color:var(--danger);font-weight:600;font-size:13px;border-radius:8px;padding:10px 12px;margin:14px 0;line-height:1.45}
+.pd-promo{background:rgba(231,76,60,.08);color:var(--danger);font-weight:600;font-size:13px;border-radius:8px;padding:10px 12px;margin:14px 0 6px;line-height:1.45}
+.pd-promo-end{font-size:12.5px;font-weight:600;color:#b5651d;margin:0 2px 4px;line-height:1.4}
+.pd-promo-note{font-size:12.5px;color:var(--muted);margin:0 2px 4px;line-height:1.45}
 .pd-desc{font-size:13px;line-height:1.55;color:var(--text);margin:10px 0;white-space:pre-line}
 .feat-card .f-new{color:var(--info)!important}
 .pd-unit-label{font-size:12px;font-weight:600;color:var(--muted);margin:16px 0 6px}
@@ -332,7 +334,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.70</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.73</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -769,12 +771,17 @@ function buildWhByArea(rows){
   function major(m){ const o={}; for(const k in m){ let best='',n=-1; for(const wh in m[k]){ if(m[k][wh]>n){ n=m[k][wh]; best=wh; } } o[k]=best; } return o; }
   return { full:major(lvl.full), ao:major(lvl.ao), jw:major(lvl.jw) };
 }
+/* คอลัมน์ WH ในชีต Customer = "คลังเซลล์" → แปลงเป็น "คลังส่งจริง" (เฉพาะร้านใหม่ที่ยังไม่มีเซลล์):
+   W3 → W1, C4 → W4, ที่เหลือคงเดิม (W1→W1, W2→W2, W4→W4) */
+function shipFromSeller(w){ w=(w||'').toUpperCase(); if(w==='C4') return 'W4'; if(w==='W3') return 'W1'; return w; }
 /* คลังของร้านตามพื้นที่ (ใช้เฉพาะร้านที่ยังไม่มีเซลล์): ยึด "อำเภอ,จังหวัด" → ไม่เจอใช้ "จังหวัด" */
 function warehouseByArea(c){
-  if(!c||!WH_BY_AREA) return null;
+  if(!c) return null;
   const a=normArea(c.district), j=normArea(c.province);
-  if(a&&j && WH_BY_AREA.ao[a+','+j]) return WH_BY_AREA.ao[a+','+j];   // ยึดตามอำเภอ
-  if(j && WH_BY_AREA.jw[j]) return WH_BY_AREA.jw[j];                  // ไม่เจอ → จังหวัด
+  if(a==='บ้านโป่ง') return 'W4';   // ★ กฎตายตัว: อำเภอบ้านโป่ง → คลังส่ง W4 เสมอ (ไม่ขึ้นกับ majority)
+  if(!WH_BY_AREA) return null;
+  if(a&&j && WH_BY_AREA.ao[a+','+j]) return shipFromSeller(WH_BY_AREA.ao[a+','+j]);   // อำเภอ → คลังเซลล์ → คลังส่ง
+  if(j && WH_BY_AREA.jw[j]) return shipFromSeller(WH_BY_AREA.jw[j]);                   // ไม่เจอ → จังหวัด
   return null;
 }
 /* คลังสำหรับ "โชว์สินค้า/สต๊อก/rank/ราคา":
@@ -809,6 +816,28 @@ function promoObjsFor(prod){
 function promosFor(prod){
   const out=promoObjsFor(prod).map(h=>clean(h['รายละเอียดโปร'])||clean(h['ชื่อโปร']));
   return [...new Set(out)].filter(Boolean);
+}
+/* แปลงวันที่โปร (Period เช่น 2026/07/27) → "27 ก.ค. 2026" ; รูปแบบไม่รู้จัก → โชว์ดิบ */
+const _THMON=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function fmtPromoDate(s){
+  s=clean(s); if(!s) return '';
+  const m=s.replace(/-/g,'/').split('/').map(x=>x.trim());
+  if(m.length===3){
+    let y,mo,d;
+    if(m[0].length===4){ y=+m[0]; mo=+m[1]; d=+m[2]; } else { d=+m[0]; mo=+m[1]; y=+m[2]; }
+    if(y&&mo>=1&&mo<=12&&d) return d+' '+_THMON[mo]+' '+y;
+  }
+  return s;
+}
+/* หมายเหตุ + วันสิ้นสุดโปร (ใต้บรรทัดโปรในหน้ารายละเอียด): วันสิ้นสุดโชว์เสมอถ้ามี, หมายเหตุโชว์เฉพาะที่มี */
+function promoEndHtml(prod){
+  const objs=promoObjsFor(prod); if(!objs.length) return '';
+  const ends=[...new Set(objs.map(o=>clean(o['Period'])).filter(Boolean))];
+  const notes=[...new Set(objs.map(o=>clean(o['หมายเหตุ'])).filter(Boolean))];
+  let h='';
+  ends.forEach(d=>{ h+='<div class="pd-promo-end">⏰ โปรโมชันสิ้นสุดวันที่ '+fmtPromoDate(d)+'</div>'; });
+  notes.forEach(n=>{ h+='<div class="pd-promo-note">📝 '+n+'</div>'; });
+  return h;
 }
 /* ของแถมอัตโนมัติแบบ 7-11: ซื้อครบ "จำนวน" -> แถม "จำนวนแถม" ของ "แถมสินค้า" */
 function buildBarcodeIndex(){
@@ -1191,12 +1220,11 @@ async function openScan(){
     const fmts=[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128];
     _scanner=new Html5Qrcode('scanReader',{ formatsToSupport:fmts, useBarCodeDetectorIfSupported:true, verbose:false });
     /* iOS Safari ไม่มี BarcodeDetector → ใช้ decode ซอฟต์แวร์ของ html5-qrcode
-       fps สูงเกิน (24) ทำให้เมน thread iPhone ค้าง → ลดเป็น 10 (ลื่นกว่า จับได้เร็วกว่าจริง),
-       ปิด flip (บาร์โค้ด 1D ไม่ต้องพลิกภาพ = งานลดครึ่ง), ขอโฟกัสต่อเนื่อง+ความละเอียดพอเหมาะ ให้ภาพคมจับไว */
-    const camConstraints={ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}, advanced:[{focusMode:'continuous'}] };
-    const cfg={ fps:10, qrbox:{width:280,height:170}, aspectRatio:1.7777, disableFlip:true,
+       เปิดกล้องด้วย {facingMode:'environment'} แบบเดิมที่ใช้ได้ชัวร์ (อย่าใส่ advanced/focusMode → บางเครื่อง getUserMedia พัง เปิดกล้องไม่ขึ้น)
+       ปรับแค่ความเร็วที่ปลอดภัย: fps 24→10 (iPhone ไม่ค้าง) + ปิด flip (บาร์โค้ด 1D ไม่ต้องพลิก = งานลดครึ่ง) */
+    const cfg={ fps:10, qrbox:{width:300,height:170}, aspectRatio:1.33, disableFlip:true,
       experimentalFeatures:{useBarCodeDetectorIfSupported:true} };
-    await _scanner.start(camConstraints, cfg, onScanHit, ()=>{});
+    await _scanner.start({facingMode:'environment'}, cfg, onScanHit, ()=>{});
     hint.textContent='เล็งกล้องไปที่บาร์โค้ดสินค้า';
   }catch(e){
     hint.textContent='เปิดกล้องไม่ได้ — โปรดอนุญาตสิทธิ์กล้องแล้วลองใหม่';
@@ -1266,6 +1294,7 @@ function openProduct(name,preferType,hideRec){
     ${meta?`<div class="pd-meta">${meta}</div>`:''}
     <div id="pdPrice" class="pd-price"></div>
     ${promo.length?`<div class="pd-promo">🎁 ${promo.join('<br>')}</div>`:''}
+    ${promoEndHtml(p)}
     ${clean(p['DESCRIPTION'])?`<div class="pd-desc">${clean(p['DESCRIPTION'])}</div>`:''}
     <div id="pdTiers" class="pd-tiers"></div>
     <div class="pd-unit-label">เลือกหน่วยที่ต้องการสั่ง</div>
