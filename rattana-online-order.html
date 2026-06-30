@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.68</title>
+<title>Rattana Online Order v2.70</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -332,7 +332,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.68</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.70</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1190,9 +1190,13 @@ async function openScan(){
     // เน้นเฉพาะบาร์โค้ดสินค้า (EAN/UPC + CODE128) เพื่อ decode เร็วขึ้น
     const fmts=[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128];
     _scanner=new Html5Qrcode('scanReader',{ formatsToSupport:fmts, useBarCodeDetectorIfSupported:true, verbose:false });
-    const cfg={ fps:24, qrbox:{width:300,height:170}, aspectRatio:1.33,
+    /* iOS Safari ไม่มี BarcodeDetector → ใช้ decode ซอฟต์แวร์ของ html5-qrcode
+       fps สูงเกิน (24) ทำให้เมน thread iPhone ค้าง → ลดเป็น 10 (ลื่นกว่า จับได้เร็วกว่าจริง),
+       ปิด flip (บาร์โค้ด 1D ไม่ต้องพลิกภาพ = งานลดครึ่ง), ขอโฟกัสต่อเนื่อง+ความละเอียดพอเหมาะ ให้ภาพคมจับไว */
+    const camConstraints={ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}, advanced:[{focusMode:'continuous'}] };
+    const cfg={ fps:10, qrbox:{width:280,height:170}, aspectRatio:1.7777, disableFlip:true,
       experimentalFeatures:{useBarCodeDetectorIfSupported:true} };
-    await _scanner.start({facingMode:'environment'}, cfg, onScanHit, ()=>{});
+    await _scanner.start(camConstraints, cfg, onScanHit, ()=>{});
     hint.textContent='เล็งกล้องไปที่บาร์โค้ดสินค้า';
   }catch(e){
     hint.textContent='เปิดกล้องไม่ได้ — โปรดอนุญาตสิทธิ์กล้องแล้วลองใหม่';
@@ -1745,6 +1749,57 @@ const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT G
   'OR_CS.EA W1','OR_CS.EA W2','OR_CS.EA W3','OR_CS.EA W4','OR_CS.EA C4',
   'AVERAGE 60D_W1','AVERAGE 60D_W2','AVERAGE 60D_W3','AVERAGE 60D_W4','AVERAGE 60D_C4'];
 function slimProducts(rows){ return (rows||[]).map(r=>{ const o={}; for(const k of PRODUCT_COLS){ if(r[k]!==undefined) o[k]=r[k]; } return o; }); }
+/* ⚡ โหลด+แกะ(parse)+slim สินค้าก้อนใหญ่ใน Web Worker (thread แยก) → ตอน revalidate UI ไม่ค้าง
+   ใช้ "ชื่อคอลัมน์" เลือกคอลัมน์เหมือน slimProducts เป๊ะ → ข้อมูลเหมือนเดิมทุกตัว (ไม่เพี้ยน)
+   ถ้า worker ไม่รองรับ/พัง/CORS → fallback แกะบนเมน thread (วิธีเดิม) อัตโนมัติ */
+const PRODUCTS_WORKER_SRC = `
+self.onmessage = async function(e){
+  var url=e.data.url, cols=e.data.cols;
+  function clean(s){ return String(s==null?'':s).replace(/[\\u200b\\u200c\\u200d\\ufeff]/g,'').replace(/\\u00a0/g,' ').trim(); }
+  function parseSlim(text, cols){
+    if(!text) return [];
+    if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+    var colmap=null; if(cols && cols.length){ colmap={}; for(var ci=0;ci<cols.length;ci++) colmap[cols[ci]]=1; }
+    var headers=null, keepIdx=null, out=[];
+    var row=[], cell='', q=false;
+    function setHeaders(){ headers=row.map(clean); keepIdx=[]; for(var i=0;i<headers.length;i++){ if(!colmap || colmap[headers[i]]) keepIdx.push(i); } row=[]; }
+    function pushDataRow(){
+      var any=false; for(var c=0;c<row.length;c++){ if(clean(row[c])){ any=true; break; } }
+      if(any){ var o={}; for(var j=0;j<keepIdx.length;j++){ var idx=keepIdx[j]; o[headers[idx]]=clean(row[idx]); } out.push(o); }
+      row=[];
+    }
+    function endRow(){ row.push(cell); cell=''; if(headers===null) setHeaders(); else pushDataRow(); }
+    for(var i=0;i<text.length;i++){ var ch=text[i];
+      if(q){ if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=ch; }
+      else { if(ch==='"')q=true; else if(ch===','){row.push(cell);cell='';} else if(ch==='\\r'){} else if(ch==='\\n'){ endRow(); } else cell+=ch; }
+    }
+    if(cell.length||row.length){ endRow(); }
+    return out;
+  }
+  try{
+    var res=await fetch(url); if(!res.ok) throw new Error('fetch '+res.status);
+    var txt=await res.text();
+    self.postMessage({ok:true, data:parseSlim(txt, cols)});
+  }catch(err){ self.postMessage({ok:false, error:String(err && err.message || err)}); }
+};
+`;
+let PRODUCTS_WORKER_URL=null;
+try{ if(typeof Worker!=='undefined' && typeof Blob!=='undefined' && URL.createObjectURL){ PRODUCTS_WORKER_URL=URL.createObjectURL(new Blob([PRODUCTS_WORKER_SRC],{type:'text/javascript'})); } }catch(e){}
+function productsCsvUrl(){ return 'https://docs.google.com/spreadsheets/d/'+CFG.productsSheetId+'/gviz/tq?tqx=out:csv&gid='+CFG.productsGid; }
+function fetchProductsMainThread(){ return fetchCsvGid(CFG.productsSheetId,CFG.productsGid).then(slimProducts); }
+function fetchProductsSmart(){
+  if(!PRODUCTS_WORKER_URL) return fetchProductsMainThread();
+  return new Promise(function(resolve,reject){
+    var w; try{ w=new Worker(PRODUCTS_WORKER_URL); }catch(e){ return fetchProductsMainThread().then(resolve,reject); }
+    var settled=false;
+    function fin(fn,v){ if(settled)return; settled=true; try{w.terminate();}catch(e){} fn(v); }
+    function fallback(){ if(settled)return; fetchProductsMainThread().then(function(v){fin(resolve,v);},function(er){fin(reject,er);}); }
+    w.onmessage=function(e){ var m=e.data||{}; if(m.ok) fin(resolve,m.data); else fallback(); };
+    w.onerror=function(){ fallback(); };
+    try{ w.postMessage({url:productsCsvUrl(), cols:PRODUCT_COLS}); }catch(e){ fallback(); }
+    setTimeout(fallback, 30000);
+  });
+}
 // เซ็ตข้อมูลเข้าตัวแปร + สร้าง index (ใช้ซ้ำทั้งตอนวาดจากแคชและจากเน็ต)
 function applyData(prod,promo,users,cust,ea,whmap){
   PRODUCTS=prod||[]; PROMOS=promo||[]; USERS=users||[]; CUSTOMERS=(cust||[]).map(mapCustomer);
@@ -1764,7 +1819,7 @@ async function loadAll(silent){
   else if(!silent){ showSpinner('กำลังโหลดสินค้า...'); }
   try{
     let prod;
-    try{ prod=await fetchCsvGid(CFG.productsSheetId,CFG.productsGid).then(slimProducts); idbSet('rop_products',prod); }
+    try{ prod=await fetchProductsSmart(); idbSet('rop_products',prod); }   // ⚡ parse ใน Web Worker (UI ไม่ค้าง) — มี fallback เมน thread
     catch(e){ if(!prodCache) throw e; prod=prodCache; }   // เน็ตล่ม → ใช้แคช
     const [promo,users,cust,ea,whmap]=await Promise.all([
       getData('rop_promo',()=>fetchCsvExport(CFG.promoSheetId,CFG.promoGid)),
