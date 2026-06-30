@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.67</title>
+<title>Rattana Online Order v2.68</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -332,7 +332,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.67</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.68</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -940,12 +940,21 @@ function salesForWh(p,wh){
 }
 function visibleProducts(){
   const wh=displayWarehouse(currentCustomer);
-  const list=PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && isSellable(p,wh));
-  // เรียงเป็นชั้น: (1) สินค้าปกติ → (2) อาจจะหมด → (3) หมดชั่วคราว ; ภายในแต่ละชั้นเรียงยอดขายคลังลูกค้า มาก→น้อย
-  const tierOf=p=>{ const b=stockBadge(p); return b==='out'?2:(b==='low'?1:0); };
-  return list.map(p=>({p,t:tierOf(p),s:salesForWh(p,wh)}))
-    .sort((a,b)=> a.t-b.t || b.s-a.s)
-    .map(x=>x.p);
+  const base=PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && isSellable(p,wh));
+  const keyed=base.map(p=>({p,out:stockBadge(p)==='out',s:salesForWh(p,wh)}));
+  // พร้อมขาย + อาจจะหมด → เรียงยอดขายคลังลูกค้า มาก→น้อย
+  const avail=keyed.filter(x=>!x.out).sort((a,b)=>b.s-a.s);
+  // หมดชั่วคราว → เรียงยอดขาย แล้ว "แทรกกระจายสม่ำเสมอทั่วทั้งลิสต์" (ไม่กองท้าย ลูกค้าจะได้ไม่เจอหน้าหมดติดกันยาวๆ)
+  const out=keyed.filter(x=>x.out).sort((a,b)=>b.s-a.s);
+  if(!out.length) return avail.map(x=>x.p);
+  const total=avail.length+out.length, result=[]; let ai=0,oi=0;
+  for(let i=0;i<total;i++){
+    const wantOut=Math.round((i+1)*out.length/total);   // โควต้าสะสมของหมดชั่วคราว ณ ตำแหน่งนี้
+    if(wantOut>oi && oi<out.length) result.push(out[oi++].p);
+    else if(ai<avail.length) result.push(avail[ai++].p);
+    else if(oi<out.length) result.push(out[oi++].p);
+  }
+  return result;
 }
 function newestProducts(){
   return visibleProducts()
