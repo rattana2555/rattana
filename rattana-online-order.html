@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.76</title>
+<title>Rattana Online Order v2.77</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -334,7 +334,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.76</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.77</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -585,11 +585,11 @@ function buildOrderItems(activeStatus){
   return items;
 }
 function orderMeta(){
-  const sUser=salemanUserFor(currentCustomer), wh=warehouseForCustomer(currentCustomer);
+  const sUser=salemanUserFor(currentCustomer); let wh=warehouseForCustomer(currentCustomer);
   let salemanCode=sUser?clean(sUser['รหัสเซลล์']):((currentCustomer&&currentCustomer.salemanCode)||'');
   let salemanName=sUser?clean(sUser['ชื่อ - สกุล']):normName((currentCustomer&&currentCustomer.salemanName)||'');
-  // ลูกค้าหน้าร้าน (walk-in): ตัดชื่อจังหวัดออก เหลือ "ลูกค้าหน้าร้าน (ROO)" + รหัสเซลล์ = ROW100
-  if(/ลูกค้าหน้าร้าน/.test(salemanName)){ salemanName='ลูกค้าหน้าร้าน (ROO)'; salemanCode='ROW100'; }
+  // ลูกค้าหน้าร้าน (walk-in): ชื่อ "ลูกค้าหน้าร้าน (ROO)" + รหัสเซลล์ ROW100 + คลัง/คลังส่ง = W1
+  if(/ลูกค้าหน้าร้าน/.test(salemanName)){ salemanName='ลูกค้าหน้าร้าน (ROO)'; salemanCode='ROW100'; wh='W1'; }
   return { customerName:(currentCustomer&&currentCustomer.name)||'', phone:(currentCustomer&&currentCustomer.phone)||'',
     uid:(currentCustomer&&currentCustomer.uid)||window._lineUid||'',
     salemanCode, salemanName,
@@ -787,11 +787,14 @@ function warehouseByArea(c){
   if(j && WH_BY_AREA.jw[j]) return shipFromSeller(WH_BY_AREA.jw[j]);                   // ไม่เจอ → จังหวัด
   return null;
 }
+/* ลูกค้าหน้าร้าน (walk-in) — เซลล์ดูแลมีคำว่า "ลูกค้าหน้าร้าน" → คลัง/คลังส่ง = W1 เสมอ */
+function isWalkIn(c){ return !!(c && /ลูกค้าหน้าร้าน/.test(clean(c.salemanName))); }
 /* คลังสำหรับ "โชว์สินค้า/สต๊อก/rank/ราคา":
+   - ลูกค้าหน้าร้าน → W1 เสมอ
    - มีเซลล์แล้ว → ยึดคลังส่งของเซลล์ (เหมือนเดิมทุกอย่าง)
    - ยังไม่มีเซลล์ (ร้านพึ่งลงทะเบียน) → ยึดตามอำเภอของร้าน
    - ไม่เจอเลย → W1 */
-function displayWarehouse(c){ return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
+function displayWarehouse(c){ if(isWalkIn(c)) return 'W1'; return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
 
 /* ===================== PROMOTIONS ===================== */
 function promoActive(p){
