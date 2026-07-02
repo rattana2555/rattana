@@ -1,9 +1,10 @@
 /****************************************************************
- * Rattana Online Order — Apps Script Backend  v1.12
+ * Rattana Online Order — Apps Script Backend  v1.13
  * --------------------------------------------------------------
  * รับข้อมูลจากแอป rattana-online-order.html แล้วบันทึกลง Google Sheet
  *   action: "register"  -> เขียนแถวลงชีทลงทะเบียน (gid 1357794184)
  *   action: "order"     -> เขียนรายการลงชีท "Orders" (สร้างให้อัตโนมัติถ้ายังไม่มี)
+ *   LINE webhook        -> follow/unfollow เก็บ User ID ผู้ติดตามลงแท็บ "ผู้ติดตาม"
  *
  * วิธี deploy:
  *   1. เปิด https://script.google.com -> New project
@@ -89,6 +90,7 @@ function pushOrderToSupabase(d){
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
+    if (Array.isArray(data.events)) return handleLineWebhook(data);   // LINE webhook (follow/unfollow) — เก็บ User ID
     if (data.action === 'register') return json(handleRegister(data));
     if (data.action === 'order')    return json(handleOrder(data));
     if (data.action === 'syncOrder') return json(handleSyncOrder(data));
@@ -280,6 +282,7 @@ function handleRegister(d) {
   var row = headers.map(function(h){ return values.hasOwnProperty(h) ? values[h] : ''; });
   sh.appendRow(row);
   try { pushDiscordNewShop(d); } catch (e) {}   // เด้งแจ้ง "เปิดร้านค้าใหม่" เข้า Discord
+  try { syncFollowerShops(); } catch (e) {}     // จับคู่ชื่อร้านให้ผู้ติดตามที่ uid ตรงกับร้านนี้
   return { ok:true, message:'registered' };
 }
 
@@ -402,6 +405,7 @@ function appendOrderRow(sh, headers, bcCol, d, it) {
     'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
     'สถานะอนุมัติ': it.status || d.status || '',   // รออนุมัติ / อนุมัติ / ไม่อนุมัติ
     'lineId': d.uid || '',                         // LINE userId
+    'billId': d.orderId || '',                     // เลขที่ออเดอร์ (ORD...) ลงช่อง billId ให้แอดมิน/Roo จับกลุ่มบิล
     'โปรที่ใช้': it.promo || '',
     'หมายเหตุ': d.note || ''
   };
@@ -605,8 +609,8 @@ function pushLineOrder(d, sh){
   if(!recipients.length) return;                              // ไม่มีใครเข้าผ่านไลน์
   var items = d.items || [];
 
-  // ── พาเลตต์แบรนด์ (ฟ้าพาสเทลสดใส) ──
-  var NAVY='#2b6fd0', GOLD='#bfe0ff', GREEN='#2ecc71', INK='#3a4663', MUTE='#8a94ad', LINE='#e3edf9', CREAM='#eef5fd';
+  // ── พาเลตต์แบรนด์ (navy/gold = สีหลักแอป) ──
+  var NAVY='#0d1b3e', GOLD='#c9a84c', GREEN='#2ecc71', INK='#3a4663', MUTE='#8a94ad', LINE='#e8e2d2', CREAM='#f6f1e3';
 
   // ── แถวรายการสินค้า (zebra + ไอคอน) ──
   var rows = items.map(function(it, i){
@@ -660,7 +664,7 @@ function pushLineOrder(d, sh){
   body.push({ type:'box', layout:'horizontal', margin:'lg', backgroundColor:CREAM, cornerRadius:'12px', paddingAll:'14px',
     borderWidth:'1px', borderColor:'#cfe2f7', contents:[
     { type:'text', text:'ยอดเงินรวม', weight:'bold', size:'md', color:NAVY, gravity:'center' },
-    { type:'text', text:numFmt(d.total)+' ฿', weight:'bold', size:'xl', align:'end', color:'#1d4e9e', gravity:'center' }
+    { type:'text', text:numFmt(d.total)+' ฿', weight:'bold', size:'xl', align:'end', color:NAVY, gravity:'center' }
   ]});
   body.push({ type:'text', text:'* ราคาอ้างอิง ยอดจริงยืนยันโดยฝ่ายขาย', size:'xxs', color:MUTE, wrap:true, margin:'sm', align:'center' });
 
@@ -834,4 +838,273 @@ function getSheetByGid(ss, gid) {
 }
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   👥 LINE Webhook — เก็บ User ID ลูกค้าที่ "แอด OA" (follow) + มาร์คคน "บล็อก" (unfollow)
+   ───────────────────────────────────────────────────────────────────
+   ตั้งค่า: LINE Developers > channel Messaging API ของ OA Rattana_Official
+            > ตั้ง Webhook URL = GAS_URL (อันเดียวกับที่ใส่ในแอป) + เปิด "Use webhook" = ON
+   เก็บลงแท็บ "ผู้ติดตาม" (สร้างให้อัตโนมัติครั้งแรก) ในสเปรดชีต REG_SPREADSHEET_ID
+   ข้อจำกัด:
+     - LINE แยก "บล็อก" กับ "ลบเพื่อน" ไม่ได้ → ทั้งคู่ส่ง unfollow เหมือนกัน
+     - ตอนถูกบล็อก ดึงชื่อ/รูปไม่ได้แล้ว → ต้องเก็บชื่อไว้ตั้งแต่ตอน follow
+     - Apps Script อ่าน HTTP header ไม่ได้ → verify ลายเซ็น X-Line-Signature เป๊ะๆ ไม่ได้
+   ═══════════════════════════════════════════════════════════════════ */
+var FOLLOWERS_SHEET_NAME = 'ผู้ติดตาม';
+
+// แท็บเก็บผู้ติดตาม (สร้างอัตโนมัติถ้ายังไม่มี) — 9 คอลัมน์
+// User ID | ชื่อ | รูป | วันที่แอด | สถานะ | เคยบล็อกล่าสุด | จำนวนครั้งบล็อก | จำนวนครั้งกลับมา | อัปเดตล่าสุด
+function getFollowersSheet_(){
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var sh = ss.getSheetByName(FOLLOWERS_SHEET_NAME);
+  if(!sh){
+    sh = ss.insertSheet(FOLLOWERS_SHEET_NAME);
+    sh.appendRow(['User ID','ชื่อโปรไฟล์','รูปโปรไฟล์','วันที่แอด','สถานะ','เคยบล็อกล่าสุด','จำนวนครั้งบล็อก','จำนวนครั้งกลับมา','อัปเดตล่าสุด','ชื่อร้าน']);
+    sh.setFrozenRows(1);
+    sh.getRange('A:A').setNumberFormat('@');   // กัน User ID เพี้ยน (ขึ้นต้น U + ตัวเลขยาว)
+  }
+  return sh;
+}
+
+// รับ webhook ของ LINE (payload เป็น { destination, events:[...] } — ไม่มี action)
+// คืน 200 เปล่าๆ เสมอ (LINE ต้องการ 200 ไม่งั้นจะ retry / ปิด webhook)
+function handleLineWebhook(data){
+  var didFollow = false;
+  try{
+    (data.events || []).forEach(function(ev){
+      try{
+        var uid = ev && ev.source && ev.source.userId;
+        if(!uid) return;                         // ไม่ใช่ event ของผู้ใช้ (เช่น group) → ข้าม
+        if(ev.type === 'follow')        { onFollow_(uid, ev.timestamp); didFollow = true; }
+        else if(ev.type === 'unfollow') onUnfollow_(uid, ev.timestamp);
+        else                            onInteract_(uid, ev.timestamp);   // ทักแชท/กดปุ่ม ฯลฯ → เก็บ uid ถ้ายังไม่มี
+      }catch(e){}
+    });
+    if(didFollow) syncFollowerShops();           // จับคู่ชื่อร้านให้ผู้ติดตามใหม่ทันที
+  }catch(e){}
+  return ContentService.createTextOutput('').setMimeType(ContentService.MimeType.TEXT);
+}
+
+// ดึงโปรไฟล์ลูกค้า (ชื่อ+รูป) — ใช้ได้เฉพาะตอน follow (ตอนถูกบล็อกดึงไม่ได้แล้ว)
+function fetchLineProfile_(uid){
+  if(!LINE_TOKEN || LINE_TOKEN.indexOf('PASTE')===0) return {};   // ยังไม่ใส่ token → ข้าม (เก็บแค่ User ID)
+  try{
+    var resp = UrlFetchApp.fetch('https://api.line.me/v2/bot/profile/'+encodeURIComponent(uid), {
+      method:'get', headers:{ Authorization:'Bearer '+LINE_TOKEN }, muteHttpExceptions:true
+    });
+    if(resp.getResponseCode()!==200) return {};
+    var p = JSON.parse(resp.getContentText());
+    return { name:p.displayName||'', pic:p.pictureUrl||'' };
+  }catch(e){ return {}; }
+}
+
+// timestamp (ms) ของ event → ข้อความวันเวลาไทย
+function tsToStr_(ts){
+  var d = ts ? new Date(Number(ts)) : new Date();
+  return Utilities.formatDate(d,'Asia/Bangkok','dd/MM/yyyy HH:mm');
+}
+
+// หาแถวของ uid ในแท็บผู้ติดตาม (คืนเลขแถวจริง, -1 ถ้าไม่เจอ)
+function findFollowerRow_(sh, uid){
+  var last = sh.getLastRow(); if(last<2) return -1;
+  var col = sh.getRange(2,1,last-1,1).getValues();
+  var t = String(uid).trim();
+  for(var i=0;i<col.length;i++){ if(String(col[i][0]).trim()===t) return i+2; }
+  return -1;
+}
+
+// คนแอดเพื่อนใหม่ / ปลดบล็อก / กลับมาแอด → follow event
+//   - แถวใหม่ : เก็บ User ID + ชื่อ/รูป + วันที่แอด (ตัวนับเริ่ม 0)
+//   - แถวเดิม : สถานะ→เป็นเพื่อน, "เคยบล็อกล่าสุด" คงไว้ (ไม่ล้าง), +1 จำนวนครั้งกลับมา (ถ้าก่อนหน้าบล็อกอยู่)
+function onFollow_(uid, ts){
+  var lock = LockService.getScriptLock();
+  try{ lock.waitLock(15000); }catch(e){}
+  try{
+    var sh   = getFollowersSheet_();
+    var prof = fetchLineProfile_(uid);
+    var when = tsToStr_(ts);
+    var row  = findFollowerRow_(sh, uid);
+    if(row < 0){
+      sh.appendRow([ uid, prof.name||'', prof.pic||'', when, 'เป็นเพื่อน', '', 0, 0, when ]);
+      var lr = sh.getLastRow(); sh.getRange(lr,1).setNumberFormat('@').setValue(uid);
+    } else {
+      var prevStatus = String(sh.getRange(row,5).getValue()||'').trim();
+      sh.getRange(row,5).setValue('เป็นเพื่อน');                 // สถานะ → เป็นเพื่อน
+      // ถ้า "วันที่แอด" ว่าง (แถวนี้เคยถูกสร้างจาก unfollow ของเพื่อนเก่า) → เติมวันที่ที่เห็นเป็นเพื่อนครั้งนี้
+      if(!String(sh.getRange(row,4).getValue()||'').trim()) sh.getRange(row,4).setValue(when);
+      // คอลัมน์ 6 "เคยบล็อกล่าสุด" — ไม่ล้าง เก็บประวัติไว้ตลอด
+      if(prevStatus === 'บล็อก/ลบเพื่อน'){                        // กลับมาจริง (กันนับซ้ำถ้า follow ยิงซ้ำ)
+        var back = Number(sh.getRange(row,8).getValue())||0;
+        sh.getRange(row,8).setValue(back+1);                      // +1 จำนวนครั้งกลับมา
+      }
+      sh.getRange(row,9).setValue(when);                          // อัปเดตล่าสุด
+      if(prof.name) sh.getRange(row,2).setValue(prof.name);
+      if(prof.pic)  sh.getRange(row,3).setValue(prof.pic);
+    }
+  } finally { try{ lock.releaseLock(); }catch(e){} }
+}
+
+// คนบล็อก/ลบเพื่อน → unfollow event (ดึงชื่อไม่ได้แล้ว ใช้ User ID จับคู่แถวเดิม)
+//   - สถานะ→บล็อก, อัปเดต "เคยบล็อกล่าสุด", +1 จำนวนครั้งบล็อก (กันนับซ้ำถ้า unfollow ยิงซ้ำ)
+function onUnfollow_(uid, ts){
+  var lock = LockService.getScriptLock();
+  try{ lock.waitLock(15000); }catch(e){}
+  try{
+    var sh   = getFollowersSheet_();
+    var when = tsToStr_(ts);
+    var row  = findFollowerRow_(sh, uid);
+    if(row < 0){
+      // ไม่เคยอยู่ในชีท (แอดมาก่อนติดตั้ง webhook) → เพิ่มแถวพร้อมสถานะบล็อก + นับ 1
+      sh.appendRow([ uid, '', '', '', 'บล็อก/ลบเพื่อน', when, 1, 0, when ]);
+      var lr = sh.getLastRow(); sh.getRange(lr,1).setNumberFormat('@').setValue(uid);
+    } else {
+      var prevStatus = String(sh.getRange(row,5).getValue()||'').trim();
+      sh.getRange(row,5).setValue('บล็อก/ลบเพื่อน');             // สถานะ
+      sh.getRange(row,6).setValue(when);                          // เคยบล็อกล่าสุด (เก็บไว้ตลอด)
+      if(prevStatus !== 'บล็อก/ลบเพื่อน'){                        // กันนับซ้ำ
+        var cnt = Number(sh.getRange(row,7).getValue())||0;
+        sh.getRange(row,7).setValue(cnt+1);                       // +1 จำนวนครั้งบล็อก
+      }
+      sh.getRange(row,9).setValue(when);                          // อัปเดตล่าสุด
+    }
+  } finally { try{ lock.releaseLock(); }catch(e){} }
+}
+
+// คนทักแชท/กดปุ่ม (message/postback ฯลฯ) → เก็บ uid ถ้ายังไม่มีในชีท (เว้นวันที่แอดได้ — แค่เก็บ uid+ชื่อ)
+function onInteract_(uid, ts){
+  var lock = LockService.getScriptLock();
+  try{ lock.waitLock(15000); }catch(e){}
+  try{
+    var sh   = getFollowersSheet_();
+    var when = tsToStr_(ts);
+    var row  = findFollowerRow_(sh, uid);
+    if(row < 0){
+      var prof = fetchLineProfile_(uid);
+      // วันที่แอด (คอลัมน์ 4) เว้นว่าง — ไม่รู้วันแอดจริง รู้แค่ว่าเป็นเพื่อน/ทักแชท
+      sh.appendRow([ uid, prof.name||'', prof.pic||'', '', 'เป็นเพื่อน', '', 0, 0, when, '' ]);
+      var lr = sh.getLastRow(); sh.getRange(lr,1).setNumberFormat('@').setValue(uid);
+    } else {
+      sh.getRange(row,9).setValue(when);                          // อัปเดตล่าสุด (= active ล่าสุด)
+      // เติมชื่อ/รูป ถ้าแถวเดิมยังว่าง (เช่นแถวที่เคยถูกสร้างจากตอนบล็อก)
+      var hasName = String(sh.getRange(row,2).getValue()||'').trim();
+      var hasPic  = String(sh.getRange(row,3).getValue()||'').trim();
+      if(!hasName || !hasPic){
+        var p = fetchLineProfile_(uid);
+        if(p.name && !hasName) sh.getRange(row,2).setValue(p.name);
+        if(p.pic  && !hasPic)  sh.getRange(row,3).setValue(p.pic);
+      }
+    }
+  } finally { try{ lock.releaseLock(); }catch(e){} }
+}
+
+/* ── ทดสอบในเครื่อง: Run ตามลำดับ testFollow → testBlock → testFollow → testBlock
+   จะเห็นตัวนับ "จำนวนครั้งบล็อก" และ "จำนวนครั้งกลับมา" เพิ่มขึ้นในแท็บ "ผู้ติดตาม" ── */
+function testFollow(){
+  onFollow_('Utest0000000000000000000000000001', new Date().getTime());
+  Logger.log('follow ทดสอบแล้ว — ไปดูแท็บ "ผู้ติดตาม"');
+}
+function testBlock(){
+  onUnfollow_('Utest0000000000000000000000000001', new Date().getTime());
+  Logger.log('block ทดสอบแล้ว — ไปดูแท็บ "ผู้ติดตาม"');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   🔗 จับคู่ผู้ติดตาม → ชื่อร้าน (คอลัมน์ J) จากชีทลงทะเบียน
+   uid ของผู้ติดตาม ไปหาในชีทลงทะเบียนทั้ง "User ID" และ "User ID เพิ่ม"
+   เจอแล้วเอา "ชื่อ / ร้านค้า" มาใส่ → ไลน์หลายตัวของร้านเดียวกันได้ชื่อร้านเดียวกัน
+   ทำงานอัตโนมัติเมื่อ: มีคนแอดใหม่ / ลงทะเบียน / และ trigger ทุก 10 นาที (setupFollowerSyncTrigger)
+   ═══════════════════════════════════════════════════════════════════ */
+var FOLLOWER_SHOP_COL = 10;   // คอลัมน์ J
+
+// map: uid → ชื่อร้าน (รวม User ID + User ID เพิ่ม จากชีทลงทะเบียน)
+function buildUidToShopMap_(){
+  var map = {};
+  try{
+    var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var sh = getSheetByGid(ss, REG_SHEET_GID);
+    if(!sh) return map;
+    var H = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+    var nameC = H.indexOf('ชื่อ / ร้านค้า'), uidC = H.indexOf('User ID'), extraC = H.indexOf('User ID เพิ่ม');
+    if(nameC<0 || uidC<0) return map;
+    var last = sh.getLastRow(); if(last<2) return map;
+    var vals = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    for(var i=0;i<vals.length;i++){
+      var shop = String(vals[i][nameC]||'').trim(); if(!shop) continue;
+      var u = String(vals[i][uidC]||'').trim(); if(u && !map[u]) map[u]=shop;
+      if(extraC>=0){
+        String(vals[i][extraC]||'').split(/[,\n;]+/).forEach(function(s){ s=s.trim(); if(s && !map[s]) map[s]=shop; });
+      }
+    }
+  }catch(e){}
+  return map;
+}
+
+// เติม "ชื่อร้าน" คอลัมน์ J ให้ทุกแถวในแท็บผู้ติดตาม (ไม่มี "_" ท้ายชื่อ → เรียกจาก trigger / Run มือได้)
+function syncFollowerShops(){
+  var lock = LockService.getScriptLock();
+  try{ lock.waitLock(20000); }catch(e){}
+  try{
+    var sh = getFollowersSheet_();
+    var last = sh.getLastRow(); if(last<2) return;
+    if(String(sh.getRange(1,FOLLOWER_SHOP_COL).getValue()||'').trim()!=='ชื่อร้าน')
+      sh.getRange(1,FOLLOWER_SHOP_COL).setValue('ชื่อร้าน');     // ใส่หัวคอลัมน์ J ถ้ายังไม่มี
+    var map  = buildUidToShopMap_();
+    var uids = sh.getRange(2,1,last-1,1).getValues();
+    var cur  = sh.getRange(2,FOLLOWER_SHOP_COL,last-1,1).getValues();
+    var out  = [], changed = false;
+    for(var i=0;i<uids.length;i++){
+      var uid  = String(uids[i][0]||'').trim();
+      var shop = map[uid] || '';
+      var val  = shop ? shop : String(cur[i][0]||'');          // เจอ→ทับด้วยชื่อร้านจริง, ไม่เจอ→คงค่าเดิม
+      out.push([val]);
+      if(val!==String(cur[i][0]||'')) changed=true;
+    }
+    if(changed) sh.getRange(2,FOLLOWER_SHOP_COL,out.length,1).setValues(out);
+  } finally { try{ lock.releaseLock(); }catch(e){} }
+}
+
+// ตั้ง trigger ให้ sync ชื่อร้านทุก 10 นาที (เผื่อกรณีลงทะเบียน/ลิงก์ uid ทีหลัง) — Run ครั้งเดียว
+function setupFollowerSyncTrigger(){
+  ScriptApp.getProjectTriggers().forEach(function(t){ if(t.getHandlerFunction()==='syncFollowerShops') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('syncFollowerShops').timeBased().everyMinutes(10).create();
+  return 'ตั้ง sync ชื่อร้านทุก 10 นาทีแล้ว';
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   📥 นำเข้า "เพื่อนเก่าทั้งหมด" (รวมคนที่ไม่เคยทัก) — Run ครั้งเดียว
+   ใช้ LINE API /v2/bot/followers/ids → ได้เฉพาะบัญชี OA "Verified / Premium"
+   ถ้าบัญชีไม่ผ่านเงื่อนไข จะขึ้น HTTP error ใน log (ดู View > Logs)
+   *รายชื่อเยอะ อาจเกิน 6 นาทีแล้วหยุด → Run ซ้ำได้ (ข้ามคนที่นำเข้าแล้ว ทำต่อจากเดิม)
+   ═══════════════════════════════════════════════════════════════════ */
+function importAllFollowers(){
+  if(!LINE_TOKEN || LINE_TOKEN.indexOf('PASTE')===0){ Logger.log('ยังไม่ใส่ LINE_TOKEN'); return; }
+  var sh = getFollowersSheet_();
+  var existing = {};
+  var last = sh.getLastRow();
+  if(last>=2){ sh.getRange(2,1,last-1,1).getValues().forEach(function(r){ var u=String(r[0]||'').trim(); if(u) existing[u]=1; }); }
+  var base = 'https://api.line.me/v2/bot/followers/ids?limit=1000';
+  var url = base, added = 0, pages = 0;
+  while(url && pages < 50){
+    var resp = UrlFetchApp.fetch(url, { method:'get', headers:{ Authorization:'Bearer '+LINE_TOKEN }, muteHttpExceptions:true });
+    var code = resp.getResponseCode();
+    if(code !== 200){
+      Logger.log('❌ ดึงรายชื่อไม่ได้ HTTP '+code+' : '+resp.getContentText());
+      Logger.log('   ส่วนใหญ่แปลว่าบัญชี OA ยังไม่ Verified/Premium → ใช้ followers/ids ไม่ได้');
+      return;
+    }
+    var data = JSON.parse(resp.getContentText());
+    (data.userIds||[]).forEach(function(uid){
+      if(existing[uid]) return;
+      existing[uid] = 1;
+      var prof = fetchLineProfile_(uid);
+      sh.appendRow([ uid, prof.name||'', prof.pic||'', '', 'เป็นเพื่อน', '', 0, 0, '', '' ]);   // วันที่แอดเว้นว่าง
+      var lr = sh.getLastRow(); sh.getRange(lr,1).setNumberFormat('@').setValue(uid);
+      added++;
+    });
+    url = data.next ? (base + '&start=' + encodeURIComponent(data.next)) : '';
+    pages++;
+  }
+  try{ syncFollowerShops(); }catch(e){}
+  Logger.log('✅ นำเข้าเพื่อนเก่าเพิ่ม '+added+' คน');
 }

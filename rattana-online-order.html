@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.77</title>
+<title>Rattana Online Order v2.78</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -334,7 +334,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.77</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.78</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1165,7 +1165,24 @@ function ensureScanLib(){
   if(_scanLib) return Promise.resolve(true);
   return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'; s.onload=()=>{_scanLib=true;res(true);}; s.onerror=rej; document.head.appendChild(s); });
 }
-/* ⚡ ตัวอ่านบาร์โค้ดของเครื่อง (BarcodeDetector) — เร็วกว่า html5-qrcode มาก (รองรับบน Android Chrome) */
+/* ⚡ ตัวอ่านบาร์โค้ดของเครื่อง (BarcodeDetector) — เร็วกว่า html5-qrcode มาก (รองรับบน Android Chrome)
+   iPhone/Safari ไม่มีตัวอ่านของเครื่อง → โหลด polyfill (zbar-wasm ผ่าน jsdelivr) มาแทน ให้วิ่งเส้นทางเร็วเดียวกัน
+   โหลดไม่สำเร็จ (เน็ต/CDN ล่ม) → fallback html5-qrcode แบบเดิมอัตโนมัติ */
+let _BDClass=null;
+function loadScriptOnce(src){ return new Promise((res,rej)=>{ if(document.querySelector('script[src="'+src+'"]')) return res(true); const s=document.createElement('script'); s.src=src; s.onload=()=>res(true); s.onerror=rej; document.head.appendChild(s); }); }
+async function ensureDetectorClass(){
+  if(_BDClass) return _BDClass;
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)) return null;
+  if('BarcodeDetector' in window){ _BDClass=window.BarcodeDetector; return _BDClass; }
+  try{
+    await loadScriptOnce('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm/dist/index.js');
+    await loadScriptOnce('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill/dist/index.js');
+    // ไฟล์ polyfill ประกาศเป็น const (global lexical) → ไม่โผล่ใน window ต้องอ้างชื่อตรงๆ
+    const P=(typeof barcodeDetectorPolyfill!=='undefined')?barcodeDetectorPolyfill:window.barcodeDetectorPolyfill;
+    if(P&&P.BarcodeDetectorPolyfill){ _BDClass=P.BarcodeDetectorPolyfill; return _BDClass; }
+  }catch(e){ console.warn('scanner polyfill',e); }
+  return null;
+}
 function nativeScanSupported(){ return 'BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia; }
 async function startNativeScan(hint){
   const box=document.getElementById('scanReader');
@@ -1174,7 +1191,9 @@ async function startNativeScan(hint){
   _scanStream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} } });
   _scanVideo.srcObject=_scanStream; _scanVideo.setAttribute('playsinline','');
   try{ await _scanVideo.play(); }catch(e){}
-  if(!_scanDetector){ try{ _scanDetector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']}); }catch(e){ _scanDetector=new BarcodeDetector(); } }
+  // ขอโฟกัสต่อเนื่อง "หลัง" กล้องเปิดแล้ว (applyConstraints ทีหลังปลอดภัย — ใส่ตอน getUserMedia เคยทำกล้องเปิดไม่ขึ้น)
+  try{ const t=_scanStream.getVideoTracks()[0]; if(t&&t.applyConstraints) t.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}); }catch(e){}
+  if(!_scanDetector){ try{ _scanDetector=new _BDClass({formats:['ean_13','ean_8','upc_a','upc_e','code_128']}); }catch(e){ _scanDetector=new _BDClass(); } }
   _scanNative=true;
   hint.textContent='เล็งกล้องไปที่บาร์โค้ดสินค้า';
   const tick=async()=>{
@@ -1214,8 +1233,9 @@ async function openScan(){
     showToast('กล้องถูกบล็อก — เปิดสิทธิ์กล้องในเบราว์เซอร์ก่อน','warning'); return;
   }
   hint.textContent = st==='granted' ? 'กำลังเปิดกล้อง...' : 'แตะ "อนุญาต" เพื่อใช้กล้องสแกน (ครั้งเดียว ระบบจะจำไว้)';
-  // ⚡ ลองใช้ตัวอ่านของเครื่องก่อน (เร็วมาก) — ถ้าไม่รองรับ/ล้มเหลว ค่อย fallback html5-qrcode
-  if(nativeScanSupported()){
+  // ⚡ ลองใช้ตัวอ่านของเครื่อง / polyfill zbar-wasm (iPhone) ก่อน — เร็วกว่า html5-qrcode มาก; ล้มเหลวค่อย fallback
+  const DC=await ensureDetectorClass();
+  if(DC){
     try{ await startNativeScan(hint); return; }
     catch(e){ console.warn('native scan fallback:',e); await stopNativeScan(); }
   }
@@ -1715,8 +1735,10 @@ async function submitOrder(){
   // รูปแบบ = ขาย/แถม/ไม่อนุมัติ , หน่วย = หน่วยละเอียดตามบาร์โค้ด ; สถานะตอนยืนยัน = อนุมัติราคา
   const payload=Object.assign({ action:'order', orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
   showSpinner('กำลังส่งออเดอร์...');
-  const ok=await sendAndConfirm(payload, orderId);
-  hideSpinner();
+  _orderInFlight=true;                       // กันผู้ใช้ปิดหน้าระหว่างส่ง (beforeunload เตือน)
+  let ok=false;
+  try{ ok=await sendAndConfirm(payload, orderId); }
+  finally{ _orderInFlight=false; hideSpinner(); }
   if(ok){
     cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
     showToast('ส่งออเดอร์สำเร็จ! เลขที่ '+orderId,'success');
@@ -1727,6 +1749,12 @@ async function submitOrder(){
   }
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* ── เกราะออเดอร์ (ORDER DURABILITY) ──
+   ตะกร้า = "ใบเสร็จ" อยู่แล้ว (persist ใน localStorage + ชีทสถานะรออนุมัติ ทุกเครื่องเห็นตรงกัน)
+   ส่งไม่ผ่าน → ไม่ล้างตะกร้า / ส่งซ้ำ → sendAndConfirm เช็ค approved ก่อน + backend กันซ้ำ (idempotent) */
+let _orderInFlight=false;
+window.addEventListener('beforeunload',e=>{ if(_orderInFlight){ e.preventDefault(); e.returnValue='กำลังส่งออเดอร์อยู่ — อย่าเพิ่งปิดหน้านี้'; return e.returnValue; } });
+window.addEventListener('online',()=>{ try{ showToast('🌐 กลับมาออนไลน์แล้ว','info'); pullCart(true); }catch(e){} });   // เน็ตกลับ → ซิงค์ตะกร้า/สถานะทันที
 /* อ่านผลจากเซิร์ฟเวอร์แบบ JSONP (ต่างจาก postGAS no-cors ที่อ่านผลไม่ได้) */
 function jsonpGet(params, timeoutMs){
   return new Promise(resolve=>{
@@ -1747,28 +1775,40 @@ function statusSupported(r){ return !!(r && Object.prototype.hasOwnProperty.call
 async function sendAndConfirm(payload, orderId){
   const pre=await orderStatusRaw(orderId);
   if(statusSupported(pre) && pre.approved) return true;   // ส่งไปแล้วก่อนหน้า (เน็ตเด้ง) → ไม่ส่งซ้ำ
-  await postGAS(payload);
-  for(let i=0;i<3;i++){
-    await sleep(1300);
+  await postGAS(payload,{retries:3,timeoutMs:20000});     // เน็ตสะดุด → ยิงซ้ำเองในคลิกเดียว (backend กันแถวซ้ำแล้ว)
+  for(let i=0;i<4;i++){
+    await sleep(1500);
     const st=await orderStatusRaw(orderId);
     if(st===null) continue;                  // เน็ตล่ม อ่านผลไม่ได้ → รอรอบต่อไป
     if(!statusSupported(st)) return true;     // backend ยังไม่มี getOrderStatus → โหมดเดิม (postGAS ไม่ throw=สำเร็จ)
-    if(st.approved) return true;              // ยืนยันแล้ว ✓
+    if(st.approved) return true;              // ยืนยันแล้ว ✓ (อ่านจากชีทจริง ไม่เชื่อ HTTP)
   }
   return false;
 }
 
-async function postGAS(payload){
+/* opts.retries: ยิงซ้ำเมื่อ fetch พัง (เน็ตสะดุด) — ใช้กับ action 'order' ที่ backend กันซ้ำไว้แล้ว (orderSignature + update-in-place) → ส่งซ้ำไม่ได้แถวเบิ้ล
+   opts.timeoutMs: กัน fetch ค้างไม่จบบนมือถือ (ค้าง = ผู้ใช้รอเก้อทั้งที่ควรได้ retry) */
+async function postGAS(payload,opts){
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')){
     console.warn('GAS_URL ยังไม่ตั้งค่า — payload:',payload);
     showToast('⚠️ ยังไม่ได้ตั้งค่า Apps Script URL (โหมดสาธิต)','warning');
     return true; // demo mode: treat as success
   }
-  try{
-    // no-cors: Apps Script ไม่ส่ง CORS header — ใช้ simple request (text/plain) เพื่อให้เขียนได้โดยไม่ถูก block
-    await fetch(CFG.GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-    return true;
-  }catch(e){ console.error(e); return false; }
+  const retries=(opts&&opts.retries)||1, timeoutMs=(opts&&opts.timeoutMs)||20000;
+  for(let a=0;a<retries;a++){
+    try{
+      if(a>0) await sleep(a*1200);   // backoff ก่อนยิงซ้ำ
+      const ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+      const to=ctrl?setTimeout(()=>ctrl.abort(),timeoutMs):0;
+      try{
+        // no-cors: Apps Script ไม่ส่ง CORS header — ใช้ simple request (text/plain) เพื่อให้เขียนได้โดยไม่ถูก block
+        // (อ่านผลตอบไม่ได้ — การยืนยันว่าเขียนจริงทำผ่าน getOrderStatus JSONP ใน sendAndConfirm)
+        await fetch(CFG.GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:ctrl?ctrl.signal:undefined});
+      } finally { if(to) clearTimeout(to); }
+      return true;
+    }catch(e){ console.warn('postGAS attempt '+(a+1)+'/'+retries, e&&e.message); if(a===retries-1){ console.error(e); return false; } }
+  }
+  return false;
 }
 
 /* ===================== REFRESH / BOOT ===================== */
