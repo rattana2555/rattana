@@ -120,9 +120,100 @@ function doGet(e) {
     var os = getOrderStatus(p.orderId);
     return p.callback ? jsonp(p.callback, os) : json(os);
   }
+  if (p.action === 'getHistory') {                       // ยอดซื้อย้อนหลังจริงจาก BigQuery (จับด้วยรหัสร้าน = Customer_Code)
+    var gh = getHistoryFor(p.code);
+    return p.callback ? jsonp(p.callback, gh) : json(gh);
+  }
   return json({ ok:true, service:'Rattana Online Order', time:new Date() });
 }
 function jsonp(cb, obj){ return ContentService.createTextOutput(cb + '(' + JSON.stringify(obj) + ')').setMimeType(ContentService.MimeType.JAVASCRIPT); }
+
+/* ───────── ประวัติซื้อย้อนหลังจาก BigQuery — โหมด SNAPSHOT เดือนละครั้ง ─────────
+   • ไม่ยิง BQ ต่อคำขอ (กันเปลือง quota) — ดึงครั้งเดียว "ทุกวันที่ 5 ของเดือน" ลงแท็บ 'ประวัติซื้อBQ'
+   • ดึงเฉพาะร้านที่ลงทะเบียนในแอป (อ่านรหัสร้านจากชีทลงทะเบียน) top 120 สินค้า/ร้าน เรียงยอดขายมาก→น้อย
+   • getHistoryFor อ่านจากแท็บ snapshot (เร็ว ไม่แตะ BQ) + แคช 6 ชม./ร้าน
+   ⚠️ SETUP ครั้งเดียว: (1) เอดิเตอร์ → บริการ (Services) → + → "BigQuery API" → เพิ่ม
+                        (2) รัน setupHistoryTrigger() 1 ครั้ง (สร้าง trigger รายเดือน + ดึงรอบแรกทันที) */
+var BQ_PROJECT = 'project-test-471907';
+var BQ_HISTORY_TABLE = '`project-test-471907.Testimport.BQ_2024_2025`';
+var HIST_SHEET_NAME = 'ประวัติซื้อBQ';
+
+/* ดึง BQ → เขียนแท็บ snapshot (เรียกโดย trigger ทุกวันที่ 5 หรือรันมือ) */
+function refreshHistorySnapshot() {
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  // 1) รวบรวมรหัสร้านที่ลงทะเบียนในแอป
+  var reg = getSheetByGid(ss, REG_SHEET_GID);
+  var H = reg.getRange(1,1,1,reg.getLastColumn()).getValues()[0].map(function(h){return String(h).trim();});
+  var codeCol = H.indexOf('รหัสร้าน');
+  if (codeCol < 0) return { ok:false, error:'no รหัสร้าน column' };
+  var last = reg.getLastRow(), codes = [];
+  if (last >= 2) {
+    reg.getRange(2, codeCol+1, last-1, 1).getValues().forEach(function(r){
+      var c = String(r[0]||'').trim(); if (c && codes.indexOf(c) < 0) codes.push(c);
+    });
+  }
+  if (!codes.length) return { ok:false, error:'no shop codes' };
+  // 2) query BQ ครั้งเดียว: top 120 สินค้า/ร้าน เรียงยอดขาย
+  var sql = "SELECT Customer_Code, barcode, name, unit, baht, last FROM (" +
+            " SELECT Customer_Code, REGEXP_REPLACE(Product_Code, r'^BC-', '') AS barcode," +
+            " ANY_VALUE(Product_Name) AS name, ANY_VALUE(Rattana_Unit) AS unit," +
+            " ROUND(SUM(TotalBaht),0) AS baht, MAX(Month_Year) AS last," +
+            " ROW_NUMBER() OVER (PARTITION BY Customer_Code ORDER BY SUM(TotalBaht) DESC) AS rn" +
+            " FROM " + BQ_HISTORY_TABLE +
+            " WHERE Customer_Code IN UNNEST(@codes)" +
+            " GROUP BY Customer_Code, barcode) WHERE rn <= 120 ORDER BY Customer_Code, baht DESC";
+  var res = BigQuery.Jobs.query({
+    query: sql, useLegacySql: false, parameterMode: 'NAMED',
+    queryParameters: [{ name:'codes', parameterType:{ type:'ARRAY', arrayType:{ type:'STRING' } },
+      parameterValue:{ arrayValues: codes.map(function(c){ return { value:c }; }) } }]
+  }, BQ_PROJECT);
+  var rows = (res.rows || []).map(function(r){ var f = r.f;
+    return [ String(f[0].v||''), String(f[1].v||''), String(f[2].v||''), String(f[3].v||''), Number(f[4].v)||0, String(f[5].v||'') ];
+  });
+  // 3) เขียนทับแท็บ snapshot
+  var sh = ss.getSheetByName(HIST_SHEET_NAME) || ss.insertSheet(HIST_SHEET_NAME);
+  sh.clearContents();
+  sh.getRange(1,1,1,7).setValues([['รหัสร้าน','barcode','ชื่อสินค้า','หน่วย','ยอดซื้อสะสม','ซื้อล่าสุด','อัปเดตเมื่อ']]);
+  var now = Utilities.formatDate(new Date(),'Asia/Bangkok','dd/MM/yyyy HH:mm');
+  if (rows.length) {
+    sh.getRange(2,1,rows.length,6).setValues(rows);
+    sh.getRange(2,7).setValue(now);
+    sh.getRange(2,1,rows.length,2).setNumberFormat('@');   // รหัสร้าน/บาร์โค้ด เป็น TEXT กัน 0 หาย
+  }
+  try { CacheService.getScriptCache().removeAll(codes.map(function(c){ return 'hist2_'+c; })); } catch(e) {}
+  return { ok:true, shops: codes.length, rows: rows.length, at: now };
+}
+
+/* ตั้ง trigger รายเดือน (วันที่ 5 เวลา ~06:00) — รันครั้งเดียวพอ */
+function setupHistoryTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(t){
+    if (t.getHandlerFunction() === 'refreshHistorySnapshot') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('refreshHistorySnapshot').timeBased().onMonthDay(5).atHour(6).create();
+  return refreshHistorySnapshot();   // ดึงรอบแรกทันที ไม่ต้องรอวันที่ 5
+}
+
+/* อ่านประวัติร้านจากแท็บ snapshot (ไม่แตะ BQ) — ให้แอปเรียกผ่าน doGet action=getHistory */
+function getHistoryFor(code) {
+  code = String(code || '').trim();
+  if (!code) return { ok:false, error:'no code' };
+  var cache = CacheService.getScriptCache(), ck = 'hist2_' + code;
+  try { var hit = cache.get(ck); if (hit) return JSON.parse(hit); } catch (e) {}
+  try {
+    var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var sh = ss.getSheetByName(HIST_SHEET_NAME);
+    if (!sh || sh.getLastRow() < 2) return { ok:true, code:code, items:[], note:'snapshot ยังไม่ถูกสร้าง — รัน setupHistoryTrigger()' };
+    var vals = sh.getRange(2, 1, sh.getLastRow()-1, 6).getValues();
+    var items = [];
+    for (var i = 0; i < vals.length; i++) {
+      if (String(vals[i][0]).trim() !== code) continue;
+      items.push({ barcode:String(vals[i][1]||''), name:String(vals[i][2]||''), unit:String(vals[i][3]||''), baht:Number(vals[i][4])||0, last:String(vals[i][5]||'') });
+    }
+    var out = { ok:true, code:code, items:items };   // เรียงมาแล้วตอนเขียน snapshot (ยอดขายมาก→น้อย)
+    try { cache.put(ck, JSON.stringify(out), 21600); } catch (e) {}
+    return out;
+  } catch (err) { return { ok:false, error:String(err && err.message || err) }; }
+}
 
 /* ───────── ตะกร้าร่วม (ซิงค์ข้ามเครื่องของร้านเดียวกัน ผูกด้วยเบอร์) ───────── */
 function getCartSheet(){

@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.78</title>
+<title>Rattana Online Order v2.80</title>
+<link rel="icon" type="image/png" href="roo-logo.png">
+<link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -334,7 +336,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.78</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.80</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1008,7 +1010,7 @@ function filteredProducts(){
 
 /* ===================== RENDER ===================== */
 function renderAll(){ updateLogo(); renderPromoScroll(); renderNewScroll(); renderCatDropdown(); renderProducts(); renderCartBadge(); }
-function updateLogo(){ document.getElementById('logoImg').src=LOGO_RATTANA; }
+function updateLogo(){ const el=document.getElementById('logoImg'); el.src='roo-logo.png'; el.onerror=()=>{ el.onerror=null; el.src=LOGO_RATTANA; }; }   // โลโก้ ROO (ไฟล์ใน repo) — โหลดไม่ได้ fallback โลโก้เดิม
 
 const esc=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
 
@@ -1481,29 +1483,25 @@ function renderCartBadge(){
     else chip.style.display='none';
   }
 }
-/* ===================== เคยสั่งบ่อย (ประวัติจาก Supabase roo_sales) ===================== */
+/* ===================== เคยสั่งบ่อย (ยอดขายย้อนหลังจริงจาก BigQuery ผ่าน backend) =====================
+   จับร้านด้วย "รหัสร้าน" (Customer_Code ของ B-Plus) → backend query BQ_2024_2025 เรียงยอดขายมาก→น้อย
+   (เลิกดึงจาก Supabase roo_sales แล้ว — ข้อมูลทดสอบปน ทำให้ขึ้นผิด) */
 let _history=null, _historyShop='', _histShowAll=false;
-async function fetchHistory(shop){
-  shop=clean(shop); if(!shop||!CFG.SUPABASE_URL||!CFG.SUPABASE_ANON_KEY) return [];
-  const h={apikey:CFG.SUPABASE_ANON_KEY,Authorization:'Bearer '+CFG.SUPABASE_ANON_KEY};
-  const u=CFG.SUPABASE_URL+'/rest/v1/roo_sales?customer_name=eq.'+encodeURIComponent(shop)
-    +'&approve_status=eq.'+encodeURIComponent('อนุมัติ')+'&tran_type=eq.'+encodeURIComponent('ขาย')
-    +'&select=product_name,barcode,unit,price,date&order=date.desc&limit=800';
-  try{ const r=await fetch(u,{headers:h}); if(!r.ok) return [];
-    const rows=await r.json(); const map=new Map();
-    rows.forEach(x=>{ const k=clean(x.barcode)||clean(x.product_name); if(!k) return;
-      if(!map.has(k)) map.set(k, Object.assign({count:0}, x));   // เก็บล่าสุด (date desc → แถวแรก)
-      map.get(k).count++;                                        // นับจำนวนครั้งที่เคยสั่ง
-    });
-    const out=[...map.values()];
-    out.sort((a,b)=> b.count-a.count || String(b.date||'').localeCompare(String(a.date||'')));  // ซื้อบ่อยสุดก่อน
-    return out;
-  }catch(e){ console.warn('history',e); return []; }
+async function fetchHistory(){
+  const code=clean(currentCustomer&&currentCustomer.shopCode);
+  if(!code) return [];                                   // ร้านยังไม่มีรหัสร้าน (B-Plus) → ไม่มีประวัติ
+  const r=await jsonpGet({action:'getHistory', code}, 15000);
+  if(r&&r.ok&&Array.isArray(r.items)){
+    // เรียงมาจาก backend แล้ว (ยอดขายรวมมาก→น้อย); count=ยอดขายรวม ใช้ต่อกับ sort/แสดงเดิมได้
+    return r.items.map(x=>({product_name:clean(x.name), barcode:clean(x.barcode), unit:clean(x.unit), count:Number(x.baht)||0, date:clean(x.last||'')}));
+  }
+  return [];   // backend ยังไม่เปิด getHistory / query พัง → ไม่โชว์ส่วนนี้ (ไม่พังแอป)
 }
 async function loadHistory(){
-  const shop=currentCustomer&&currentCustomer.name; if(!shop){ _history=[]; _historyShop=''; return; }
-  if(_historyShop===shop && _history!==null) return;          // โหลดแล้ว
-  _historyShop=shop; _history=null; _history=await fetchHistory(shop);
+  const code=clean(currentCustomer&&currentCustomer.shopCode);
+  if(!currentCustomer||!code){ _history=[]; _historyShop=''; return; }
+  if(_historyShop===code && _history!==null) return;          // โหลดแล้ว
+  _historyShop=code; _history=null; _history=await fetchHistory();
 }
 function inCartByName(name){ name=clean(name); return Object.values(cart).some(i=>clean(i.name)===name); }
 function renderCartHistory(){
@@ -1533,7 +1531,7 @@ function renderCartHistory(){
   if(sugg.length>LIMIT) more = _histShowAll
     ? `<button class="hist-more" onclick="_histShowAll=false;renderCartHistory()">ย่อ ▴</button>`
     : `<button class="hist-more" onclick="_histShowAll=true;renderCartHistory()">ดูเพิ่ม (${sugg.length-LIMIT}) ▾</button>`;
-  box.innerHTML=`<div class="hist-sec"><div class="hist-title">🧾 เคยสั่งบ่อย</div><div class="hist-sub">สินค้าที่เคยสั่ง แต่รอบนี้ยังไม่ได้สั่ง — แตะ "+ สั่ง" เพิ่มเข้าตะกร้าได้เลย</div><div class="hist-list">${cards}</div>${more}</div>`;
+  box.innerHTML=`<div class="hist-sec"><div class="hist-title">🧾 เคยซื้อ แต่รอบนี้ไม่ได้สั่ง</div><div class="hist-sub">แตะ "+ สั่ง" เพิ่มเข้าตะกร้าได้เลย</div><div class="hist-list">${cards}</div>${more}</div>`;
 }
 function addFromHistory(name, barcode, unit){
   const p=findProduct(name)||((barcodeEntry(barcode)||{}).p); if(!p) return;
@@ -1631,7 +1629,6 @@ function renderProfile(){
       <h3>👤 ${c.name||'ลูกค้า'}</h3>
       <div class="pinfo"><span class="pk">เบอร์โทร</span><span>${c.phone||'-'}</span></div>
       ${addr?`<div class="pinfo"><span class="pk">ที่อยู่</span><span style="text-align:right;max-width:62%">${addr}</span></div>`:''}
-      <div class="pinfo"><span class="pk">สถานะ</span><span class="status-pill ${stCls}">${st||'รอยืนยัน'}</span></div>
       <div class="pinfo"><span class="pk">เซลล์ผู้ดูแล</span><span>${c.salemanName||'รอแอดมินกำหนด'}</span></div>
       <div class="pinfo"><span class="pk">คลังส่ง</span><span>${wh?wh+(whName?' ('+whName+')':''):'รอกำหนด'}</span></div>
     </div>`;
