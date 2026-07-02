@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.80</title>
+<title>Rattana Online Order v2.81</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -29,8 +29,8 @@ img{display:block}
 /* Header */
 header{background:var(--navy);color:#fff;padding:12px 18px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--gold);padding-top:max(16px,calc(env(safe-area-inset-top) + 8px))}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
-.logo-box{width:40px;height:40px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
-.logo-img{width:32px;height:32px;object-fit:contain}
+.logo-box{width:40px;height:40px;border-radius:11px;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
+.logo-img{width:40px;height:40px;object-fit:contain}
 .logo-ring{position:absolute;width:17px;height:17px;border-radius:50%;border:3px solid var(--gold);border-right-color:transparent;transform:rotate(40deg);display:none}
 .logo-text{font-weight:800;letter-spacing:.12em;font-size:15px;color:#fff;line-height:1.05;display:flex;flex-direction:column}
 .logo-text span{color:var(--gold);font-size:10px;font-weight:600;letter-spacing:.16em;margin-top:3px}
@@ -336,7 +336,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.80</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.81</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
