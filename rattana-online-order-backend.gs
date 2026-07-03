@@ -372,6 +372,7 @@ function pushDiscordOrder(d){
   var deliverTxt = deliver ? ((/รับ/.test(deliver)?'🏠 ':'🚚 ') + deliver) : '-';
   var shipDay = ''; try { shipDay = shipDayForShop_(d.customerName); } catch(e){}   // วันส่งจากชีทลงทะเบียน (จับด้วยชื่อร้าน)
   var lines = [
+    '**เลขที่ออเดอร์ :** ' + (d.orderId||'-'),
     '**ชื่อลูกค้า :** ' + (d.customerName||'-') + (d.phone?(' ('+d.phone+')'):''),
     '**' + cnt + ' รายการ** • ' + numFmt(d.total||0) + ' บาท',
     '**เซลล์ :** (' + (d.warehouse||'-') + ') ' + (d.salemanName||'-')
@@ -379,9 +380,8 @@ function pushDiscordOrder(d){
   if (shipDay) lines.push('**วันส่ง :** ' + shipDay);
   if (d.note)  lines.push('**หมายเหตุ :** ' + d.note);
   lines.push('**การรับสินค้า :** ' + deliverTxt);
-  lines.push('**เลขที่ออเดอร์ :** ' + (d.orderId||'-'));
   var payload = { embeds:[ {
-    title: '🛒 ORDER ROO',
+    title: '🛒 ORDER ROO🛒',
     description: lines.join('\n'),
     color: 0x0d1b3e
   } ] };
