@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.83</title>
+<title>Rattana Online Order v2.84</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -324,6 +324,10 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 .delivery ul{list-style:none;margin:6px 0 0;padding:0}
 .delivery li{font-size:13px;padding:3px 0;color:var(--text);line-height:1.45}
 .delivery li b{color:var(--navy)}body.dark .delivery li b{color:var(--gold-light)}
+.deliver-seg{display:flex;flex-direction:column;gap:8px}
+.dseg{width:100%;padding:11px 14px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:12px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;transition:all .15s}
+.dseg.active{border-color:var(--gold);background:rgba(201,168,76,.14);color:var(--navy);box-shadow:inset 0 0 0 1px var(--gold)}
+body.dark .dseg.active{color:var(--gold-light)}
 .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 .hub-btn{width:100%;background:var(--card-bg);border:1.5px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-md);padding:20px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:700;color:var(--text);box-shadow:var(--shadow-sm);min-height:96px}
 .hub-btn .hi{font-size:28px}
@@ -336,7 +340,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.83</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.84</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -391,6 +395,13 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
       <div class="s-line"><span>จำนวนรายการ</span><span id="sumItems">0</span></div>
       <div class="s-line"><span>จำนวนหน่วยรวม</span><span id="sumQty">0</span></div>
       <div class="s-total"><span>ยอดรวมโดยประมาณ</span><b id="sumTotal">฿0</b></div>
+      <div style="margin-top:12px">
+        <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">🚚 รูปแบบการรับสินค้า</label>
+        <div class="deliver-seg">
+          <button type="button" id="delvShip" class="dseg active" onclick="setDeliver('ส่งถึงร้านลูกค้า')">🚚 ส่งถึงร้านลูกค้า</button>
+          <button type="button" id="delvPick" class="dseg" onclick="setDeliver('รับสินค้าเองที่รัตนไพบูลย์')">🏠 รับสินค้าเองที่รัตนไพบูลย์</button>
+        </div>
+      </div>
       <div style="margin-top:12px">
         <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">📝 หมายเหตุถึงร้านค้า (ถ้ามี)</label>
         <textarea id="orderNote" class="input" style="height:auto;min-height:64px;resize:vertical;padding:10px 14px;line-height:1.5" placeholder="เช่น ขอส่งช่วงเช้า / โทรก่อนส่ง / ฝากไว้หน้าร้าน ฯลฯ"></textarea>
@@ -605,7 +616,7 @@ function syncOrderSoon(){
   if(_syncTimer) clearTimeout(_syncTimer);
   _syncTimer=setTimeout(()=>{
     const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
-    postGAS(Object.assign({action:'syncOrder',orderId:draftOrderId(),note,total:cartTotal(),items:buildOrderItems('รออนุมัติ')},orderMeta()));
+    postGAS(Object.assign({action:'syncOrder',orderId:draftOrderId(),note,deliver:deliverMode,total:cartTotal(),items:buildOrderItems('รออนุมัติ')},orderMeta()));
   },1500);
 }
 let currentCustomer=null;
@@ -1733,20 +1744,28 @@ async function submitRegister(){
 }
 
 /* ===================== ORDER ===================== */
+// รูปแบบการรับสินค้า (ส่งถึงร้าน = ค่าเริ่มต้น / รับเองที่รัตนไพบูลย์)
+let deliverMode='ส่งถึงร้านลูกค้า';
+function setDeliver(m){
+  deliverMode=m;
+  const s=document.getElementById('delvShip'), p=document.getElementById('delvPick');
+  if(s) s.classList.toggle('active', m==='ส่งถึงร้านลูกค้า');
+  if(p) p.classList.toggle('active', m!=='ส่งถึงร้านลูกค้า');
+}
 async function submitOrder(){
   if(!Object.keys(cart).length){ showToast('ตะกร้าว่าง','warning'); return; }
   if(!currentCustomer){ showToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ','warning'); openModal('loginModal'); return; }
   const orderId=draftOrderId();   // ใช้ orderId เดิมของ draft (ที่ sync รออนุมัติราคา ไว้แล้ว) → ยืนยันทับเป็นอนุมัติราคา
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   // รูปแบบ = ขาย/แถม/ไม่อนุมัติ , หน่วย = หน่วยละเอียดตามบาร์โค้ด ; สถานะตอนยืนยัน = อนุมัติราคา
-  const payload=Object.assign({ action:'order', orderId, note, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
+  const payload=Object.assign({ action:'order', orderId, note, deliver:deliverMode, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
   showSpinner('กำลังส่งออเดอร์...');
   _orderInFlight=true;                       // กันผู้ใช้ปิดหน้าระหว่างส่ง (beforeunload เตือน)
   let ok=false;
   try{ ok=await sendAndConfirm(payload, orderId); }
   finally{ _orderInFlight=false; hideSpinner(); }
   if(ok){
-    cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; renderCart(); renderProducts(); renderCartBadge();
+    cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; setDeliver('ส่งถึงร้านลูกค้า'); renderCart(); renderProducts(); renderCartBadge();
     showToast('ส่งออเดอร์สำเร็จ! เลขที่ '+orderId,'success');
     goShop();
   } else {

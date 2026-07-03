@@ -25,9 +25,11 @@ var ORDER_SHEET_GID    = 1594322176;   // สำรอง: เผื่อเป
 // เอา Channel access token (long-lived) จาก LINE Developers > channel Messaging API ของ OA Rattana_Official
 var LINE_TOKEN = 'PASTE_LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN';
 
-// ───── Discord (แจ้งเตือน "เปิดร้านค้าใหม่" เข้าห้อง Discord) ─────
+// ───── Discord (แจ้งเตือนเข้าห้อง Discord) ─────
 // วิธีเอา URL: ใน Discord → คลิกขวาห้องที่จะให้เด้ง → แก้ไขช่อง → Integrations → Webhooks → New Webhook → Copy Webhook URL
-var DISCORD_WEBHOOK = 'PASTE_DISCORD_WEBHOOK_URL';
+// webhook ผูกกับ "ห้อง" เดียว → คนละห้องต้องคนละ webhook
+var DISCORD_WEBHOOK       = 'PASTE_DISCORD_WEBHOOK_URL';        // ห้องแจ้งเตือน "เปิดร้านค้าใหม่" (เช่น new-user-roo)
+var DISCORD_WEBHOOK_ORDER = 'PASTE_DISCORD_WEBHOOK_ORDER_URL';  // ห้องแจ้งเตือน "ออเดอร์เข้า ORDER ROO" (เช่น order-roo-w1)
 
 // ───── Supabase (เก็บออเดอร์ลงฐานข้อมูลด้วย — dual-write) ─────
 // SUPABASE_URL = Project URL (เช่น https://abcd.supabase.co)
@@ -361,6 +363,33 @@ function pushDiscordNewShop(d){
   });
 }
 
+/* ───────── แจ้งเตือน "ออเดอร์เข้า" (ORDER ROO) เข้า Discord (ตอนลูกค้ายืนยันสั่งซื้อ) ───────── */
+function pushDiscordOrder(d){
+  if(!DISCORD_WEBHOOK_ORDER || DISCORD_WEBHOOK_ORDER.indexOf('PASTE')>=0) return;   // ยังไม่ตั้ง webhook ห้องออเดอร์
+  var cnt = 0;
+  if (Array.isArray(d.items)) d.items.forEach(function(it){ if (String(it.type||'ขาย')==='ขาย' && String(it.status||'')!=='ไม่อนุมัติ') cnt++; });   // นับเฉพาะรายการขายที่ยังอยู่ (ไม่รวมของแถม/รายการที่ถูกยกเลิก)
+  var deliver = String(d.deliver||'').trim();
+  var deliverTxt = deliver ? ((/รับ/.test(deliver)?'🏠 ':'🚚 ') + deliver) : '-';
+  var lines = [
+    '**ชื่อลูกค้า :** ' + (d.customerName||'-') + (d.phone?(' ('+d.phone+')'):''),
+    '**' + cnt + ' รายการ** • ' + numFmt(d.total||0) + ' บาท',
+    '**เซลล์ :** (' + (d.warehouse||'-') + ') ' + (d.salemanName||'-'),
+    '**การรับสินค้า :** ' + deliverTxt
+  ];
+  if (d.note) lines.push('**หมายเหตุ :** ' + d.note);
+  lines.push('**เลขที่ออเดอร์ :** ' + (d.orderId||'-'));
+  var payload = { embeds:[ {
+    title: '🛒 ORDER ROO',
+    description: lines.join('\n'),
+    color: 0x0d1b3e,
+    footer: { text: 'Rattana Online Order (ROO)' }
+  } ] };
+  UrlFetchApp.fetch(DISCORD_WEBHOOK_ORDER, {
+    method:'post', contentType:'application/json',
+    payload: JSON.stringify(payload), muteHttpExceptions:true
+  });
+}
+
 /* แปลงชื่อ/รหัสเซลล์สำหรับออเดอร์จาก Roo: ชื่อ + " (ROO)"; รหัส PMW102→ROW102 (PM→RO), HSW104→ROH104 (HSW→ROH) */
 function applySalesmanFormat(d) {
   if (d.salemanName) { var n = String(d.salemanName).trim(); if (n && n.indexOf('(ROO)') < 0) d.salemanName = n + ' (ROO)'; }
@@ -454,7 +483,8 @@ function appendOrderRow(sh, headers, bcCol, d, it) {
     'lineId': d.uid || '',                         // LINE userId
     'billId': d.orderId || '',                     // เลขที่ออเดอร์ (ORD...) ลงช่อง billId ให้แอดมิน/Roo จับกลุ่มบิล
     'โปรที่ใช้': it.promo || '',
-    'หมายเหตุ': d.note || ''
+    'หมายเหตุ': d.note || '',
+    'รูปแบบการจัดส่ง': d.deliver || ''     // ส่งถึงร้านลูกค้า / รับสินค้าเองที่รัตนไพบูลย์ (คอลัมน์ AJ)
   };
   var vmap = {};
   for (var k in v) vmap[normHead(k)] = v[k];
@@ -504,6 +534,7 @@ function handleOrder(d) {
   var r = writeOrderToSheet(d);
   if (!r.ok) return r;
   try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า (ทุก User ID ของร้าน)
+  try { pushDiscordOrder(d); } catch (e) {}         // แจ้งเตือนแอดมิน (ORDER ROO) เข้า Discord
   try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase
   // ยืนยันแล้ว = แถวกลายเป็น "อนุมัติ" → เครื่องอื่น getPending ไม่เจอ "รออนุมัติ" → เคลียร์ตะกร้าเอง (ไม่ต้องแตะแท็บตะกร้า)
   return { ok:true, message:'order saved', count:r.count };
@@ -713,7 +744,6 @@ function pushLineOrder(d, sh){
     { type:'text', text:'ยอดเงินรวม', weight:'bold', size:'md', color:NAVY, gravity:'center' },
     { type:'text', text:numFmt(d.total)+' ฿', weight:'bold', size:'xl', align:'end', color:NAVY, gravity:'center' }
   ]});
-  body.push({ type:'text', text:'* ราคาอ้างอิง ยอดจริงยืนยันโดยฝ่ายขาย', size:'xxs', color:MUTE, wrap:true, margin:'sm', align:'center' });
 
   if(d.note){
     body.push({ type:'box', layout:'vertical', margin:'lg', backgroundColor:'#fff8f3', cornerRadius:'10px', paddingAll:'10px',
