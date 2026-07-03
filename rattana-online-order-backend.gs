@@ -370,24 +370,42 @@ function pushDiscordOrder(d){
   if (Array.isArray(d.items)) d.items.forEach(function(it){ if (String(it.type||'ขาย')==='ขาย' && String(it.status||'')!=='ไม่อนุมัติ') cnt++; });   // นับเฉพาะรายการขายที่ยังอยู่ (ไม่รวมของแถม/รายการที่ถูกยกเลิก)
   var deliver = String(d.deliver||'').trim();
   var deliverTxt = deliver ? ((/รับ/.test(deliver)?'🏠 ':'🚚 ') + deliver) : '-';
+  var shipDay = ''; try { shipDay = shipDayForShop_(d.customerName); } catch(e){}   // วันส่งจากชีทลงทะเบียน (จับด้วยชื่อร้าน)
   var lines = [
     '**ชื่อลูกค้า :** ' + (d.customerName||'-') + (d.phone?(' ('+d.phone+')'):''),
     '**' + cnt + ' รายการ** • ' + numFmt(d.total||0) + ' บาท',
-    '**เซลล์ :** (' + (d.warehouse||'-') + ') ' + (d.salemanName||'-'),
-    '**การรับสินค้า :** ' + deliverTxt
+    '**เซลล์ :** (' + (d.warehouse||'-') + ') ' + (d.salemanName||'-')
   ];
-  if (d.note) lines.push('**หมายเหตุ :** ' + d.note);
+  if (shipDay) lines.push('**วันส่ง :** ' + shipDay);
+  if (d.note)  lines.push('**หมายเหตุ :** ' + d.note);
+  lines.push('**การรับสินค้า :** ' + deliverTxt);
   lines.push('**เลขที่ออเดอร์ :** ' + (d.orderId||'-'));
   var payload = { embeds:[ {
     title: '🛒 ORDER ROO',
     description: lines.join('\n'),
-    color: 0x0d1b3e,
-    footer: { text: 'Rattana Online Order (ROO)' }
+    color: 0x0d1b3e
   } ] };
   UrlFetchApp.fetch(DISCORD_WEBHOOK_ORDER, {
     method:'post', contentType:'application/json',
     payload: JSON.stringify(payload), muteHttpExceptions:true
   });
+}
+
+// หา "วันส่ง" ของร้านจากชีทลงทะเบียน (จับด้วยชื่อร้าน = คอลัมน์ "ชื่อ / ร้านค้า")
+function shipDayForShop_(shopName){
+  shopName = String(shopName||'').trim();
+  if(!shopName) return '';
+  var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+  var reg = getSheetByGid(ss, REG_SHEET_GID); if(!reg) return '';
+  var last = reg.getLastRow(); if(last<2) return '';
+  var H = reg.getRange(1,1,1,reg.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+  var nameC = H.indexOf('ชื่อ / ร้านค้า'), dayC = H.indexOf('วันส่ง');
+  if(nameC<0 || dayC<0) return '';
+  var rows = reg.getRange(2,1,last-1,reg.getLastColumn()).getValues();
+  for(var i=0;i<rows.length;i++){
+    if(String(rows[i][nameC]||'').trim() === shopName) return String(rows[i][dayC]||'').trim();
+  }
+  return '';
 }
 
 /* แปลงชื่อ/รหัสเซลล์สำหรับออเดอร์จาก Roo: ชื่อ + " (ROO)"; รหัส PMW102→ROW102 (PM→RO), HSW104→ROH104 (HSW→ROH) */
