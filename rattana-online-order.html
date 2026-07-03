@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.81</title>
+<title>Rattana Online Order v2.82</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -336,7 +336,7 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.81</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.82</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -813,13 +813,23 @@ function buildPromoIndex(){
     const m=promoIndex[field]; if(!m.has(key)) m.set(key,[]); m.get(key).push(p);
   });
 }
+/* คลังส่งของลูกค้า (แปลงคลังเซลล์→คลังส่งด้วย shipFromSeller) — memo ตาม currentCustomer กันคำนวณซ้ำถี่ */
+let _whMemoCust=undefined, _whMemo='W1';
+function custShipWh(){ if(_whMemoCust!==currentCustomer){ _whMemoCust=currentCustomer; _whMemo=shipFromSeller(displayWarehouse(currentCustomer)); } return _whMemo; }
+/* โปรใช้ได้กับคลังลูกค้าไหม: คอลัมน์ Warehouses = คลังเซลล์ที่โปรครอบคลุม (แปลงเป็นคลังส่งแบบเดียวกับอำเภอ)
+   ว่าง = ทุกคลัง ; เช่น "W1,W3" → คลังส่ง {W1} → ลูกค้าคลังส่ง W4 ไม่เห็น */
+function promoWarehouseOK(p){
+  const raw=clean(p['Warehouses']); if(!raw) return true;
+  const cw=custShipWh();
+  return raw.split(/[,\s]+/).some(w=>w && shipFromSeller(w)===cw);
+}
 function promoObjsFor(prod){
   const out=[];
   for(const field in promoIndex){
     const v=clean(prod[field]).toLowerCase(); if(!v) continue;
     const hit=promoIndex[field].get(v); if(hit) out.push(...hit);
   }
-  return out;
+  return out.length ? out.filter(promoWarehouseOK) : out;   // กรองตามคลังส่งของลูกค้า
 }
 function promosFor(prod){
   const out=promoObjsFor(prod).map(h=>clean(h['รายละเอียดโปร'])||clean(h['ชื่อโปร']));
