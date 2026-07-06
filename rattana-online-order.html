@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.90</title>
+<title>Rattana Online Order v2.91</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.90</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.91</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -964,8 +964,8 @@ function stockBandHtml(p){
   if(s==='low') return '<div class="stock-band low">⚠️ สินค้าอาจจะหมด</div>';
   return '';
 }
-/* สินค้าใหม่: FIRST STOCK DATE ภายใน 60 วัน */
-function isNewProduct(p){ const d=Date.parse(clean(p['FIRST STOCK DATE']).replace(/\//g,'-')); return !isNaN(d) && (Date.now()-d) < 60*864e5; }
+/* สินค้าใหม่: ยึด RANK = "New" ของคลังลูกค้า (ไม่ใช่ FIRST STOCK DATE แล้ว) */
+function isNewProduct(p){ return productRank(p,displayWarehouse(currentCustomer))==='NEW'; }
 /* พื้นกล่องรูป = ขาวแบบเดิม */
 function cardTint(p){ return '#fff'; }
 function priceOf(p){
@@ -1006,9 +1006,8 @@ function visibleProducts(){
   return result;
 }
 function newestProducts(){
-  return visibleProducts()
-    .map(p=>({p,d:Date.parse(clean(p['FIRST STOCK DATE']).replace(/\//g,'-'))}))
-    .filter(x=>!isNaN(x.d)).sort((a,b)=>b.d-a.d).map(x=>x.p);
+  const wh=displayWarehouse(currentCustomer);
+  return visibleProducts().filter(p=>productRank(p,wh)==='NEW');   // เฉพาะ RANK = New (คงลำดับยอดขาย/กระจายหมดชั่วคราวจาก visibleProducts)
 }
 function filteredProducts(){
   let list = specialFilter==='new' ? newestProducts() : visibleProducts();
@@ -1163,7 +1162,7 @@ function setSpecial(mode){
   document.getElementById('searchInput').value='';
   document.getElementById('catLabel').textContent='📂 ทุกหมวดหมู่';
   const b=document.getElementById('specialBanner'); b.style.display='flex';
-  b.innerHTML=`<span>${mode==='promo'?'🎁 แสดงเฉพาะสินค้ามีโปรโมชั่น':'🆕 แสดงเฉพาะสินค้าใหม่ (ใหม่สุดก่อน)'}</span><button class="btn btn-sm btn-outline" onclick="goShop()">✕ ล้าง</button>`;
+  b.innerHTML=`<span>${mode==='promo'?'🎁 แสดงเฉพาะสินค้ามีโปรโมชั่น':'🆕 แสดงเฉพาะสินค้าใหม่ (RANK New)'}</span><button class="btn btn-sm btn-outline" onclick="goShop()">✕ ล้าง</button>`;
   renderCatDropdown(); renderProducts();
 }
 function clearSpecial(){ specialFilter='none'; document.getElementById('specialBanner').style.display='none'; currentPage=1; renderProducts(); }
