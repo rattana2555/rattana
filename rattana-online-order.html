@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.91</title>
+<title>Rattana Online Order v2.92</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.91</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.92</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1563,7 +1563,7 @@ function renderCart(){
         <span class="ci-price">${baht(i.qty*itemUnitPrice(i))}</span>
         <button class="ci-del" onclick="removeItem('${esc(i.key)}')">🗑</button>
       </div>
-      <div class="txt-sm muted">${baht(itemUnitPrice(i))} / ${i.unitName}${(i.tiers&&i.tiers.length>1)?' <span class="txt-success">(ราคาตามจำนวน)</span>':''}</div>
+      <div class="txt-sm muted">${baht(itemUnitPrice(i))} / ${i.unitName}</div>
     </div></div>`;
   const giftHtml=g=>`<div class="cart-item gift-item">
     <img class="ci-img" src="${g.img||giftImg(g.name)}" onerror="this.src='${PLACEHOLDER}'">
