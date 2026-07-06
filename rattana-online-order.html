@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.86</title>
+<title>Rattana Online Order v2.87</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -341,7 +341,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.86</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.87</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1663,6 +1663,13 @@ function renderProfile(){
 async function loginByPhone(){
   const ph=digits(document.getElementById('loginPhone').value);
   if(ph.length<9){ showToast('กรุณากรอกเบอร์ให้ครบ','warning'); return; }
+  // ข้อมูลลูกค้ายังโหลดไม่เสร็จ → รอสักครู่ก่อน (กันขึ้น "ไม่พบเบอร์" ทั้งที่ลงทะเบียนแล้ว)
+  if(!CUSTOMERS.length){
+    showSpinner('กำลังโหลดข้อมูล...');
+    for(let i=0;i<24 && !CUSTOMERS.length;i++){ await sleep(500); }
+    hideSpinner();
+    if(!CUSTOMERS.length){ showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบเน็ตแล้วลองใหม่','error'); return; }
+  }
   const hit=CUSTOMERS.find(c=>c.phone===ph);
   if(!hit){ showToast('ไม่พบเบอร์นี้ในระบบ กรุณาลงทะเบียน','error'); return; }
   // เครื่องนี้เพิ่งเข้าผ่านไลน์แต่ยังไม่ได้จับ uid → ลองดึงจาก LIFF ก่อน เพื่อผูกไลน์เครื่องที่ 2,3.. (เก็บช่อง "User ID เพิ่ม")
