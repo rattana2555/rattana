@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.87</title>
+<title>Rattana Online Order v2.88</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -302,7 +302,9 @@ body.dark .pd-price{color:var(--gold-light)}
 .unit-btn small{font-weight:500;font-size:11px;color:var(--muted)}
 .unit-btn.active{border-color:var(--gold);background:rgba(43,111,208,.12);color:var(--navy)}
 body.dark .unit-btn.active{color:var(--gold-light)}
-.pd-qty{max-width:170px;margin-left:auto;margin-right:auto}
+.pd-qty{width:100%;margin:12px 0 0}
+.pd-qty button{width:80px;height:54px;font-size:28px}
+.pd-qty input{height:54px;font-size:22px}
 .pd-tiers{margin:14px 0}
 .pd-tiers-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
 .pd-tier-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;padding:8px 12px;border-radius:8px;margin-bottom:5px;background:var(--row-alt);border:1px solid var(--border);cursor:pointer;transition:background .12s,border-color .12s}
@@ -341,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.87</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.88</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
