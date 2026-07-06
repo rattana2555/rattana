@@ -703,7 +703,7 @@ function pushLineOrder(d, sh){
   if(!LINE_TOKEN || LINE_TOKEN.indexOf('PASTE')===0) return;   // ยังไม่ตั้ง token
   var recipients = allUidsForShop(d.phone, d.uid);            // ส่งทุกไลน์ของร้าน (เบอร์เดียวกัน)
   if(!recipients.length) return;                              // ไม่มีใครเข้าผ่านไลน์
-  var items = d.items || [];
+  var items = (d.items || []).filter(function(it){ return String(it.status||'')!=='ไม่อนุมัติ'; });   // ไม่โชว์รายการที่ลูกค้าลบออก (ยกเลิก) — ให้ตรงกับยอดรวม
 
   // ── พาเลตต์แบรนด์ (navy/gold = สีหลักแอป) ──
   var NAVY='#0d1b3e', GOLD='#c9a84c', GREEN='#2ecc71', INK='#3a4663', MUTE='#8a94ad', LINE='#e8e2d2', CREAM='#f6f1e3';
