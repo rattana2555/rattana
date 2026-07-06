@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.84</title>
+<title>Rattana Online Order v2.85</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -302,11 +302,12 @@ body.dark .pd-price{color:var(--gold-light)}
 .unit-btn small{font-weight:500;font-size:11px;color:var(--muted)}
 .unit-btn.active{border-color:var(--gold);background:rgba(43,111,208,.12);color:var(--navy)}
 body.dark .unit-btn.active{color:var(--gold-light)}
-.pd-qty{max-width:170px}
+.pd-qty{max-width:170px;margin-left:auto;margin-right:auto}
 .pd-tiers{margin:14px 0}
 .pd-tiers-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
-.pd-tier-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;padding:8px 12px;border-radius:8px;margin-bottom:5px;background:var(--row-alt);border:1px solid var(--border)}
+.pd-tier-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;padding:8px 12px;border-radius:8px;margin-bottom:5px;background:var(--row-alt);border:1px solid var(--border);cursor:pointer;transition:background .12s,border-color .12s}
 .pd-tier-row.active{background:rgba(43,111,208,.14);border-color:var(--gold)}
+.pd-tier-row:active{transform:scale(.99)}
 .pd-tier-row b{color:var(--navy)}body.dark .pd-tier-row b{color:var(--gold-light)}
 /* Profile contact / hub */
 .info-note{background:#fff4f4;border:1px solid #ffd5d0;color:#c0392b;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;line-height:1.5;margin-bottom:14px}
@@ -340,7 +341,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.84</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.85</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1375,8 +1376,8 @@ function renderPdTiers(){
   if(!u.tiers || u.tiers.length<2){ el.innerHTML=''; return; }
   let actMin=u.tiers[0].min; u.tiers.forEach(t=>{ if(pd.qty>=t.min) actMin=t.min; });
   const lbl=pdStrip(u.detail)||u.name;
-  el.innerHTML='<div class="pd-tiers-title">💰 ราคาตามจำนวน (ยิ่งซื้อเยอะยิ่งถูก)</div>'+u.tiers.map(t=>
-    `<div class="pd-tier-row ${t.min===actMin?'active':''}"><span>${t.min} ${lbl} ขึ้นไป</span><b>${baht(t.price)}</b></div>`).join('');
+  el.innerHTML='<div class="pd-tiers-title">💰 ราคาตามจำนวน (ยิ่งซื้อเยอะยิ่งถูก) — แตะเพื่อเลือกจำนวน</div>'+u.tiers.map(t=>
+    `<div class="pd-tier-row ${t.min===actMin?'active':''}" onclick="pdSetQty(${t.min})"><span>${t.min} ${lbl} ขึ้นไป</span><b>${baht(t.price)}</b></div>`).join('');
 }
 function pdQty(d){ const pd=window._pd; pd.qty=Math.max(1,(pd.qty||1)+d); document.getElementById('pdQtyInput').value=pd.qty; renderPdPrice(); renderPdTiers(); }
 function pdSetQty(v){ const pd=window._pd; pd.qty=Math.max(1,parseInt(v)||1); document.getElementById('pdQtyInput').value=pd.qty; renderPdPrice(); renderPdTiers(); }
@@ -1449,7 +1450,8 @@ function renderProducts(){
 function findProduct(name){ return PRODUCTS.find(p=>clean(p['PRODUCT NAME'])===name); }
 /* หน่วยที่ขายได้ของสินค้า: ลัง(CS) / แพ็ค(PA) เสมอถ้ามีราคา, ชิ้น(EA) เฉพาะ CAT SIZE ที่อยู่ในชีทขาย EA */
 /* ราคาขั้นบันได (ลัง/CS) ตาม RANK ของคลังลูกค้า:
-   A,B: 1=S03, 10=S02, 1เลท(CS PALLET)=S01 | C: 1=S03, 5=S02, 10=S01 | D,E,F,New: 1=S03, 2=S02, 5=S01 */
+   A: 1=S03, 10=S02, 1เลท(CS PALLET)=S01 | B,C: 1=S03, 5=S02, 10=S01 | D,E,F,New: 1=S03, 2=S02, 5=S01
+   *** ชั่วคราว: B ใช้สเต็ปเดียวกับ C (เดิม B เหมือน A) — จะเปลี่ยนกลับ ให้ย้าย 'B' กลับไปรวมกับ 'A' *** */
 function productRank(p,wh){
   if(wh){ const r=clean(p['RANK '+wh]).toUpperCase(); if(r) return r; }   // ยึดตามคลังลูกค้าก่อน
   for(const w of ['W1','W2','W3','W4','C4']){ const r=clean(p['RANK '+w]).toUpperCase(); if(r) return r; } // ไม่มีคลัง/ว่าง → คลังแรกที่มีค่า
@@ -1461,9 +1463,9 @@ function priceTiersCS(p,wh){
   const rank = productRank(p,wh);
   const pallet=numOr0(p['CS PALLET']);
   let raw;
-  if(rank==='A'||rank==='B') raw=[[1,s03],[10,s02],[pallet>0?pallet:10,s01]];
-  else if(rank==='C')        raw=[[1,s03],[5,s02],[10,s01]];
-  else                       raw=[[1,s03],[2,s02],[5,s01]]; // D,E,F,New,ไม่ระบุ
+  if(rank==='A')                  raw=[[1,s03],[10,s02],[pallet>0?pallet:10,s01]];
+  else if(rank==='B'||rank==='C') raw=[[1,s03],[5,s02],[10,s01]];   // ชั่วคราว: B ใช้สเต็ปเดียวกับ C (เปลี่ยนกลับ: ย้าย 'B' ไปรวมกับ 'A' ด้านบน)
+  else                            raw=[[1,s03],[2,s02],[5,s01]]; // D,E,F,New,ไม่ระบุ
   const tiers=[]; raw.forEach(([min,price])=>{ if(price>0 && !tiers.some(t=>t.min===min)) tiers.push({min,price}); });
   tiers.sort((a,b)=>a.min-b.min);
   return tiers.length?tiers:null;
