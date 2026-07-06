@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.89</title>
+<title>Rattana Online Order v2.90</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -331,10 +331,6 @@ body.dark .biz-hours .txt-bold{color:var(--gold-light)}
 .dseg{width:100%;padding:11px 14px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:12px;font-size:14px;font-weight:600;text-align:left;cursor:pointer;transition:all .15s}
 .dseg.active{border-color:var(--gold);background:rgba(201,168,76,.14);color:var(--navy);box-shadow:inset 0 0 0 1px var(--gold)}
 body.dark .dseg.active{color:var(--gold-light)}
-.quick-filters{display:flex;gap:10px;margin-bottom:12px}
-.qf-btn{flex:1;padding:12px 12px;border:1.5px solid var(--border);background:var(--card-bg);color:var(--text);border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .12s}
-.qf-btn.active{border-color:var(--gold);background:rgba(201,168,76,.16);color:var(--navy);box-shadow:inset 0 0 0 1px var(--gold)}
-body.dark .qf-btn.active{color:var(--gold-light)}
 .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 .hub-btn{width:100%;background:var(--card-bg);border:1.5px solid var(--border);border-top:3px solid var(--gold);border-radius:var(--radius-md);padding:20px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:700;color:var(--text);box-shadow:var(--shadow-sm);min-height:96px}
 .hub-btn .hi{font-size:28px}
@@ -347,7 +343,7 @@ body.dark .qf-btn.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.89</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.90</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -361,11 +357,6 @@ body.dark .qf-btn.active{color:var(--gold-light)}
 
 <!-- ===== SHOP VIEW ===== -->
 <section class="view active" id="viewShop">
-  <div class="quick-filters">
-    <button class="qf-btn" id="qfPromo" onclick="toggleSpecial('promo')">🎁 โปรโมชั่น</button>
-    <button class="qf-btn" id="qfNew" onclick="toggleSpecial('new')">🆕 สินค้าใหม่</button>
-  </div>
-
   <div class="search-bar">
     <div class="search-box"><span class="si">🔍</span><input id="searchInput" type="text" placeholder="ค้นหาสินค้า..." oninput="onSearch()" autocomplete="off"></div>
     <button class="filter-btn scan-btn" onclick="openScan()" title="สแกนบาร์โค้ด">📷</button>
@@ -419,6 +410,8 @@ body.dark .qf-btn.active{color:var(--gold-light)}
 <!-- Bottom nav -->
 <nav class="bottom-nav">
   <button class="bn-btn active" id="navShop" onclick="goShop()"><span class="bi">🏠</span>หน้าหลัก</button>
+  <button class="bn-btn" id="navPromo" onclick="goPromo()"><span class="bi">🎁</span>โปร</button>
+  <button class="bn-btn" id="navNew" onclick="goNew()"><span class="bi">🆕</span>ใหม่</button>
   <button class="bn-btn" id="navCart" onclick="goCart()"><span class="bi">🛒</span>ตะกร้า<span class="bn-badge" id="cartBadgeNav" style="display:none">0</span></button>
   <button class="bn-btn" id="navProfile" onclick="goProfile()"><span class="bi">👤</span>Profile</button>
 </nav>
@@ -1164,26 +1157,19 @@ function fillBirthSelects(){
   if(yEl&&yEl.options.length<=1){ const be=new Date().getFullYear()+543; yEl.innerHTML='<option value="">พ.ศ.</option>'+Array.from({length:101},(_,i)=>opt(be-i)).join(''); }
 }
 
-/* ── ปุ่มชิป โปร / สินค้าใหม่ (กดซ้ำ = ปิด) ── */
-function toggleSpecial(mode){ if(specialFilter===mode) clearSpecial(); else setSpecial(mode); }
-function syncQuickFilters(){
-  const p=document.getElementById('qfPromo'), n=document.getElementById('qfNew');
-  if(p) p.classList.toggle('active', specialFilter==='promo');
-  if(n) n.classList.toggle('active', specialFilter==='new');
-}
+/* ── หน้าโปร / สินค้าใหม่ (เปิดจากแท็บล่าง) ── */
 function setSpecial(mode){
   specialFilter=mode; activeCat='ทั้งหมด'; searchTerm=''; currentPage=1;
   document.getElementById('searchInput').value='';
   document.getElementById('catLabel').textContent='📂 ทุกหมวดหมู่';
   const b=document.getElementById('specialBanner'); b.style.display='flex';
-  b.innerHTML=`<span>${mode==='promo'?'🎁 แสดงเฉพาะสินค้ามีโปรโมชั่น':'🆕 แสดงเฉพาะสินค้าใหม่ (ใหม่สุดก่อน)'}</span><button class="btn btn-sm btn-outline" onclick="clearSpecial()">✕ ล้าง</button>`;
-  syncQuickFilters(); renderCatDropdown(); renderProducts();
-  document.getElementById('specialBanner').scrollIntoView({behavior:'smooth',block:'start'});
+  b.innerHTML=`<span>${mode==='promo'?'🎁 แสดงเฉพาะสินค้ามีโปรโมชั่น':'🆕 แสดงเฉพาะสินค้าใหม่ (ใหม่สุดก่อน)'}</span><button class="btn btn-sm btn-outline" onclick="goShop()">✕ ล้าง</button>`;
+  renderCatDropdown(); renderProducts();
 }
-function clearSpecial(){ specialFilter='none'; document.getElementById('specialBanner').style.display='none'; currentPage=1; syncQuickFilters(); renderProducts(); }
+function clearSpecial(){ specialFilter='none'; document.getElementById('specialBanner').style.display='none'; currentPage=1; renderProducts(); }
 
 function onSearch(){ searchTerm=clean(document.getElementById('searchInput').value); currentPage=1; renderProducts(); }
-function clearSearch(){ document.getElementById('searchInput').value=''; searchTerm=''; activeCat='ทั้งหมด'; specialFilter='none'; document.getElementById('specialBanner').style.display='none'; document.getElementById('catLabel').textContent='📂 ทุกหมวดหมู่'; currentPage=1; syncQuickFilters(); renderCatDropdown(); renderProducts(); }
+function clearSearch(){ document.getElementById('searchInput').value=''; searchTerm=''; activeCat='ทั้งหมด'; specialFilter='none'; document.getElementById('specialBanner').style.display='none'; document.getElementById('catLabel').textContent='📂 ทุกหมวดหมู่'; currentPage=1; renderCatDropdown(); renderProducts(); }
 
 /* ===================== SCAN BARCODE ===================== */
 let _scanner=null,_scanLib=false,_scanBusy=false;
@@ -1597,9 +1583,11 @@ function renderCart(){
 }
 
 /* ===================== NAV ===================== */
-function setNav(id){ ['navShop','navCart','navProfile'].forEach(n=>document.getElementById(n).classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function setNav(id){ ['navShop','navPromo','navNew','navCart','navProfile'].forEach(n=>document.getElementById(n).classList.remove('active')); document.getElementById(id).classList.add('active'); }
 function showView(v){ ['viewShop','viewCart','viewProfile'].forEach(x=>document.getElementById(x).classList.remove('active')); document.getElementById(v).classList.add('active'); window.scrollTo(0,0); }
-function goShop(){ showView('viewShop'); setNav('navShop'); }
+function goShop(){ showView('viewShop'); setNav('navShop'); clearSpecial(); }
+function goPromo(){ setNav('navPromo'); showView('viewShop'); setSpecial('promo'); }
+function goNew(){ setNav('navNew'); showView('viewShop'); setSpecial('new'); }
 function goCart(){ _histShowAll=false; showView('viewCart'); setNav('navCart'); renderCart(); renderCartHistory(); loadHistory().then(renderCartHistory); pullCart(false); }
 function goProfile(){ showView('viewProfile'); setNav('navProfile'); renderProfile(); }
 
