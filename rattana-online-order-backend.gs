@@ -52,31 +52,29 @@ function testSupabaseInsert(){
 function pushOrderToSupabase(d){
   if(!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE')>=0 || !SUPABASE_KEY || SUPABASE_KEY.indexOf('PASTE')>=0) return; // ยังไม่ตั้งค่า
   var now = new Date();
-  var dateISO = Utilities.formatDate(now,'Asia/Bangkok','yyyy-MM-dd');   // date type -> ISO
-  var timeStr = Utilities.formatDate(now,'Asia/Bangkok','HH:mm');        // time column ควรเป็น text
+  var dateISO = Utilities.formatDate(now,'Asia/Bangkok','yyyy-MM-dd');
+  var timeStr = Utilities.formatDate(now,'Asia/Bangkok','HH.mm');
   var rows = (d.items||[]).map(function(it){
     return {
-      date: dateISO, time: timeStr, email: d.uid||'',
-      salesman_name: d.salemanName||'', salesman_code: d.salemanCode||'',
-      wh: d.warehouse||'', customer_name: d.customerName||'', customer_code: d.shopCode||'',
-      tran_type: it.type||'', barcode: String(it.barcode||''), product_name: it.name||'',
-      status: '',                                       // = "ยกเลิก" (ว่าง = ไม่ยกเลิก)
-      qty: Number(it.qty)||0, unit: it.unit||'',
-      price: Number(it.price)||0, total: Number(it.total)||0,
-      orderid: d.orderId||'', note: d.note||'',
-      wh_ship: d.warehouse||'',
-      approve_status: it.status||d.status||'',          // สถานะอนุมัติ: รออนุมัติ/อนุมัติ/ไม่อนุมัติ
-      promotion: it.promo||''
+      'วัน': dateISO, 'เวลา': timeStr, 'email': d.uid||'',
+      'ชื่อ-สกุล': d.salemanName||'', 'รหัสเซลล์': d.salemanCode||'',
+      'คลัง': d.warehouse||'', 'ชื่อร้าน': d.customerName||'', 'รหัสร้าน': d.shopCode||'',
+      'รูปแบบ': it.type||'', 'Barcode': String(it.barcode||''), 'ชื่อสินค้า': it.name||'',
+      'ยกเลิก': '',                                      // ว่าง = ไม่ยกเลิก
+      'จำนวน': Number(it.qty)||0, 'หน่วย': it.unit||'',
+      'ราคา': Number(it.price)||0, 'ยอดเงินรวม': Number(it.total)||0,
+      'orderId': d.orderId||'', 'หมายเหตุ': d.note||'',
+      'คลังส่ง': d.warehouse||'', 'สถานะอนุมัติ': it.status||d.status||'',
+      'โปรที่ใช้': it.promo||'', 'lineId': d.uid||'', 'billId': d.orderId||'',
+      'รูปแบบการจัดส่ง': d.deliver||''
     };
   });
   if(!rows.length) return;
   var base = SUPABASE_URL + '/rest/v1/roo_sales';
-  // ── กันออเดอร์ซ้ำ (upsert แบบยึด orderId) ──
-  // ถ้า orderId นี้เคยบันทึกแล้ว (กดยืนยันรัว / เน็ตส่งซ้ำ / แก้ออเดอร์แล้วส่งใหม่ด้วย orderId เดิม)
-  // ลบแถวเดิมของ orderId นั้นทิ้งก่อน แล้วค่อยเขียนชุดใหม่ → เหลือชุดเดียวเสมอ ไม่มีแถวซ้ำ
+  // ── กันออเดอร์ซ้ำ: ลบแถวเดิมของ orderId นี้ก่อน แล้วค่อยเขียนชุดใหม่ → เหลือชุดเดียวเสมอ ──
   var oid = d.orderId || '';
   if(oid){
-    UrlFetchApp.fetch(base + '?orderid=eq.' + encodeURIComponent(oid), {
+    UrlFetchApp.fetch(base + '?orderId=eq.' + encodeURIComponent(oid), {
       method:'delete',
       headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' },
       muteHttpExceptions:true
@@ -605,47 +603,33 @@ function syncOrderIdToSupabase(sh, headers, orderId) {
   if (!SUPABASE_URL || SUPABASE_URL.indexOf('PASTE')>=0 || !SUPABASE_KEY || SUPABASE_KEY.indexOf('PASTE')>=0) return;
   if (!orderId) return;
   var last = sh.getLastRow(); if (last < 2) return;
+  // คอลัมน์ที่ส่งขึ้น Supabase = ชื่อหัวชีท (ตรงกับชื่อคอลัมน์ในตาราง roo_sales หัวไทย)
+  var COLS = ['วัน','เวลา','email','ชื่อ-สกุล','รหัสเซลล์','คลัง','ชื่อร้าน','รหัสร้าน','รูปแบบ','Barcode','ชื่อสินค้า','ยกเลิก','จำนวน','หน่วย','ราคา','ยอดเงินรวม','orderId','หมายเหตุ','คลังส่ง','วันกำหนดส่ง','สถานะอนุมัติ','ผู้อนุมัติ','เวลาอนุมัติ','เหตุผลที่ขอ','ส่วนต่างราคา','ราคาแนะนำ','ราคาขอขาย','โปรที่ใช้','lineId','ข้อมูลไม่ครบ','billId','สถานะจัด','แอดมินจัด','วันสั่งจัด','เวลาสั่งจัด','รูปแบบการจัดส่ง'];
+  var NUM = {'จำนวน':1,'ราคา':1,'ยอดเงินรวม':1,'ส่วนต่างราคา':1,'ราคาแนะนำ':1,'ราคาขอขาย':1};
+  var DATEC = {'วัน':1,'วันกำหนดส่ง':1,'วันสั่งจัด':1};
+  var TIMEC = {'เวลา':1,'เวลาอนุมัติ':1,'เวลาสั่งจัด':1};
   function ci(name){ for (var i=0;i<headers.length;i++){ if (normHead(headers[i])===normHead(name)) return i; } return -1; }
-  var c = {
-    date:ci('วัน'), time:ci('เวลา'), uid:ci('email'), sname:ci('ชื่อ-สกุล'), scode:ci('รหัสเซลล์'),
-    wh:ci('คลัง'), whship:ci('คลังส่ง'), cname:ci('ชื่อร้าน'), ccode:ci('รหัสร้าน'),
-    type:ci('รูปแบบ'), barcode:ci('Barcode'), pname:ci('ชื่อสินค้า'),
-    cancel:ci('ยกเลิก'), qty:ci('จำนวน'), unit:ci('หน่วย'), price:ci('ราคา'), total:ci('ยอดเงินรวม'),
-    oid:ci('orderId'), note:ci('หมายเหตุ'), promo:ci('โปรที่ใช้'),
-    shipDate:ci('วันกำหนดส่ง'), apprStatus:ci('สถานะอนุมัติ'), apprUser:ci('ผู้อนุมัติ'), apprTime:ci('เวลาอนุมัติ'),
-    saleNote:ci('เหตุผลที่ขอ'), diffPrice:ci('ส่วนต่างราคา'), recPrice:ci('ราคาแนะนำ'), reqPrice:ci('ราคาขอขาย')
-  };
-  if (c.oid < 0) return;
-  function g(r, idx){ return idx>=0 ? r[idx] : ''; }
-  function toISO(v){
-    if (v instanceof Date) return Utilities.formatDate(v,'Asia/Bangkok','yyyy-MM-dd');
-    var s=String(v||''); var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    return m ? (m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)) : s;
+  var idx = {}; COLS.forEach(function(n){ idx[n]=ci(n); });
+  var oidC = idx['orderId']; if (oidC < 0) return;
+  function toISO(v){ if (v instanceof Date) return Utilities.formatDate(v,'Asia/Bangkok','yyyy-MM-dd'); var s=String(v||''); var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? (m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)) : (s||null); }
+  function cell(name, v){
+    if (NUM[name]) { var s=String(v==null?'':v).replace(/,/g,'').trim(); if(s==='')return null; var n=Number(s); return isNaN(n)?null:n; }
+    if (DATEC[name]) return (v==null||String(v)==='') ? null : toISO(v);
+    if (TIMEC[name]) { if(v instanceof Date) return Utilities.formatDate(v,'Asia/Bangkok','HH.mm'); var s=String(v||''); return s===''?null:s; }
+    if (v instanceof Date) return Utilities.formatDate(v,'Asia/Bangkok','dd/MM/yyyy');
+    var s=String(v==null?'':v); return s===''?null:s;
   }
-  function txt(v){ var s=String(v==null?'':v); return s===''?null:s; }                                            // text → null ถ้าว่าง
-  function numOrNull(v){ var s=String(v==null?'':v).replace(/,/g,'').trim(); if(s==='') return null; var n=Number(s); return isNaN(n)?null:n; }
-  function dOrNull(v){ if(v==null||String(v)==='') return null; return toISO(v); }
   var data = sh.getRange(2, 1, last-1, headers.length).getValues();
   var rows = [];
   data.forEach(function(r){
-    if (String(g(r,c.oid)).trim() !== String(orderId).trim()) return;
-    rows.push({
-      date:toISO(g(r,c.date)), time:String(g(r,c.time)||''), email:String(g(r,c.uid)||''),
-      salesman_name:String(g(r,c.sname)||''), salesman_code:String(g(r,c.scode)||''),
-      wh:String(g(r,c.wh)||''), customer_name:String(g(r,c.cname)||''), customer_code:String(g(r,c.ccode)||''),
-      tran_type:String(g(r,c.type)||''), barcode:String(g(r,c.barcode)||''), product_name:String(g(r,c.pname)||''),
-      status:String(g(r,c.cancel)||''), qty:Number(g(r,c.qty))||0, unit:String(g(r,c.unit)||''),
-      price:Number(g(r,c.price))||0, total:Number(g(r,c.total))||0, orderid:String(orderId),
-      note:String(g(r,c.note)||''), wh_ship:String(g(r,c.whship)||g(r,c.wh)||''),
-      promotion:String(g(r,c.promo)||''),
-      approve_status:String(g(r,c.apprStatus)||''),
-      approve_user:txt(g(r,c.apprUser)), approve_time:txt(g(r,c.apprTime)), ship_date:dOrNull(g(r,c.shipDate)),
-      sale_note:txt(g(r,c.saleNote)),
-      diff_price:numOrNull(g(r,c.diffPrice)), recommend_price:numOrNull(g(r,c.recPrice)), request_price:numOrNull(g(r,c.reqPrice))
-    });
+    if (String(r[oidC]||'').trim() !== String(orderId).trim()) return;
+    var obj = {};
+    COLS.forEach(function(name){ var c=idx[name]; obj[name] = cell(name, (c>=0)?r[c]:''); });
+    obj['orderId'] = String(orderId);
+    rows.push(obj);
   });
   var base = SUPABASE_URL + '/rest/v1/roo_sales';
-  UrlFetchApp.fetch(base + '?orderid=eq.' + encodeURIComponent(orderId), {
+  UrlFetchApp.fetch(base + '?orderId=eq.' + encodeURIComponent(orderId), {
     method:'delete', headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, Prefer:'return=minimal' }, muteHttpExceptions:true
   });
   if (rows.length) UrlFetchApp.fetch(base, {
