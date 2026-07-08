@@ -54,7 +54,7 @@ function pushOrderToSupabase(d){
   var now = new Date();
   var dateISO = Utilities.formatDate(now,'Asia/Bangkok','yyyy-MM-dd');
   var timeStr = Utilities.formatDate(now,'Asia/Bangkok','HH.mm');
-  var rows = (d.items||[]).map(function(it){
+  var rows = (d.items||[]).filter(function(it){ return String(it.status||d.status||'')==='อนุมัติ'; }).map(function(it){   // เก็บแต่รายการที่อนุมัติ (ไม่เอาที่ลูกค้าลบ)
     return {
       'วัน': dateISO, 'เวลา': timeStr, 'email': d.uid||'',
       'ชื่อ-สกุล': d.salemanName||'', 'รหัสเซลล์': d.salemanCode||'',
@@ -611,6 +611,7 @@ function syncOrderIdToSupabase(sh, headers, orderId) {
   function ci(name){ for (var i=0;i<headers.length;i++){ if (normHead(headers[i])===normHead(name)) return i; } return -1; }
   var idx = {}; COLS.forEach(function(n){ idx[n]=ci(n); });
   var oidC = idx['orderId']; if (oidC < 0) return;
+  var stC = idx['สถานะอนุมัติ'];
   function toISO(v){ if (v instanceof Date) return Utilities.formatDate(v,'Asia/Bangkok','yyyy-MM-dd'); var s=String(v||''); var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? (m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)) : (s||null); }
   function cell(name, v){
     if (NUM[name]) { var s=String(v==null?'':v).replace(/,/g,'').trim(); if(s==='')return null; var n=Number(s); return isNaN(n)?null:n; }
@@ -623,6 +624,7 @@ function syncOrderIdToSupabase(sh, headers, orderId) {
   var rows = [];
   data.forEach(function(r){
     if (String(r[oidC]||'').trim() !== String(orderId).trim()) return;
+    if (stC>=0 && String(r[stC]||'').trim() !== 'อนุมัติ') return;   // เก็บแต่รายการที่อนุมัติ (ไม่เอา ไม่อนุมัติ/รออนุมัติ)
     var obj = {};
     COLS.forEach(function(name){ var c=idx[name]; obj[name] = cell(name, (c>=0)?r[c]:''); });
     obj['orderId'] = String(orderId);
