@@ -154,8 +154,8 @@ function getHistoryFor(code) {
   var props = PropertiesService.getScriptProperties(), pk = 'hist_' + code;
   try { var s = props.getProperty(pk); if (s) { var o = JSON.parse(s); if (o && o.p === period) return { ok:true, code:code, items:o.i||[], cached:true }; } } catch (e) {}
   try {
-    var sql = "SELECT REGEXP_REPLACE(Product_Code, r'^BC-','') AS barcode, ANY_VALUE(Product_Name) AS name, " +
-              "ANY_VALUE(Rattana_Unit) AS unit, ROUND(SUM(TotalBaht),0) AS baht, MAX(Month_Year) AS last " +
+    var sql = "SELECT REGEXP_REPLACE(Product_Code, r'^BC\\s*-\\s*','') AS barcode, ANY_VALUE(Product_Name) AS name, " +
+              "ANY_VALUE(Rattana_Unit) AS unit, ROUND(SUM(Exvat),0) AS baht, MAX(Month_Year) AS last " +
               "FROM " + BQ_HISTORY_TABLE + " WHERE Customer_Code = @code GROUP BY barcode ORDER BY baht DESC LIMIT 60";
     var res = BigQuery.Jobs.query({
       query: sql, useLegacySql: false, parameterMode: 'NAMED',
