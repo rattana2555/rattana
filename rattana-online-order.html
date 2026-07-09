@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.93</title>
+<title>Rattana Online Order v2.96</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.93</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.96</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -587,10 +587,13 @@ function makeSpecialCustomer(sp, ph){
   const id = sp.inv;   // ค่าเริ่มต้น = ใบกำกับ (แถวไม่มี N)
   return { _special:true, invoice:true, phone:digits(ph), uid:window._lineUid||'',
     _inv:{code:sp.inv.code,name:sp.inv.name}, _noinv: sp.noinv?{code:sp.noinv.code,name:sp.noinv.name}:null,
+    step: sp.inv.step||'',   // สเต็ปราคาส่งของร้าน (ว่าง=S00 / S01 / S02 / S03)
     shopCode:id.code, name:id.name, salemanCode:'', salemanName:'', province:'', status:'ร้านส่ง' };
 }
 /* สลับตัวตนร้านพิเศษตามใบกำกับ (เอา=แถวไม่มี N / ไม่เอา=แถว N) */
 function specialActiveId(c){ if(!isSpecial(c)) return null; return (c.invoice!==false ? c._inv : (c._noinv||c._inv)); }
+/* พรีฟิกซ์คอลัมน์ราคาของร้านพิเศษตามช่อง Step: ว่าง→S00, S01/S02/S03 ตามที่ระบุ (ร้านปกติ=S03) */
+function specialPricePrefix(c){ if(!isSpecial(c)) return 'PRICE S03 '; const m=String(c.step||'').toUpperCase().match(/S0[0-3]/); return 'PRICE '+(m?m[0]:'S00')+' '; }
 let promoIndex={};                 // field -> Map(valueLower -> [promoObj])
 let EA_SET=new Set();              // CAT SIZE (lowercase) ที่ขายแบบชิ้น (EA) ได้
 let BARCODE_INDEX=new Map();       // barcode -> product (จาก CODE EA/PA/BP/CS)
@@ -795,10 +798,11 @@ let WH_BY_AREA=null;   // { full:{'ต,อ,จ':WH}, ao:{'อ,จ':WH}, jw:{'จ
 function normArea(s){ return clean(s).replace(/^(ต\.|อ\.|จ\.|ตำบล|อำเภอ|จังหวัด)\s*/,'').replace(/\s+/g,''); }
 /* สร้าง map จากชีท Customer: นับ WH ของแต่ละพื้นที่ (3 ระดับ) แล้วเก็บอันที่เป็น "ส่วนใหญ่" */
 function buildWhByArea(rows){
-  const lvl={full:{}, ao:{}, jw:{}};
+  const lvl={full:{}, ao:{}, jw:{}}; const byCode={};
   function bump(map,key,wh){ if(!key||!wh) return; (map[key]||(map[key]={}))[wh]=(map[key][wh]||0)+1; }
   (rows||[]).forEach(r=>{
     const wh=clean(r['WH']).toUpperCase(); if(!wh) return;
+    const code=clean(r['รหัส บีพลัส']); if(code && !byCode[code]) byCode[code]=shipFromSeller(wh);   // รหัสร้าน → คลังส่ง (ใช้กับร้านพิเศษ)
     const parts=clean(r['ต.,อ.,จ. ขอพร']).split(',').map(normArea);
     const t=parts[0]||'', a=parts[1]||'', j=parts[2]||'';
     if(t&&a&&j) bump(lvl.full, t+','+a+','+j, wh);
@@ -806,7 +810,7 @@ function buildWhByArea(rows){
     if(j)       bump(lvl.jw,   j, wh);
   });
   function major(m){ const o={}; for(const k in m){ let best='',n=-1; for(const wh in m[k]){ if(m[k][wh]>n){ n=m[k][wh]; best=wh; } } o[k]=best; } return o; }
-  return { full:major(lvl.full), ao:major(lvl.ao), jw:major(lvl.jw) };
+  return { full:major(lvl.full), ao:major(lvl.ao), jw:major(lvl.jw), byCode:byCode };
 }
 /* คอลัมน์ WH ในชีต Customer = "คลังเซลล์" → แปลงเป็น "คลังส่งจริง" (เฉพาะร้านใหม่ที่ยังไม่มีเซลล์):
    W3 → W1, C4 → W4, ที่เหลือคงเดิม (W1→W1, W2→W2, W4→W4) */
@@ -828,7 +832,9 @@ function isWalkIn(c){ return !!(c && /ลูกค้าหน้าร้าน
    - มีเซลล์แล้ว → ยึดคลังส่งของเซลล์ (เหมือนเดิมทุกอย่าง)
    - ยังไม่มีเซลล์ (ร้านพึ่งลงทะเบียน) → ยึดตามอำเภอของร้าน
    - ไม่เจอเลย → W1 */
-function displayWarehouse(c){ if(isSpecial(c)) return ''; if(isWalkIn(c)) return 'W1'; return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
+/* คลังของร้านพิเศษ (ร้านส่ง): จับจากรหัสร้าน (รหัส บีพลัส) ในชีท Customer → คลังส่ง — โชว์สินค้าเหมือน ROO ตามคลังจริง (ไม่เจอ → W1) */
+function specialWarehouse(c){ const code=clean(c&&c.shopCode); const w=(WH_BY_AREA&&WH_BY_AREA.byCode&&WH_BY_AREA.byCode[code])||''; return w||'W1'; }
+function displayWarehouse(c){ if(isSpecial(c)) return specialWarehouse(c); if(isWalkIn(c)) return 'W1'; return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
 
 /* ===================== PROMOTIONS ===================== */
 function promoActive(p){
@@ -1000,7 +1006,7 @@ function isNewProduct(p){ return productRank(p,displayWarehouse(currentCustomer)
 function cardTint(p){ return '#fff'; }
 function priceOf(p){
   // โชว์ราคาหน้าการ์ด: ยึด "ลัง" (CS) เสมอ → ไม่มีลังค่อยตกไป แพ็ค/ชิ้น; ไม่มีราคาเลย = ฿0/ลัง (ไม่โชว์ /ชิ้น)
-  const P = isSpecial(currentCustomer) ? 'PRICE S00 ' : 'PRICE S03 ';   // ร้านพิเศษ (ร้านส่ง) ใช้ S00
+  const P = specialPricePrefix(currentCustomer);   // ร้านพิเศษ = สเต็ปตามช่อง Step (ว่าง=S00) / ร้านปกติ = S03
   let v=numOr0(p[P+'CS']), unit=clean(p['UNIT CS'])||'ลัง';
   if(!v){ v=numOr0(p[P+'PA']); unit=clean(p['UNIT PA'])||'แพ็ค'; }
   if(!v){ v=numOr0(p[P+'EA']); unit=clean(p['UNIT EA'])||'ชิ้น'; }
@@ -1019,9 +1025,8 @@ function salesForWh(p,wh){
   return ['W1','W2','W3','W4','C4'].reduce((s,w)=>s+numOr0(p['AVERAGE 60D_'+w]),0);
 }
 function visibleProducts(){
-  const sp=isSpecial(currentCustomer);
   const wh=displayWarehouse(currentCustomer);
-  const base=PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && (sp || isSellable(p,wh)));
+  const base=PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && isSellable(p,wh));   // ร้านพิเศษ = กรองตามคลังจริงเหมือน ROO
   const keyed=base.map(p=>({p,out:stockBadge(p)==='out',s:salesForWh(p,wh)}));
   // พร้อมขาย + อาจจะหมด → เรียงยอดขายคลังลูกค้า มาก→น้อย
   const avail=keyed.filter(x=>!x.out).sort((a,b)=>b.s-a.s);
@@ -1499,7 +1504,7 @@ function itemUnitPrice(it){ return (it.tiers&&it.tiers.length)?tierPriceForQty(i
 function unitWord(detail,fallback){ const d=clean(detail); if(!d) return fallback; const m=d.match(/^([^\dxX]+)/); return (m&&m[1].trim())||fallback; }
 function unitsFor(p){
   const sp=isSpecial(currentCustomer);
-  const P = sp ? 'PRICE S00 ' : 'PRICE S03 ';   // ร้านพิเศษ (ร้านส่ง) = S00 ราคาเดียว ไม่มีสเต็ป
+  const P = specialPricePrefix(currentCustomer);   // ร้านพิเศษ = ราคาส่งตามช่อง Step (ว่าง=S00) ราคาเดียว ไม่มีขั้นบันได
   const wh=displayWarehouse(currentCustomer);
   const u=[];
   const cs=numOr0(p[P+'CS']); if(cs>0){ const dt=clean(p['UNIT CS']); u.push({type:'CS',name:unitWord(dt,'ลัง'),price:cs,barcode:clean(p['CODE CS']),detail:dt,tiers: sp?null:priceTiersCS(p,wh)}); }
@@ -1707,6 +1712,7 @@ async function loginByPhone(){
   if(sp){
     if(!window._lineUid){ try{ const u=await tryLiff(); if(u) window._lineUid=u; }catch(e){} }
     currentCustomer=makeSpecialCustomer(sp, ph);
+    if(window._lineUid) linkSpecialUidToServer(ph, window._lineUid);   // เข้าผ่าน LINE → เก็บ User ID ลงชีทร้านพิเศษ + ผู้ติดตาม
     saveSession(currentCustomer); closeModal('loginModal');
     renderAll(); goShop(); showToast('ยินดีต้อนรับ (ร้านส่ง) '+currentCustomer.name,'success');
     return;
@@ -1721,6 +1727,11 @@ async function loginByPhone(){
 async function linkUidToServer(phone,uid){
   if(!phone||!uid) return;
   try{ await postGAS({action:'linkUid', phone:String(phone), uid:String(uid)}); }catch(e){ console.warn('linkUid',e); }
+}
+/* ร้านส่งเข้าผ่าน LINE → เก็บ User ID ลงชีท "ร้านทำราคาพิเศษ" + เติมชื่อร้านให้หน้า "ผู้ติดตาม" */
+async function linkSpecialUidToServer(phone,uid){
+  if(!phone||!uid) return;
+  try{ await postGAS({action:'specialUid', phone:String(phone), uid:String(uid)}); }catch(e){ console.warn('specialUid',e); }
 }
 /* ผูก LINE uid ปัจจุบันเข้ากับร้าน ถ้ายังไม่เคยผูก (ไลน์ที่ 2,3.. → เก็บช่อง "User ID เพิ่ม", ไม่ทับตัวหลัก) */
 function ensureUidLinked(c){
@@ -1895,7 +1906,7 @@ async function refreshData(){
 }
 // ชีทสินค้ามี 122 คอลัมน์ (~28MB) แต่แอปใช้จริงแค่ ~35 → ตัดทิ้งก่อนแคช/ใช้งาน (เล็กลง 4-5 เท่า, แคชลง localStorage ได้, เร็วขึ้นมาก)
 const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT GROUP','CAT BRAND','CAT SIZE','CAT TYPE','FIRST STOCK DATE','CS PALLET',
-  'PRICE S00 CS','PRICE S00 PA','PRICE S00 EA','PRICE S01 CS','PRICE S02 CS','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
+  'PRICE S00 CS','PRICE S00 PA','PRICE S00 EA','PRICE S01 CS','PRICE S01 PA','PRICE S01 EA','PRICE S02 CS','PRICE S02 PA','PRICE S02 EA','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
   'IB W1','IB W2','IB W3','IB W4','IB C4','STOCK W1','STOCK W2','STOCK W3','STOCK W4','STOCK C4','RANK W1','RANK W2','RANK W3','RANK W4','RANK C4',
   'OR_CS.EA W1','OR_CS.EA W2','OR_CS.EA W3','OR_CS.EA W4','OR_CS.EA C4',
   'AVERAGE 60D_W1','AVERAGE 60D_W2','AVERAGE 60D_W3','AVERAGE 60D_W4','AVERAGE 60D_C4'];

@@ -23,6 +23,7 @@ var ORDER_SHEET_GID    = 1594322176;   // สำรอง: เผื่อเป
 var SPECIAL_ORDER_SHEET_NAME = 'Order ร้านส่ง';   // แท็บออเดอร์ร้านพิเศษ (หัวคอลัมน์เหมือน order ทุกอย่าง)
 var CUSTOMER_SHEET_GID = 1169768881;   // ชีท Customer (รหัส บีพลัส, เซลล์ผู้ดูแล, WH)
 var USERS_SHEET_ID     = '1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ';   // ชีท Users (ชื่อ-สกุล → รหัสเซลล์ HSW/PMW)
+var SPECIAL_SHEET_GID  = 1471115272;   // ชีท "ร้านทำราคาพิเศษ" (เบอร์, รหัสร้าน, ชื่อร้าน, User ID, ใบกำกับ, Step)
 
 // ───── LINE Messaging API (ส่งสรุปออเดอร์เข้าไลน์ลูกค้า) ─────
 // เอา Channel access token (long-lived) จาก LINE Developers > channel Messaging API ของ OA Rattana_Official
@@ -98,6 +99,7 @@ function doPost(e) {
     if (data.action === 'order')    return json(handleOrder(data));
     if (data.action === 'syncOrder') return json(handleSyncOrder(data));
     if (data.action === 'linkUid')  return json(handleLinkUid(data));
+    if (data.action === 'specialUid') return json(handleSpecialUid(data));   // ร้านส่งเข้าผ่าน LINE → เก็บ User ID
     if (data.action === 'saveCart') return json(handleSaveCart(data));
     return json({ ok:false, error:'unknown action' });
   } catch (err) {
@@ -416,6 +418,11 @@ function applySalesmanFormat(d) {
 }
 
 /* ร้านส่ง: หาเซลล์จริง — รหัสร้าน → Customer(เซลล์ผู้ดูแล+WH) → Users(ชื่อ→รหัสเซลล์ HSW/PMW) ไม่แปลง RO */
+// ตัดคำนำหน้า (คุณ/นาย/นาง/นางสาว/น.ส.) + ช่องว่างออก เพื่อเทียบชื่อข้ามชีท (Customer มี "คุณ", Users ไม่มี)
+function normName_(s){
+  s = String(s||'').replace(/\s+/g,'');
+  return s.replace(/^(คุณ|นางสาว|นาง|นาย|น\.ส\.|ดร\.)/,'');
+}
 function resolveSpecialSalesman_(d){
   d.salemanName = d.salemanName || ''; d.salemanCode = d.salemanCode || '';
   var code = String(d.shopCode||'').trim(); if(!code) return;
@@ -444,9 +451,9 @@ function resolveSpecialSalesman_(d){
         var nameC = UH.indexOf('ชื่อ - สกุล');
         if(nameC>=0){
           var urows = ush.getRange(2,1,ulast-1,ush.getLastColumn()).getValues();
-          var norm = name.replace(/\s+/g,'');
+          var norm = normName_(name);
           for(var j=0;j<urows.length;j++){
-            if(String(urows[j][nameC]||'').replace(/\s+/g,'')===norm){
+            if(normName_(urows[j][nameC])===norm){
               for(var k=0;k<urows[j].length;k++){ var v=String(urows[j][k]||'').trim(); if(/^(HSW|PMW|SW|ROW|ROH)\d+$/i.test(v)){ d.salemanCode=v; break; } }
               break;
             }
@@ -454,6 +461,36 @@ function resolveSpecialSalesman_(d){
         }
       }
     }
+  }catch(e){}
+}
+
+/* ───────── ร้านส่งเข้าผ่าน LINE → เก็บ User ID ลงชีท "ร้านทำราคาพิเศษ" (คอลัมน์ User ID) ─────────
+   จับแถวด้วย "เบอร์" (เขียนให้ทุกตัวตนของร้านที่ใช้เบอร์เดียวกัน) แล้วสั่ง syncFollowerShops
+   เพื่อเติมชื่อร้านให้หน้า "ผู้ติดตาม" (คอลัมน์ J) ทันที */
+function handleSpecialUid(d){
+  try{ captureSpecialUid_(d.uid, d.phone); return { ok:true }; }
+  catch(e){ return { ok:false, error:String(e) }; }
+}
+function captureSpecialUid_(uid, phone){
+  uid = String(uid||'').trim(); phone = String(phone||'').replace(/\D/g,'');
+  if(!uid || !phone) return;
+  try{
+    var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var sh = getSheetByGid(ss, SPECIAL_SHEET_GID);
+    if(!sh) return;
+    var last = sh.getLastRow(); if(last<2) return;
+    var H = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+    var phC = H.indexOf('เบอร์'), uidC = H.indexOf('User ID');
+    if(phC<0 || uidC<0) return;
+    var vals = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    var wrote = false;
+    for(var i=0;i<vals.length;i++){
+      var ph = String(vals[i][phC]||'').replace(/\D/g,'');
+      if(ph===phone && String(vals[i][uidC]||'').trim()!==uid){
+        sh.getRange(i+2, uidC+1).setNumberFormat('@').setValue(uid); wrote = true;
+      }
+    }
+    if(wrote){ try{ syncFollowerShops(); }catch(e){} }   // เติมชื่อร้านให้หน้าผู้ติดตามทันที
   }catch(e){}
 }
 
@@ -577,7 +614,7 @@ function orderSignature(d) {
 /* ───────── ยืนยันออเดอร์ (สถานะ "อนุมัติ") → เขียนชีท+Supabase + ส่ง LINE + ล้างตะกร้า ───────── */
 function handleOrder(d) {
   var special = !!d.special;
-  if (special) { resolveSpecialSalesman_(d); }       // ร้านส่ง: เซลล์จริงจาก Customer/Users (ไม่แปลง RO)
+  if (special) { resolveSpecialSalesman_(d); try{ captureSpecialUid_(d.uid, d.phone); }catch(e){} }  // ร้านส่ง: เซลล์จริง + เก็บ User ID
   else { applySalesmanFormat(d); }                   // ปกติ: ชื่อ +" (ROO)", รหัส PM→RO
   if (!d.status) d.status = 'อนุมัติ';              // กดยืนยัน = อนุมัติ (ถ้าแอปไม่ได้ส่ง status รายชิ้นมา)
   // ── กันออเดอร์เบิ้ลจากหลายเครื่อง/กดซ้ำ: ร้านเดียวกัน + รายการเหมือนเดิม ภายใน 2 นาที = ซ้ำ → ไม่เขียน/ไม่ push ซ้ำ ──
@@ -1163,6 +1200,27 @@ function buildUidToShopMap_(){
       var u = String(vals[i][uidC]||'').trim(); if(u && !map[u]) map[u]=shop;
       if(extraC>=0){
         String(vals[i][extraC]||'').split(/[,\n;]+/).forEach(function(s){ s=s.trim(); if(s && !map[s]) map[s]=shop; });
+      }
+    }
+  }catch(e){}
+  // รวมร้านทำราคาพิเศษ: uid (คอลัมน์ User ID) → ชื่อร้าน — ตัวตนหลัก (ไม่มี N) ชนะก่อน
+  try{
+    var ssp = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var shp = getSheetByGid(ssp, SPECIAL_SHEET_GID);
+    if(shp){
+      var SH = shp.getRange(1,1,1,shp.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+      var nC = SH.indexOf('ชื่อร้าน'), uC = SH.indexOf('User ID'), invC = SH.indexOf('ใบกำกับ');
+      var slast = shp.getLastRow();
+      if(nC>=0 && uC>=0 && slast>=2){
+        var sv = shp.getRange(2,1,slast-1,shp.getLastColumn()).getValues();
+        for(var pass=0; pass<2; pass++){           // pass 0 = ตัวตนหลัก, pass 1 = ตัว N (fallback)
+          for(var s=0;s<sv.length;s++){
+            var isN = invC>=0 && String(sv[s][invC]||'').trim().toUpperCase()==='N';
+            if((pass===0)===isN) continue;
+            var su = String(sv[s][uC]||'').trim(), sn = String(sv[s][nC]||'').trim();
+            if(su && sn && !map[su]) map[su]=sn;
+          }
+        }
       }
     }
   }catch(e){}
