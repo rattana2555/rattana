@@ -20,6 +20,9 @@ var REG_SPREADSHEET_ID = '18RSfuDdCadccWS_3v_Ggi70_X8FGEIVGrGUedkQLYUw';
 var REG_SHEET_GID      = 1357794184;   // แท็บหน้าลงทะเบียน
 var ORDER_SHEET_NAME   = 'order';      // แท็บเก็บออเดอร์ (ชื่อแท็บจริง)
 var ORDER_SHEET_GID    = 1594322176;   // สำรอง: เผื่อเปลี่ยนชื่อแท็บ
+var SPECIAL_ORDER_SHEET_NAME = 'Order ร้านส่ง';   // แท็บออเดอร์ร้านพิเศษ (หัวคอลัมน์เหมือน order ทุกอย่าง)
+var CUSTOMER_SHEET_GID = 1169768881;   // ชีท Customer (รหัส บีพลัส, เซลล์ผู้ดูแล, WH)
+var USERS_SHEET_ID     = '1M6HdISsLN684qRWyQ73CA4AmUzmYtZaOlffDJXZZIXQ';   // ชีท Users (ชื่อ-สกุล → รหัสเซลล์ HSW/PMW)
 
 // ───── LINE Messaging API (ส่งสรุปออเดอร์เข้าไลน์ลูกค้า) ─────
 // เอา Channel access token (long-lived) จาก LINE Developers > channel Messaging API ของ OA Rattana_Official
@@ -412,6 +415,48 @@ function applySalesmanFormat(d) {
   if (d.salemanCode) { d.salemanCode = String(d.salemanCode).replace(/^HSW/, 'ROH').replace(/^PM/, 'RO'); }
 }
 
+/* ร้านส่ง: หาเซลล์จริง — รหัสร้าน → Customer(เซลล์ผู้ดูแล+WH) → Users(ชื่อ→รหัสเซลล์ HSW/PMW) ไม่แปลง RO */
+function resolveSpecialSalesman_(d){
+  d.salemanName = d.salemanName || ''; d.salemanCode = d.salemanCode || '';
+  var code = String(d.shopCode||'').trim(); if(!code) return;
+  try{
+    var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var cust = getSheetByGid(ss, CUSTOMER_SHEET_GID);
+    var name='', wh='';
+    if(cust){
+      var CH = cust.getRange(1,1,1,cust.getLastColumn()).getValues()[0].map(function(h){return String(h).trim();});
+      var codeC=CH.indexOf('รหัส บีพลัส'), salC=CH.indexOf('เซลล์ผู้ดูแล'), whC=CH.indexOf('WH');
+      var last=cust.getLastRow();
+      if(codeC>=0 && last>=2){
+        var rows=cust.getRange(2,1,last-1,cust.getLastColumn()).getValues();
+        for(var i=0;i<rows.length;i++){ if(String(rows[i][codeC]||'').trim()===code){ name= salC>=0?String(rows[i][salC]||'').trim():''; wh= whC>=0?String(rows[i][whC]||'').trim():''; break; } }
+      }
+    }
+    if(name) d.salemanName = name;
+    if(wh){ d.warehouse = d.warehouse || wh; }
+    // ชื่อเซลล์ → รหัสเซลล์ (HSW/PMW) จาก Users — หาคอลัมน์รหัสด้วย pattern (คอลัมน์รหัสไม่มีหัวชัดเจน)
+    if(name){
+      var us = SpreadsheetApp.openById(USERS_SHEET_ID);
+      var ush = us.getSheets()[0];
+      var ulast = ush.getLastRow();
+      if(ulast>=2){
+        var UH = ush.getRange(1,1,1,ush.getLastColumn()).getValues()[0].map(function(h){return String(h).trim();});
+        var nameC = UH.indexOf('ชื่อ - สกุล');
+        if(nameC>=0){
+          var urows = ush.getRange(2,1,ulast-1,ush.getLastColumn()).getValues();
+          var norm = name.replace(/\s+/g,'');
+          for(var j=0;j<urows.length;j++){
+            if(String(urows[j][nameC]||'').replace(/\s+/g,'')===norm){
+              for(var k=0;k<urows[j].length;k++){ var v=String(urows[j][k]||'').trim(); if(/^(HSW|PMW|SW|ROW|ROH)\d+$/i.test(v)){ d.salemanCode=v; break; } }
+              break;
+            }
+          }
+        }
+      }
+    }
+  }catch(e){}
+}
+
 /* ───────── เขียน/อัปเดตรายการออเดอร์ลงแท็บ "order" ─────────
    - แถวใหม่ (สินค้านี้ยังไม่เคยมีใน orderId นี้) → append เขียนครั้งเดียว
    - แถวเดิม (orderId + บาร์โค้ด + รูปแบบ + หน่วย ตรงกัน) → อัปเดตเฉพาะ "สถานะอนุมัติ / จำนวน / ราคา / ยอดเงินรวม"
@@ -424,8 +469,9 @@ function lineKey(barcode, type, unit){
 function writeOrderToSheet(d, opts) {
   opts = opts || {};
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
-  var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
-  if (!sh) return { ok:false, error:'order sheet "' + ORDER_SHEET_NAME + '" not found', sh:null };
+  var sheetName = opts.sheetName || ORDER_SHEET_NAME;
+  var sh = ss.getSheetByName(sheetName) || (opts.sheetName ? null : getSheetByGid(ss, ORDER_SHEET_GID));
+  if (!sh) return { ok:false, error:'order sheet "' + sheetName + '" not found', sh:null };
   // ── ล็อกสคริปต์: กัน syncOrder กับ confirm (หรือ sync ถี่ๆ) วิ่งชนกันแล้ว append แถวซ้ำ ──
   var lock = LockService.getScriptLock();
   try { lock.waitLock(20000); } catch(e){}
@@ -530,7 +576,9 @@ function orderSignature(d) {
 }
 /* ───────── ยืนยันออเดอร์ (สถานะ "อนุมัติ") → เขียนชีท+Supabase + ส่ง LINE + ล้างตะกร้า ───────── */
 function handleOrder(d) {
-  applySalesmanFormat(d);                            // ชื่อ +" (ROO)", รหัส PM→RO
+  var special = !!d.special;
+  if (special) { resolveSpecialSalesman_(d); }       // ร้านส่ง: เซลล์จริงจาก Customer/Users (ไม่แปลง RO)
+  else { applySalesmanFormat(d); }                   // ปกติ: ชื่อ +" (ROO)", รหัส PM→RO
   if (!d.status) d.status = 'อนุมัติ';              // กดยืนยัน = อนุมัติ (ถ้าแอปไม่ได้ส่ง status รายชิ้นมา)
   // ── กันออเดอร์เบิ้ลจากหลายเครื่อง/กดซ้ำ: ร้านเดียวกัน + รายการเหมือนเดิม ภายใน 2 นาที = ซ้ำ → ไม่เขียน/ไม่ push ซ้ำ ──
   var phone = String(d.phone||'').replace(/\D/g,'');
@@ -547,11 +595,11 @@ function handleOrder(d) {
     }
     props.setProperty(pkey, sig + '~~' + new Date().getTime());   // จองสิทธิ์ก่อนเขียน (กันสองเครื่องชนกัน)
   }
-  var r = writeOrderToSheet(d);
+  var r = special ? writeOrderToSheet(d, {sheetName:SPECIAL_ORDER_SHEET_NAME}) : writeOrderToSheet(d);
   if (!r.ok) return r;
   try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า (ทุก User ID ของร้าน)
   try { pushDiscordOrder(d); } catch (e) {}         // แจ้งเตือนแอดมิน (ORDER ROO) เข้า Discord
-  try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase
+  if (!special) { try { pushOrderToSupabase(d); } catch (e) {} }   // ร้านส่งยังไม่เข้า Supabase (ยกเว้นไว้ก่อน)
   // ยืนยันแล้ว = แถวกลายเป็น "อนุมัติ" → เครื่องอื่น getPending ไม่เจอ "รออนุมัติ" → เคลียร์ตะกร้าเอง (ไม่ต้องแตะแท็บตะกร้า)
   return { ok:true, message:'order saved', count:r.count };
 }

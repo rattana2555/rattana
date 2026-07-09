@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.92</title>
+<title>Rattana Online Order v2.93</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.92</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.93</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -385,6 +385,13 @@ body.dark .dseg.active{color:var(--gold-light)}
       <div class="s-line"><span>จำนวนรายการ</span><span id="sumItems">0</span></div>
       <div class="s-line"><span>จำนวนหน่วยรวม</span><span id="sumQty">0</span></div>
       <div class="s-total"><span>ยอดรวมโดยประมาณ</span><b id="sumTotal">฿0</b></div>
+      <div id="invoiceSection" style="margin-top:12px;display:none">
+        <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">🧾 ใบกำกับภาษี</label>
+        <div class="deliver-seg">
+          <button type="button" id="invYes" class="dseg active" onclick="setInvoice(true)">🧾 เอาใบกำกับ</button>
+          <button type="button" id="invNo" class="dseg" onclick="setInvoice(false)">🚫 ไม่เอาใบกำกับ</button>
+        </div>
+      </div>
       <div style="margin-top:12px">
         <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">🚚 รูปแบบการรับสินค้า</label>
         <div class="deliver-seg">
@@ -517,6 +524,7 @@ const CFG = {
   eaGid:'336045996',   // ชีท "ขาย EA" — รายการ CAT SIZE ที่ขายแบบชิ้นได้
   geoGid:'467187215',  // ชีท Data Center — ที่อยู่ (ตำบล,อำเภอ,จังหวัด) + รหัสไปรษณีย์ + เดือน
   customerGid:'1169768881', // ชีท Customer — ที่อยู่ (ต.,อ.,จ.) + WH ของร้านเดิม ใช้เดาคลังของร้านใหม่ตามพื้นที่
+  specialGid:'1471115272',  // ชีท "ร้านทำราคาพิเศษ" (ร้านส่ง) — เบอร์|รหัสร้าน|ชื่อร้าน|ใบกำกับ(N)|Step
   // Supabase (อ่านประวัติการสั่งของร้านจากตาราง roo_sales) — anon public key อ่านฝั่งเว็บได้ (RLS เปิด anon-select)
   SUPABASE_URL:'https://ncmgqigufxmlgiqfisdf.supabase.co',
   SUPABASE_ANON_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jbWdxaWd1ZnhtbGdpcWZpc2RmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDU5NzAsImV4cCI6MjA5NzA4MTk3MH0.jU0ZOe2AtO9YR6dKOmOQzkmvqj_27eiDisYNvLzVItQ',
@@ -569,7 +577,20 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 </script>
 <script>
 /* ===================== STATE ===================== */
-let PRODUCTS=[], PROMOS=[], USERS=[], CUSTOMERS=[];
+let PRODUCTS=[], PROMOS=[], USERS=[], CUSTOMERS=[], SPECIAL_SHOPS=[];
+/* ร้านทำราคาพิเศษ (ร้านส่ง): 1 เบอร์อาจมี 2 แถว — ไม่มี N = เอาใบกำกับ(default), มี N = ไม่เอาใบกำกับ */
+function mapSpecial(r){ return { phone:digits(r['เบอร์']), code:clean(r['รหัสร้าน']), name:clean(r['ชื่อร้าน']), noInv:clean(r['ใบกำกับ']).toUpperCase()==='N', step:clean(r['Step']) }; }
+function specialByPhone(ph){ ph=digits(ph); if(!ph) return null; const rows=SPECIAL_SHOPS.filter(s=>s.phone===ph); if(!rows.length) return null;
+  const inv=rows.find(s=>!s.noInv)||rows[0]; const noinv=rows.find(s=>s.noInv)||null; return { inv, noinv }; }
+function isSpecial(c){ return !!(c && c._special); }
+function makeSpecialCustomer(sp, ph){
+  const id = sp.inv;   // ค่าเริ่มต้น = ใบกำกับ (แถวไม่มี N)
+  return { _special:true, invoice:true, phone:digits(ph), uid:window._lineUid||'',
+    _inv:{code:sp.inv.code,name:sp.inv.name}, _noinv: sp.noinv?{code:sp.noinv.code,name:sp.noinv.name}:null,
+    shopCode:id.code, name:id.name, salemanCode:'', salemanName:'', province:'', status:'ร้านส่ง' };
+}
+/* สลับตัวตนร้านพิเศษตามใบกำกับ (เอา=แถวไม่มี N / ไม่เอา=แถว N) */
+function specialActiveId(c){ if(!isSpecial(c)) return null; return (c.invoice!==false ? c._inv : (c._noinv||c._inv)); }
 let promoIndex={};                 // field -> Map(valueLower -> [promoObj])
 let EA_SET=new Set();              // CAT SIZE (lowercase) ที่ขายแบบชิ้น (EA) ได้
 let BARCODE_INDEX=new Map();       // barcode -> product (จาก CODE EA/PA/BP/CS)
@@ -589,6 +610,12 @@ function buildOrderItems(activeStatus){
   return items;
 }
 function orderMeta(){
+  if(isSpecial(currentCustomer)){                                  // ร้านทำราคาพิเศษ (ร้านส่ง)
+    const id=specialActiveId(currentCustomer);
+    return { customerName:id.name, phone:currentCustomer.phone||'', uid:currentCustomer.uid||window._lineUid||'',
+      salemanCode:'', salemanName:'', warehouse:'', shopCode:id.code,   // .gs VLOOKUP เซลล์จริงจาก Customer
+      special:true, invoice: currentCustomer.invoice!==false };
+  }
   const sUser=salemanUserFor(currentCustomer); let wh=warehouseForCustomer(currentCustomer);
   let salemanCode=sUser?clean(sUser['รหัสเซลล์']):((currentCustomer&&currentCustomer.salemanCode)||'');
   let salemanName=sUser?clean(sUser['ชื่อ - สกุล']):normName((currentCustomer&&currentCustomer.salemanName)||'');
@@ -603,6 +630,7 @@ let _syncTimer=null;
 // ยิงสถานะ "รออนุมัติราคา" ลงแท็บ order + Supabase ทันทีที่ใส่/ลบ/แก้จำนวน (หน่วง 1.5 วิ)
 function syncOrderSoon(){
   if(!currentCustomer) return;
+  if(isSpecial(currentCustomer)) return;   // ร้านพิเศษ: ไม่ draft-sync เข้าชีท order หลัก (ลงชีทแยกตอนยืนยัน)
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
   if(!Object.keys(cart).length && !Object.keys(removedItems).length) return;
   if(_syncTimer) clearTimeout(_syncTimer);
@@ -650,6 +678,7 @@ function cartItemFromRow(row){
 }
 /* ดึง "ตะกร้าร่วม" = รายการรออนุมัติของร้าน จากชีท order (JSONP) */
 function pullCart(force){
+  if(isSpecial(currentCustomer)) return;   // ร้านพิเศษ: ใช้ตะกร้าในเครื่อง ไม่ซิงค์กับชีท
   const shop=cartShopKey(); if(!shop) return;
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
   if(!force && Date.now()<_cartDirtyUntil) return;   // กำลังแก้ในเครื่องนี้ → ข้ามรอบนี้
@@ -700,6 +729,7 @@ function logout(){ localStorage.removeItem('rop_customer'); currentCustomer=null
 // อัปเดตข้อมูลลูกค้าที่ล็อกอินอยู่ ให้ตรงกับชีทลงทะเบียนล่าสุด (ที่อยู่/เซลล์/คลัง/สถานะ)
 function refreshCurrentCustomer(){
   if(!currentCustomer) return;
+  if(isSpecial(currentCustomer)) return;   // ร้านพิเศษไม่อยู่ใน CUSTOMERS อย่า reset ทับ
   const fresh=CUSTOMERS.find(c=>(currentCustomer.uid&&uidList(c).includes(clean(currentCustomer.uid)))||(currentCustomer.phone&&c.phone===currentCustomer.phone));
   if(fresh){ currentCustomer=fresh; saveSession(fresh); }
 }
@@ -798,7 +828,7 @@ function isWalkIn(c){ return !!(c && /ลูกค้าหน้าร้าน
    - มีเซลล์แล้ว → ยึดคลังส่งของเซลล์ (เหมือนเดิมทุกอย่าง)
    - ยังไม่มีเซลล์ (ร้านพึ่งลงทะเบียน) → ยึดตามอำเภอของร้าน
    - ไม่เจอเลย → W1 */
-function displayWarehouse(c){ if(isWalkIn(c)) return 'W1'; return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
+function displayWarehouse(c){ if(isSpecial(c)) return ''; if(isWalkIn(c)) return 'W1'; return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
 
 /* ===================== PROMOTIONS ===================== */
 function promoActive(p){
@@ -970,9 +1000,10 @@ function isNewProduct(p){ return productRank(p,displayWarehouse(currentCustomer)
 function cardTint(p){ return '#fff'; }
 function priceOf(p){
   // โชว์ราคาหน้าการ์ด: ยึด "ลัง" (CS) เสมอ → ไม่มีลังค่อยตกไป แพ็ค/ชิ้น; ไม่มีราคาเลย = ฿0/ลัง (ไม่โชว์ /ชิ้น)
-  let v=numOr0(p['PRICE S03 CS']), unit=clean(p['UNIT CS'])||'ลัง';
-  if(!v){ v=numOr0(p['PRICE S03 PA']); unit=clean(p['UNIT PA'])||'แพ็ค'; }
-  if(!v){ v=numOr0(p['PRICE S03 EA']); unit=clean(p['UNIT EA'])||'ชิ้น'; }
+  const P = isSpecial(currentCustomer) ? 'PRICE S00 ' : 'PRICE S03 ';   // ร้านพิเศษ (ร้านส่ง) ใช้ S00
+  let v=numOr0(p[P+'CS']), unit=clean(p['UNIT CS'])||'ลัง';
+  if(!v){ v=numOr0(p[P+'PA']); unit=clean(p['UNIT PA'])||'แพ็ค'; }
+  if(!v){ v=numOr0(p[P+'EA']); unit=clean(p['UNIT EA'])||'ชิ้น'; }
   if(!v){ unit=clean(p['UNIT CS'])||'ลัง'; }
   return {value:v,unit};
 }
@@ -988,8 +1019,9 @@ function salesForWh(p,wh){
   return ['W1','W2','W3','W4','C4'].reduce((s,w)=>s+numOr0(p['AVERAGE 60D_'+w]),0);
 }
 function visibleProducts(){
+  const sp=isSpecial(currentCustomer);
   const wh=displayWarehouse(currentCustomer);
-  const base=PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && isSellable(p,wh));
+  const base=PRODUCTS.filter(p=>clean(p['PRODUCT NAME']) && hasPrice(p) && (sp || isSellable(p,wh)));
   const keyed=base.map(p=>({p,out:stockBadge(p)==='out',s:salesForWh(p,wh)}));
   // พร้อมขาย + อาจจะหมด → เรียงยอดขายคลังลูกค้า มาก→น้อย
   const avail=keyed.filter(x=>!x.out).sort((a,b)=>b.s-a.s);
@@ -1466,11 +1498,13 @@ function tierPriceForQty(tiers,qty){
 function itemUnitPrice(it){ return (it.tiers&&it.tiers.length)?tierPriceForQty(it.tiers,it.qty):it.price; }
 function unitWord(detail,fallback){ const d=clean(detail); if(!d) return fallback; const m=d.match(/^([^\dxX]+)/); return (m&&m[1].trim())||fallback; }
 function unitsFor(p){
+  const sp=isSpecial(currentCustomer);
+  const P = sp ? 'PRICE S00 ' : 'PRICE S03 ';   // ร้านพิเศษ (ร้านส่ง) = S00 ราคาเดียว ไม่มีสเต็ป
   const wh=displayWarehouse(currentCustomer);
   const u=[];
-  const cs=numOr0(p['PRICE S03 CS']); if(cs>0){ const dt=clean(p['UNIT CS']); u.push({type:'CS',name:unitWord(dt,'ลัง'),price:cs,barcode:clean(p['CODE CS']),detail:dt,tiers:priceTiersCS(p,wh)}); }
-  const pa=numOr0(p['PRICE S03 PA']); if(pa>0){ const dt=clean(p['UNIT PA']); u.push({type:'PA',name:unitWord(dt,'แพ็ค'),price:pa,barcode:clean(p['CODE PA']),detail:dt,tiers:null}); }
-  const ea=numOr0(p['PRICE S03 EA']);
+  const cs=numOr0(p[P+'CS']); if(cs>0){ const dt=clean(p['UNIT CS']); u.push({type:'CS',name:unitWord(dt,'ลัง'),price:cs,barcode:clean(p['CODE CS']),detail:dt,tiers: sp?null:priceTiersCS(p,wh)}); }
+  const pa=numOr0(p[P+'PA']); if(pa>0){ const dt=clean(p['UNIT PA']); u.push({type:'PA',name:unitWord(dt,'แพ็ค'),price:pa,barcode:clean(p['CODE PA']),detail:dt,tiers:null}); }
+  const ea=numOr0(p[P+'EA']);
   if(ea>0 && EA_SET.has(clean(p['CAT SIZE']).toLowerCase())){ const dt=clean(p['UNIT EA']); u.push({type:'EA',name:unitWord(dt,'ชิ้น'),price:ea,barcode:clean(p['CODE EA']),detail:dt,tiers:null}); }
   if(!u.length){ const f=priceOf(p); u.push({type:'PA',name:f.unit,price:f.value,barcode:'',detail:'',tiers:null}); }
   return u;
@@ -1579,6 +1613,9 @@ function renderCart(){
   document.getElementById('sumItems').textContent=items.length+' รายการ'+(gifts.length?` + ของแถม ${gifts.length}`:'');
   document.getElementById('sumQty').textContent=cartCount();
   document.getElementById('sumTotal').textContent=baht(cartTotal());
+  // ปุ่มใบกำกับ: โชว์เฉพาะร้านพิเศษที่มี 2 ตัวตน (เอา/ไม่เอา)
+  const invSec=document.getElementById('invoiceSection');
+  if(invSec){ if(isSpecial(currentCustomer)&&currentCustomer._noinv){ invSec.style.display='block'; syncInvoiceButtons(); } else invSec.style.display='none'; }
 }
 
 /* ===================== NAV ===================== */
@@ -1665,6 +1702,15 @@ async function loginByPhone(){
     hideSpinner();
     if(!CUSTOMERS.length){ showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบเน็ตแล้วลองใหม่','error'); return; }
   }
+  // ── ร้านทำราคาพิเศษ (ร้านส่ง): เช็คก่อน CUSTOMERS ──
+  const sp=specialByPhone(ph);
+  if(sp){
+    if(!window._lineUid){ try{ const u=await tryLiff(); if(u) window._lineUid=u; }catch(e){} }
+    currentCustomer=makeSpecialCustomer(sp, ph);
+    saveSession(currentCustomer); closeModal('loginModal');
+    renderAll(); goShop(); showToast('ยินดีต้อนรับ (ร้านส่ง) '+currentCustomer.name,'success');
+    return;
+  }
   const hit=CUSTOMERS.find(c=>c.phone===ph);
   if(!hit){ showToast('ไม่พบเบอร์นี้ในระบบ กรุณาลงทะเบียน','error'); return; }
   // เครื่องนี้เพิ่งเข้าผ่านไลน์แต่ยังไม่ได้จับ uid → ลองดึงจาก LIFF ก่อน เพื่อผูกไลน์เครื่องที่ 2,3.. (เก็บช่อง "User ID เพิ่ม")
@@ -1745,6 +1791,14 @@ function setDeliver(m){
   if(s) s.classList.toggle('active', m==='ส่งถึงร้านลูกค้า');
   if(p) p.classList.toggle('active', m!=='ส่งถึงร้านลูกค้า');
 }
+// ใบกำกับ (เฉพาะร้านพิเศษที่มี 2 ตัวตน) — สลับ ชื่อ+รหัสร้าน ตาม N
+function setInvoice(v){ if(!isSpecial(currentCustomer)) return; currentCustomer.invoice=v; saveSession(currentCustomer); syncInvoiceButtons(); }
+function syncInvoiceButtons(){
+  const y=document.getElementById('invYes'), n=document.getElementById('invNo');
+  const v=isSpecial(currentCustomer)?(currentCustomer.invoice!==false):true;
+  if(y) y.classList.toggle('active', v);
+  if(n) n.classList.toggle('active', !v);
+}
 async function submitOrder(){
   if(!Object.keys(cart).length){ showToast('ตะกร้าว่าง','warning'); return; }
   if(!currentCustomer){ showToast('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ','warning'); openModal('loginModal'); return; }
@@ -1755,7 +1809,10 @@ async function submitOrder(){
   showSpinner('กำลังส่งออเดอร์...');
   _orderInFlight=true;                       // กันผู้ใช้ปิดหน้าระหว่างส่ง (beforeunload เตือน)
   let ok=false;
-  try{ ok=await sendAndConfirm(payload, orderId); }
+  try{
+    if(isSpecial(currentCustomer)){ await postGAS(payload,{retries:3,timeoutMs:15000}); ok=true; }   // ร้านพิเศษ: ลงชีทแยก ไม่ verify ผ่านชีท order หลัก
+    else ok=await sendAndConfirm(payload, orderId);
+  }
   finally{ _orderInFlight=false; hideSpinner(); }
   if(ok){
     cart={}; resetDraft(); saveCart(); if(noteEl) noteEl.value=''; setDeliver('ส่งถึงร้านลูกค้า'); renderCart(); renderProducts(); renderCartBadge();
@@ -1838,7 +1895,7 @@ async function refreshData(){
 }
 // ชีทสินค้ามี 122 คอลัมน์ (~28MB) แต่แอปใช้จริงแค่ ~35 → ตัดทิ้งก่อนแคช/ใช้งาน (เล็กลง 4-5 เท่า, แคชลง localStorage ได้, เร็วขึ้นมาก)
 const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT GROUP','CAT BRAND','CAT SIZE','CAT TYPE','FIRST STOCK DATE','CS PALLET',
-  'PRICE S01 CS','PRICE S02 CS','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
+  'PRICE S00 CS','PRICE S00 PA','PRICE S00 EA','PRICE S01 CS','PRICE S02 CS','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
   'IB W1','IB W2','IB W3','IB W4','IB C4','STOCK W1','STOCK W2','STOCK W3','STOCK W4','STOCK C4','RANK W1','RANK W2','RANK W3','RANK W4','RANK C4',
   'OR_CS.EA W1','OR_CS.EA W2','OR_CS.EA W3','OR_CS.EA W4','OR_CS.EA C4',
   'AVERAGE 60D_W1','AVERAGE 60D_W2','AVERAGE 60D_W3','AVERAGE 60D_W4','AVERAGE 60D_C4'];
@@ -1895,8 +1952,8 @@ function fetchProductsSmart(){
   });
 }
 // เซ็ตข้อมูลเข้าตัวแปร + สร้าง index (ใช้ซ้ำทั้งตอนวาดจากแคชและจากเน็ต)
-function applyData(prod,promo,users,cust,ea,whmap){
-  PRODUCTS=prod||[]; PROMOS=promo||[]; USERS=users||[]; CUSTOMERS=(cust||[]).map(mapCustomer);
+function applyData(prod,promo,users,cust,ea,whmap,special){
+  PRODUCTS=prod||[]; PROMOS=promo||[]; USERS=users||[]; CUSTOMERS=(cust||[]).map(mapCustomer); SPECIAL_SHOPS=(special||[]).map(mapSpecial);
   // เปิดขายชิ้น (EA) เฉพาะ CAT SIZE ที่คอลัมน์ Allow_EA ไม่ว่าง → สินค้าที่ CAT SIZE เดียวกันก็ขายชิ้นได้ ("ไม่กำหนดขนาด" ห้ามขายชิ้นเสมอ)
   EA_SET=new Set((ea||[]).filter(r=>clean(r['Allow_EA'])).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(s=>s && s!=='ไม่กำหนดขนาด'));
   if(whmap) WH_BY_AREA=whmap;   // map พื้นที่→WH ส่วนใหญ่ (โชว์สินค้าตามคลังของพื้นที่ร้าน)
@@ -1906,23 +1963,24 @@ function applyData(prod,promo,users,cust,ea,whmap){
 async function loadAll(silent){
   localStorage.removeItem('rop_products');   // ของเก่าเคยเก็บที่นี่ (28MB) — ย้ายไป IndexedDB แล้ว คืนพื้นที่
   // ── วาดทันทีจากแคช: สินค้าอ่านจาก IndexedDB, ที่เหลืออ่านจาก localStorage ──
-  const small=['rop_promo','rop_users','rop_customers','rop_ea','rop_whmap'].map(k=>getCached(k,true));
+  const small=['rop_promo','rop_users','rop_customers','rop_ea','rop_whmap','rop_special'].map(k=>getCached(k,true));
   const prodCache=await idbGet('rop_products');
   const haveCache=prodCache && small.slice(0,4).every(Boolean);   // whmap ไม่บังคับสำหรับ instant paint
-  if(haveCache){ applyData(prodCache,small[0],small[1],small[2],small[3],small[4]); renderAll(); }   // ⚡ instant paint
+  if(haveCache){ applyData(prodCache,small[0],small[1],small[2],small[3],small[4],small[5]); renderAll(); }   // ⚡ instant paint
   else if(!silent){ showSpinner('กำลังโหลดสินค้า...'); }
   try{
     let prod;
     try{ prod=await fetchProductsSmart(); idbSet('rop_products',prod); }   // ⚡ parse ใน Web Worker (UI ไม่ค้าง) — มี fallback เมน thread
     catch(e){ if(!prodCache) throw e; prod=prodCache; }   // เน็ตล่ม → ใช้แคช
-    const [promo,users,cust,ea,whmap]=await Promise.all([
+    const [promo,users,cust,ea,whmap,special]=await Promise.all([
       getData('rop_promo',()=>fetchCsvExport(CFG.promoSheetId,CFG.promoGid)),
       getData('rop_users',()=>fetchCsvGid(CFG.usersSheetId,CFG.usersGid)),
       getData('rop_customers',()=>fetchCsvGid(CFG.regSheetId,CFG.regGid)),
       getData('rop_ea',()=>fetchCsvExport(CFG.regSheetId,CFG.eaGid)),   // gviz มั่วกับชีทนี้ (รวมคอลัมน์) → ใช้ export
       getData('rop_whmap',()=>fetchCsvExport(CFG.regSheetId,CFG.customerGid).then(buildWhByArea)),   // map พื้นที่→WH จากชีท Customer
+      getData('rop_special',()=>fetchCsvGid(CFG.regSheetId,CFG.specialGid)),   // ร้านทำราคาพิเศษ (ร้านส่ง)
     ]);
-    applyData(prod,promo,users,cust,ea,whmap);
+    applyData(prod,promo,users,cust,ea,whmap,special);
     await resolveLogin();
     ensureUidLinked(currentCustomer);   // เผื่อมี LINE uid ใหม่ที่ยังไม่ผูกกับร้าน
     renderAll();
