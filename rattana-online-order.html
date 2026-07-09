@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.96</title>
+<title>Rattana Online Order v2.97</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.96</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.97</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -798,11 +798,16 @@ let WH_BY_AREA=null;   // { full:{'ต,อ,จ':WH}, ao:{'อ,จ':WH}, jw:{'จ
 function normArea(s){ return clean(s).replace(/^(ต\.|อ\.|จ\.|ตำบล|อำเภอ|จังหวัด)\s*/,'').replace(/\s+/g,''); }
 /* สร้าง map จากชีท Customer: นับ WH ของแต่ละพื้นที่ (3 ระดับ) แล้วเก็บอันที่เป็น "ส่วนใหญ่" */
 function buildWhByArea(rows){
-  const lvl={full:{}, ao:{}, jw:{}}; const byCode={};
+  const lvl={full:{}, ao:{}, jw:{}}; const byCode={}, salesByCode={};
   function bump(map,key,wh){ if(!key||!wh) return; (map[key]||(map[key]={}))[wh]=(map[key][wh]||0)+1; }
   (rows||[]).forEach(r=>{
-    const wh=clean(r['WH']).toUpperCase(); if(!wh) return;
-    const code=clean(r['รหัส บีพลัส']); if(code && !byCode[code]) byCode[code]=shipFromSeller(wh);   // รหัสร้าน → คลังส่ง (ใช้กับร้านพิเศษ)
+    const code=clean(r['รหัส บีพลัส']);
+    const wh=clean(r['WH']).toUpperCase();
+    if(code){                                                     // รหัสร้าน → คลังส่ง + เซลล์ผู้ดูแล (ใช้กับร้านพิเศษ)
+      if(wh && !byCode[code]) byCode[code]=shipFromSeller(wh);
+      const sn=clean(r['เซลล์ผู้ดูแล']); if(sn && !salesByCode[code]) salesByCode[code]=sn;
+    }
+    if(!wh) return;
     const parts=clean(r['ต.,อ.,จ. ขอพร']).split(',').map(normArea);
     const t=parts[0]||'', a=parts[1]||'', j=parts[2]||'';
     if(t&&a&&j) bump(lvl.full, t+','+a+','+j, wh);
@@ -810,7 +815,7 @@ function buildWhByArea(rows){
     if(j)       bump(lvl.jw,   j, wh);
   });
   function major(m){ const o={}; for(const k in m){ let best='',n=-1; for(const wh in m[k]){ if(m[k][wh]>n){ n=m[k][wh]; best=wh; } } o[k]=best; } return o; }
-  return { full:major(lvl.full), ao:major(lvl.ao), jw:major(lvl.jw), byCode:byCode };
+  return { full:major(lvl.full), ao:major(lvl.ao), jw:major(lvl.jw), byCode:byCode, salesByCode:salesByCode };
 }
 /* คอลัมน์ WH ในชีต Customer = "คลังเซลล์" → แปลงเป็น "คลังส่งจริง" (เฉพาะร้านใหม่ที่ยังไม่มีเซลล์):
    W3 → W1, C4 → W4, ที่เหลือคงเดิม (W1→W1, W2→W2, W4→W4) */
@@ -834,6 +839,8 @@ function isWalkIn(c){ return !!(c && /ลูกค้าหน้าร้าน
    - ไม่เจอเลย → W1 */
 /* คลังของร้านพิเศษ (ร้านส่ง): จับจากรหัสร้าน (รหัส บีพลัส) ในชีท Customer → คลังส่ง — โชว์สินค้าเหมือน ROO ตามคลังจริง (ไม่เจอ → W1) */
 function specialWarehouse(c){ const code=clean(c&&c.shopCode); const w=(WH_BY_AREA&&WH_BY_AREA.byCode&&WH_BY_AREA.byCode[code])||''; return w||'W1'; }
+/* เซลล์ผู้ดูแลของร้านพิเศษ: จับจากรหัสร้าน (รหัส บีพลัส) ในชีท Customer (คอลัมน์ เซลล์ผู้ดูแล) */
+function specialSalesman(c){ const code=clean(c&&c.shopCode); return (WH_BY_AREA&&WH_BY_AREA.salesByCode&&WH_BY_AREA.salesByCode[code])||''; }
 function displayWarehouse(c){ if(isSpecial(c)) return specialWarehouse(c); if(isWalkIn(c)) return 'W1'; return warehouseForCustomer(c) || warehouseByArea(c) || 'W1'; }
 
 /* ===================== PROMOTIONS ===================== */
@@ -1668,7 +1675,9 @@ function renderProfile(){
   let html='';
   if(currentCustomer){
     const c=currentCustomer;
-    const wh=warehouseForCustomer(c);
+    const sp=isSpecial(c);
+    const wh=sp?specialWarehouse(c):warehouseForCustomer(c);            // ร้านพิเศษ: คลังจากรหัสร้าน (ชีท Customer)
+    const salesman=sp?specialSalesman(c):(c.salemanName||'');           // ร้านพิเศษ: เซลล์จากรหัสร้าน (ชีท Customer)
     const whName={W1:'สมุทรสงคราม',W2:'สุพรรณบุรี',W3:'ราชบุรี',W4:'นครปฐม',HQ:'สำนักงานใหญ่'}[wh]||'';
     const st=c.status||'';
     const stCls=/ยืนยัน|active|ok/i.test(st)&&!/รอ/.test(st)?'st-ok':'st-wait';
@@ -1677,7 +1686,7 @@ function renderProfile(){
       <h3>👤 ${c.name||'ลูกค้า'}</h3>
       <div class="pinfo"><span class="pk">เบอร์โทร</span><span>${c.phone||'-'}</span></div>
       ${addr?`<div class="pinfo"><span class="pk">ที่อยู่</span><span style="text-align:right;max-width:62%">${addr}</span></div>`:''}
-      <div class="pinfo"><span class="pk">เซลล์ผู้ดูแล</span><span>${c.salemanName||'รอแอดมินกำหนด'}</span></div>
+      <div class="pinfo"><span class="pk">เซลล์ผู้ดูแล</span><span>${salesman||'รอแอดมินกำหนด'}</span></div>
       <div class="pinfo"><span class="pk">คลังส่ง</span><span>${wh?wh+(whName?' ('+whName+')':''):'รอกำหนด'}</span></div>
     </div>`;
   } else {
