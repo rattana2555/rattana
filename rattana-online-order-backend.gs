@@ -118,7 +118,7 @@ function doGet(e) {
     return p.callback ? jsonp(p.callback, ro) : json(ro);
   }
   if (p.action === 'getPending') {                       // ตะกร้าร่วม = รายการ "รออนุมัติ" ของร้าน (ซิงค์ทุกเครื่องผ่านสถานะ)
-    var rp = getPendingFor(p.shop);
+    var rp = getPendingFor(p.shop, p.special);           // special=1 → อ่านจากชีท Order ร้านส่ง
     return p.callback ? jsonp(p.callback, rp) : json(rp);
   }
   if (p.action === 'getOrderStatus') {                   // เช็คว่า orderId นี้ถูกเขียน "อนุมัติ" ลงหลังบ้านแล้วยัง (ใช้ยืนยันการส่งออเดอร์)
@@ -244,11 +244,12 @@ function getOrdersFor(shop){
 
 /* ───────── ตะกร้าร่วม (ซิงค์ผ่านสถานะ): รายการ "รออนุมัติ" ของร้าน — ทุกเครื่องเห็นเหมือนกัน, พออนุมัติแล้วหาย ─────────
    เลือก orderId ของออเดอร์รออนุมัติ "ใหม่สุด" ของร้าน (รวมเป็นออเดอร์เดียว) แล้วคืนรายการขายในนั้น */
-function getPendingFor(shop){
+function getPendingFor(shop, special){
   var out = { ok:true, items:[], orderId:'' };
   shop = String(shop||'').trim(); if(!shop) return out;
   var ss = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
-  var sh = ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID);
+  var sh = special ? ss.getSheetByName(SPECIAL_ORDER_SHEET_NAME)     // ร้านส่ง → ชีท Order ร้านส่ง
+                   : (ss.getSheetByName(ORDER_SHEET_NAME) || getSheetByGid(ss, ORDER_SHEET_GID));
   if(!sh) return out;
   var headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
   function col(n){ for(var i=0;i<headers.length;i++){ if(normHead(headers[i])===normHead(n)) return i; } return -1; }
@@ -517,6 +518,7 @@ function writeOrderToSheet(d, opts) {
     function col(name){ for (var i=0;i<headers.length;i++){ if (normHead(headers[i])===normHead(name)) return i; } return -1; }
     var oidCol=col('orderId'), bcCol=col('Barcode'), typeCol=col('รูปแบบ'), unitCol=col('หน่วย');
     var qtyCol=col('จำนวน'), priceCol=col('ราคา'), totalCol=col('ยอดเงินรวม'), statusCol=col('สถานะอนุมัติ');
+    var shopCol=col('ชื่อร้าน'), codeCol=col('รหัสร้าน');   // ร้านส่ง: อัปเดตตัวตน (ใบกำกับ) ตอนกดส่ง
     var items = d.items || [];
 
     // map เฉพาะ "แถวที่ยังไม่จบ" (สถานะยังไม่ใช่ อนุมัติ/ไม่อนุมัติ) ของ orderId นี้ : key → {row}
@@ -548,6 +550,10 @@ function writeOrderToSheet(d, opts) {
         if (qtyCol>=0)    sh.getRange(ex.row, qtyCol+1).setValue(it.qty || 0);
         if (priceCol>=0)  sh.getRange(ex.row, priceCol+1).setValue(it.price || 0);
         if (totalCol>=0)  sh.getRange(ex.row, totalCol+1).setValue(it.total || 0);
+        if (opts.updateShop) {   // ร้านส่ง: ตอนกดส่ง สลับชื่อ/รหัสร้านตามใบกำกับที่เลือก (draft ลงชื่อ default ไว้)
+          if (shopCol>=0) sh.getRange(ex.row, shopCol+1).setValue(d.customerName || '');
+          if (codeCol>=0) sh.getRange(ex.row, codeCol+1).setValue(d.shopCode || '');
+        }
       } else {
         appendOrderRow(sh, headers, bcCol, d, it);
         live[key] = { row: sh.getLastRow() };
@@ -632,7 +638,7 @@ function handleOrder(d) {
     }
     props.setProperty(pkey, sig + '~~' + new Date().getTime());   // จองสิทธิ์ก่อนเขียน (กันสองเครื่องชนกัน)
   }
-  var r = special ? writeOrderToSheet(d, {sheetName:SPECIAL_ORDER_SHEET_NAME}) : writeOrderToSheet(d);
+  var r = special ? writeOrderToSheet(d, {sheetName:SPECIAL_ORDER_SHEET_NAME, updateShop:true}) : writeOrderToSheet(d);
   if (!r.ok) return r;
   try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า (ทุก User ID ของร้าน)
   try { pushDiscordOrder(d); } catch (e) {}         // แจ้งเตือนแอดมิน (ORDER ROO) เข้า Discord
@@ -644,10 +650,14 @@ function handleOrder(d) {
 /* ───────── ซิงค์ตะกร้าแบบ real-time (ใส่=รออนุมัติ / ลบ=ไม่อนุมัติ) → เขียนชีท+Supabase (ไม่ส่ง LINE/ไม่ล้างตะกร้า) ───────── */
 function handleSyncOrder(d) {
   if (!d.orderId) return { ok:false, error:'no orderId' };
-  applySalesmanFormat(d);                            // ชื่อ +" (ROO)", รหัส PM→RO
-  var r = writeOrderToSheet(d, {skipIfConfirmed:true});   // ออเดอร์ที่ยืนยันแล้ว → ไม่เขียนซ้ำ
+  var special = !!d.special;
+  if (special) { resolveSpecialSalesman_(d); }       // ร้านส่ง: เซลล์จริงจาก Customer (draft ลงชื่อ default)
+  else { applySalesmanFormat(d); }                   // ปกติ: ชื่อ +" (ROO)", รหัส PM→RO
+  // ร้านส่ง → draft ลงชีท "Order ร้านส่ง" (สถานะรออนุมัติ) กันออเดอร์หาย ; ปกติ → ชีท order + Supabase
+  var r = special ? writeOrderToSheet(d, {sheetName:SPECIAL_ORDER_SHEET_NAME, skipIfConfirmed:true})
+                  : writeOrderToSheet(d, {skipIfConfirmed:true});
   if (!r.ok) return r;
-  try { pushOrderToSupabase(d); } catch (e) {}      // dual-write Supabase ด้วยสถานะรายชิ้น
+  if (!special) { try { pushOrderToSupabase(d); } catch (e) {} }   // ร้านส่งยังไม่เข้า Supabase
   return { ok:true, message:'order synced', count:r.count };
 }
 

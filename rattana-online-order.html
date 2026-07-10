@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.98</title>
+<title>Rattana Online Order v2.99</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.98</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.99</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -620,9 +620,9 @@ function buildOrderItems(activeStatus){
   Object.values(removedItems).forEach(i=>{const up=itemUnitPrice(i);items.push({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:i.type||'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:((i.promo&&i.promo.join)?i.promo.join(' | '):''),status:'ไม่อนุมัติ'});});
   return items;
 }
-function orderMeta(){
+function orderMeta(draft){
   if(isSpecial(currentCustomer)){                                  // ร้านทำราคาพิเศษ (ร้านส่ง)
-    const id=specialActiveId(currentCustomer);
+    const id = draft ? currentCustomer._inv : specialActiveId(currentCustomer);   // draft=ชื่อ default เสมอ / ตอนกดส่ง=ตามใบกำกับที่เลือก
     return { customerName:id.name, phone:currentCustomer.phone||'', uid:currentCustomer.uid||window._lineUid||'',
       salemanCode:'', salemanName:'', warehouse:'', shopCode:id.code,   // .gs VLOOKUP เซลล์จริงจาก Customer
       special:true, invoice: currentCustomer.invoice!==false };
@@ -641,13 +641,13 @@ let _syncTimer=null;
 // ยิงสถานะ "รออนุมัติราคา" ลงแท็บ order + Supabase ทันทีที่ใส่/ลบ/แก้จำนวน (หน่วง 1.5 วิ)
 function syncOrderSoon(){
   if(!currentCustomer) return;
-  if(isSpecial(currentCustomer)) return;   // ร้านพิเศษ: ไม่ draft-sync เข้าชีท order หลัก (ลงชีทแยกตอนยืนยัน)
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
   if(!Object.keys(cart).length && !Object.keys(removedItems).length) return;
   if(_syncTimer) clearTimeout(_syncTimer);
   _syncTimer=setTimeout(()=>{
     const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
-    postGAS(Object.assign({action:'syncOrder',orderId:draftOrderId(),note,deliver:deliverMode,total:cartTotal(),items:buildOrderItems('รออนุมัติ')},orderMeta()));
+    // ร้านพิเศษ: draft ใช้ชื่อ default (orderMeta(true)) → ลงชีท "Order ร้านส่ง" สถานะ "รออนุมัติ" กันออเดอร์หาย เหมือน ROO
+    postGAS(Object.assign({action:'syncOrder',orderId:draftOrderId(),note,deliver:deliverMode,total:cartTotal(),items:buildOrderItems('รออนุมัติ')},orderMeta(isSpecial(currentCustomer))));
   },1500);
 }
 let currentCustomer=null;
@@ -689,7 +689,6 @@ function cartItemFromRow(row){
 }
 /* ดึง "ตะกร้าร่วม" = รายการรออนุมัติของร้าน จากชีท order (JSONP) */
 function pullCart(force){
-  if(isSpecial(currentCustomer)) return;   // ร้านพิเศษ: ใช้ตะกร้าในเครื่อง ไม่ซิงค์กับชีท
   const shop=cartShopKey(); if(!shop) return;
   if(!CFG.GAS_URL||CFG.GAS_URL.startsWith('PASTE')) return;
   if(!force && Date.now()<_cartDirtyUntil) return;   // กำลังแก้ในเครื่องนี้ → ข้ามรอบนี้
@@ -709,7 +708,7 @@ function pullCart(force){
     }
   }catch(e){console.warn('pullCart',e);} finally{ delete window[cb]; const s=document.getElementById(cb); if(s) s.remove(); } };
   const s=document.createElement('script'); s.id=cb;
-  s.src=CFG.GAS_URL+'?action=getPending&shop='+encodeURIComponent(shop)+'&callback='+cb+'&_='+Date.now();
+  s.src=CFG.GAS_URL+'?action=getPending&shop='+encodeURIComponent(shop)+(isSpecial(currentCustomer)?'&special=1':'')+'&callback='+cb+'&_='+Date.now();
   s.onerror=()=>{ delete window[cb]; s.remove(); };
   document.head.appendChild(s);
   setTimeout(()=>{ if(window[cb]){ delete window[cb]; const s2=document.getElementById(cb); if(s2) s2.remove(); } },8000);
@@ -1731,7 +1730,8 @@ async function loginByPhone(){
     currentCustomer=makeSpecialCustomer(sp, ph);
     if(window._lineUid) linkSpecialUidToServer(ph, window._lineUid);   // เข้าผ่าน LINE → เก็บ User ID ลงชีทร้านพิเศษ + ผู้ติดตาม
     saveSession(currentCustomer); closeModal('loginModal');
-    renderAll(); goShop(); showToast('ยินดีต้อนรับ (ร้านส่ง) '+currentCustomer.name,'success');
+    renderAll(); goShop(); pullCart(true); startCartSync();   // sync ตะกร้าร่วม (draft "รออนุมัติ" ในชีท Order ร้านส่ง) กันออเดอร์หาย
+    showToast('ยินดีต้อนรับ (ร้านส่ง) '+currentCustomer.name,'success');
     return;
   }
   const hit=CUSTOMERS.find(c=>c.phone===ph);
