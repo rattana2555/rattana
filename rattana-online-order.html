@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v3.00</title>
+<title>Rattana Online Order v3.01</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.00</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.01</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -875,13 +875,18 @@ function promoWarehouseOK(p){
   const cw=custShipWh();
   return raw.split(/[,\s]+/).some(w=>w && shipFromSeller(w)===cw);
 }
+/* โปรตามช่องทาง (คอลัมน์ Role): ว่าง=ขึ้นทุกที่ / 3=เฉพาะ ROO / 4=เฉพาะร้านส่ง */
+function promoRoleOK(p){
+  const role=clean(p['Role']); if(!role) return true;
+  return isSpecial(currentCustomer) ? (role==='4') : (role==='3');
+}
 function promoObjsFor(prod){
   const out=[];
   for(const field in promoIndex){
     const v=clean(prod[field]).toLowerCase(); if(!v) continue;
     const hit=promoIndex[field].get(v); if(hit) out.push(...hit);
   }
-  return out.length ? out.filter(promoWarehouseOK) : out;   // กรองตามคลังส่งของลูกค้า
+  return out.length ? out.filter(p=>promoWarehouseOK(p) && promoRoleOK(p)) : out;   // กรองตามคลังส่ง + ช่องทาง (Role) ของลูกค้า
 }
 function promosFor(prod){
   const out=promoObjsFor(prod).map(h=>clean(h['รายละเอียดโปร'])||clean(h['ชื่อโปร']));
