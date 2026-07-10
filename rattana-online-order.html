@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v2.99</title>
+<title>Rattana Online Order v3.00</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v2.99</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.00</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -1413,6 +1413,15 @@ function renderPdPrice(){
 }
 function renderPdTiers(){
   const pd=window._pd; const u=pd.units.find(x=>x.type===pd.sel); const el=document.getElementById('pdTiers'); if(!el) return;
+  // ร้านส่ง: ไม่มีสเต็ปราคา แต่มีชิป "เต็มเลท" (CS PALLET) กดเซ็ตจำนวน — เฉพาะหน่วยลัง (CS) ที่มีค่า pallet
+  if(isSpecial(currentCustomer)){
+    const p=findProduct(pd.name); const pallet=numOr0(p&&p['CS PALLET']);
+    if(u.type==='CS' && pallet>0){
+      el.innerHTML='<div class="pd-tiers-title">📦 สั่งเต็มเลท — แตะเพื่อเลือกจำนวน</div>'+
+        `<div class="pd-tier-row ${pd.qty===pallet?'active':''}" onclick="pdSetQty(${pallet})"><span>เต็มเลท (1 เลท)</span><b>${pallet} ${u.name}</b></div>`;
+    } else el.innerHTML='';
+    return;
+  }
   if(!u.tiers || u.tiers.length<2){ el.innerHTML=''; return; }
   let actMin=u.tiers[0].min; u.tiers.forEach(t=>{ if(pd.qty>=t.min) actMin=t.min; });
   const lbl=pdStrip(u.detail)||u.name;
