@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v3.01</title>
+<title>Rattana Online Order v3.02</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.01</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.02</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -386,10 +386,10 @@ body.dark .dseg.active{color:var(--gold-light)}
       <div class="s-line"><span>จำนวนหน่วยรวม</span><span id="sumQty">0</span></div>
       <div class="s-total"><span>ยอดรวมโดยประมาณ</span><b id="sumTotal">฿0</b></div>
       <div id="invoiceSection" style="margin-top:12px;display:none">
-        <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">🧾 ใบกำกับภาษี</label>
+        <label class="txt-sm" style="display:block;margin-bottom:6px;font-weight:600">🏪 เลือกชื่อร้านที่จะสั่ง</label>
         <div class="deliver-seg">
-          <button type="button" id="invYes" class="dseg active" onclick="setInvoice(true)">🧾 เอาใบกำกับ</button>
-          <button type="button" id="invNo" class="dseg" onclick="setInvoice(false)">🚫 ไม่เอาใบกำกับ</button>
+          <button type="button" id="invYes" class="dseg active" onclick="setInvoice(true)">🏪 ชื่อร้าน A</button>
+          <button type="button" id="invNo" class="dseg" onclick="setInvoice(false)">🏪 ชื่อร้าน B</button>
         </div>
       </div>
       <div style="margin-top:12px">
@@ -1837,9 +1837,11 @@ function setDeliver(m){
 function setInvoice(v){ if(!isSpecial(currentCustomer)) return; currentCustomer.invoice=v; saveSession(currentCustomer); syncInvoiceButtons(); }
 function syncInvoiceButtons(){
   const y=document.getElementById('invYes'), n=document.getElementById('invNo');
-  const v=isSpecial(currentCustomer)?(currentCustomer.invoice!==false):true;
-  if(y) y.classList.toggle('active', v);
-  if(n) n.classList.toggle('active', !v);
+  if(!isSpecial(currentCustomer)) return;
+  const inv=currentCustomer._inv, noinv=currentCustomer._noinv;   // ปุ่มโชว์ชื่อร้านจริง (A=_inv / B=_noinv)
+  const v=currentCustomer.invoice!==false;
+  if(y){ y.textContent='🏪 '+((inv&&inv.name)||'ชื่อหลัก'); y.classList.toggle('active', v); }
+  if(n){ n.textContent='🏪 '+((noinv&&noinv.name)||''); n.classList.toggle('active', !v); }
 }
 async function submitOrder(){
   if(!Object.keys(cart).length){ showToast('ตะกร้าว่าง','warning'); return; }
