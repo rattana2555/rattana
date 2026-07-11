@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v3.02</title>
+<title>Rattana Online Order v3.03</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.02</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.03</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -585,21 +585,44 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 </script>
 <script>
 /* ===================== STATE ===================== */
-let PRODUCTS=[], PROMOS=[], USERS=[], CUSTOMERS=[], SPECIAL_SHOPS=[];
-/* ร้านทำราคาพิเศษ (ร้านส่ง): 1 เบอร์อาจมี 2 แถว — ไม่มี N = เอาใบกำกับ(default), มี N = ไม่เอาใบกำกับ */
-function mapSpecial(r){ return { phone:digits(r['เบอร์']), code:clean(r['รหัสร้าน']), name:clean(r['ชื่อร้าน']), noInv:clean(r['ใบกำกับ']).toUpperCase()==='N', step:clean(r['Step']) }; }
+let PRODUCTS=[], PROMOS=[], USERS=[], CUSTOMERS=[], SPECIAL_SHOPS=[], VENDOR_CREDIT={};
+/* ร้านทำราคาพิเศษ (ร้านส่ง): 1 เบอร์มีได้หลายชื่อ — ไม่มี N=default, มี N=ไม่เอาใบกำกับ + เงื่อนไขจับสินค้าต่อชื่อ (CAT TYPE/BRAND/VENDOR/เครดิต) */
+function splitCond(s){ return clean(s).split(/[,\n;]+/).map(function(x){return x.trim();}).filter(Boolean); }
+function mapSpecial(r){ return { phone:digits(r['เบอร์']), code:clean(r['รหัสร้าน']), name:clean(r['ชื่อร้าน']), noInv:clean(r['ใบกำกับ']).toUpperCase()==='N', step:clean(r['Step']),
+  catType:splitCond(r['CAT TYPE']), catBrand:splitCond(r['CAT BRAND']), catVendor:splitCond(r['CAT VENDOR']), credit:clean(r['เครดิต']) }; }
+function specialHasCond(s){ return !!((s.catType&&s.catType.length)||(s.catBrand&&s.catBrand.length)||(s.catVendor&&s.catVendor.length)||s.credit); }
 function specialByPhone(ph){ ph=digits(ph); if(!ph) return null; const rows=SPECIAL_SHOPS.filter(s=>s.phone===ph); if(!rows.length) return null;
-  const inv=rows.find(s=>!s.noInv)||rows[0]; const noinv=rows.find(s=>s.noInv)||null; return { inv, noinv }; }
+  const inv=rows.find(s=>!s.noInv && !specialHasCond(s)) || rows.find(s=>!s.noInv) || rows[0];   // default = ไม่มี N + ไม่มีเงื่อนไข
+  const noinv=rows.find(s=>s.noInv)||null; return { inv, noinv, rows }; }
 function isSpecial(c){ return !!(c && c._special); }
 function makeSpecialCustomer(sp, ph){
-  const id = sp.inv;   // ค่าเริ่มต้น = ใบกำกับ (แถวไม่มี N)
+  const id = sp.inv;   // ค่าเริ่มต้น = ชื่อ default (ไม่มี N/ไม่มีเงื่อนไข)
   return { _special:true, invoice:true, phone:digits(ph), uid:window._lineUid||'',
     _inv:{code:sp.inv.code,name:sp.inv.name}, _noinv: sp.noinv?{code:sp.noinv.code,name:sp.noinv.name}:null,
+    _ids: (sp.rows||[]).map(function(s){ return {code:s.code, name:s.name, catType:s.catType, catBrand:s.catBrand, catVendor:s.catVendor, credit:s.credit}; }),
     step: sp.inv.step||'',   // สเต็ปราคาส่งของร้าน (ว่าง=S00 / S01 / S02 / S03)
     shopCode:id.code, name:id.name, salemanCode:'', salemanName:'', province:'', status:'ร้านส่ง' };
 }
-/* สลับตัวตนร้านพิเศษตามใบกำกับ (เอา=แถวไม่มี N / ไม่เอา=แถว N) */
+/* สลับตัวตนร้านพิเศษตามชื่อที่ลูกค้าเลือก (default = แถวไม่มี N) */
 function specialActiveId(c){ if(!isSpecial(c)) return null; return (c.invoice!==false ? c._inv : (c._noinv||c._inv)); }
+/* วันเครดิตของสินค้า (VENDOR CODE → ชีทรับเคลม): "จ่ายสด"/ไม่ใช่เลข=0, ไม่เจอ=null */
+function creditDaysFor(prod){ const vc=clean(prod['VENDOR CODE']); if(!vc||vc==='0'||vc==='<New>') return null; const c=VENDOR_CREDIT[vc]; if(c==null) return null; const n=parseInt(c,10); return isNaN(n)?0:n; }
+/* เงื่อนไขเครดิต เช่น ">30" ">=30" "30"(=มากกว่าเท่ากับ) */
+function creditRuleOK(rule, days){ rule=clean(rule); if(!rule||days==null) return false; const m=rule.match(/(>=|<=|>|<|=)?\s*(\d+)/); if(!m) return false; const op=m[1]||'>=', th=+m[2]; return op==='>'?days>th:op==='>='?days>=th:op==='<'?days<th:op==='<='?days<=th:days===th; }
+/* ชื่อร้าน (ตัวตน) ของสินค้าชิ้นนี้ตามเงื่อนไข — ไม่เข้าเงื่อนไขไหน → ชื่อที่ลูกค้าเลือก (default/N) */
+function identityForProduct(prod){
+  if(!isSpecial(currentCustomer) || !prod) return null;
+  const ids=currentCustomer._ids||[];
+  const t=clean(prod['CAT TYPE']).toLowerCase(), b=clean(prod['CAT BRAND']).toLowerCase(), v=clean(prod['CAT VENDOR']).toLowerCase();
+  const days=creditDaysFor(prod);
+  for(const id of ids){
+    if(!((id.catType&&id.catType.length)||(id.catBrand&&id.catBrand.length)||(id.catVendor&&id.catVendor.length)||id.credit)) continue;   // แถวไม่มีเงื่อนไข (default) → ข้าม
+    if((id.catType||[]).some(x=>x.toLowerCase()===t) || (id.catBrand||[]).some(x=>x.toLowerCase()===b) ||
+       (id.catVendor||[]).some(x=>x.toLowerCase()===v) || (id.credit && creditRuleOK(id.credit, days)))
+      return {code:id.code, name:id.name};
+  }
+  const base=specialActiveId(currentCustomer); return {code:base.code, name:base.name};
+}
 /* พรีฟิกซ์คอลัมน์ราคาของร้านพิเศษตามช่อง Step: ว่าง→S00, S01/S02/S03 ตามที่ระบุ (ร้านปกติ=S03) */
 function specialPricePrefix(c){ if(!isSpecial(c)) return 'PRICE S03 '; const m=String(c.step||'').toUpperCase().match(/S0[0-3]/); return 'PRICE '+(m?m[0]:'S00')+' '; }
 let promoIndex={};                 // field -> Map(valueLower -> [promoObj])
@@ -614,9 +637,11 @@ function draftOrderId(){ let id=localStorage.getItem('rop_orderId'); if(!id){ id
 function resetDraft(){ localStorage.removeItem('rop_orderId'); removedItems={}; saveRemoved(); }
 function cancelItem(key){ if(cart[key]){ removedItems[key]=Object.assign({},cart[key]); saveRemoved(); delete cart[key]; } }  // ลบจากตะกร้า = ทำเครื่องหมาย "ไม่อนุมัติ"
 // รายการสินค้าสำหรับส่ง backend: ในตะกร้า=activeStatus, ที่ลบแล้ว=ไม่อนุมัติ
-function buildOrderItems(activeStatus){
-  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return {name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | '),status:activeStatus};});
-  computeGifts().forEach(g=>items.push({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from,status:activeStatus}));
+function buildOrderItems(activeStatus, routeSpecial){
+  // ร้านพิเศษ + ตอนกดส่ง: จับสินค้าแต่ละชิ้น → ชื่อร้าน/รหัสตามเงื่อนไข (draft ไม่ route = ชื่อ default)
+  const rt=(it,src)=>{ if(routeSpecial && isSpecial(currentCustomer)){ const p=findProduct(src.name)||((barcodeEntry(src.barcode)||{}).p); const id=p?identityForProduct(p):null; if(id){ it.shopName=id.name; it.shopCode=id.code; } } return it; };
+  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return rt({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | '),status:activeStatus}, i);});
+  computeGifts().forEach(g=>items.push(rt({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from,status:activeStatus}, g)));
   Object.values(removedItems).forEach(i=>{const up=itemUnitPrice(i);items.push({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:i.type||'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:((i.promo&&i.promo.join)?i.promo.join(' | '):''),status:'ไม่อนุมัติ'});});
   return items;
 }
@@ -1849,7 +1874,7 @@ async function submitOrder(){
   const orderId=draftOrderId();   // ใช้ orderId เดิมของ draft (ที่ sync รออนุมัติราคา ไว้แล้ว) → ยืนยันทับเป็นอนุมัติราคา
   const noteEl=document.getElementById('orderNote'); const note=noteEl?clean(noteEl.value):'';
   // รูปแบบ = ขาย/แถม/ไม่อนุมัติ , หน่วย = หน่วยละเอียดตามบาร์โค้ด ; สถานะตอนยืนยัน = อนุมัติราคา
-  const payload=Object.assign({ action:'order', orderId, note, deliver:deliverMode, total:cartTotal(), items:buildOrderItems('อนุมัติ') }, orderMeta());
+  const payload=Object.assign({ action:'order', orderId, note, deliver:deliverMode, total:cartTotal(), items:buildOrderItems('อนุมัติ', true) }, orderMeta());
   showSpinner('กำลังส่งออเดอร์...');
   _orderInFlight=true;                       // กันผู้ใช้ปิดหน้าระหว่างส่ง (beforeunload เตือน)
   let ok=false;
@@ -1938,7 +1963,7 @@ async function refreshData(){
   showToast('อัพเดทข้อมูลแล้ว ✓','success');
 }
 // ชีทสินค้ามี 122 คอลัมน์ (~28MB) แต่แอปใช้จริงแค่ ~35 → ตัดทิ้งก่อนแคช/ใช้งาน (เล็กลง 4-5 เท่า, แคชลง localStorage ได้, เร็วขึ้นมาก)
-const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT GROUP','CAT BRAND','CAT SIZE','CAT TYPE','FIRST STOCK DATE','CS PALLET',
+const PRODUCT_COLS=['PRODUCT NAME','SHORT NAME','SKU_USAGE','DESCRIPTION','CAT GROUP','CAT BRAND','CAT SIZE','CAT TYPE','CAT VENDOR','VENDOR CODE','FIRST STOCK DATE','CS PALLET',
   'PRICE S00 CS','PRICE S00 PA','PRICE S00 EA','PRICE S01 CS','PRICE S01 PA','PRICE S01 EA','PRICE S02 CS','PRICE S02 PA','PRICE S02 EA','PRICE S03 CS','PRICE S03 PA','PRICE S03 EA','UNIT CS','UNIT PA','UNIT EA','CODE CS','CODE PA','CODE EA','CODE BP',
   'IB W1','IB W2','IB W3','IB W4','IB C4','STOCK W1','STOCK W2','STOCK W3','STOCK W4','STOCK C4','RANK W1','RANK W2','RANK W3','RANK W4','RANK C4',
   'OR_CS.EA W1','OR_CS.EA W2','OR_CS.EA W3','OR_CS.EA W4','OR_CS.EA C4',
@@ -1996,8 +2021,11 @@ function fetchProductsSmart(){
   });
 }
 // เซ็ตข้อมูลเข้าตัวแปร + สร้าง index (ใช้ซ้ำทั้งตอนวาดจากแคชและจากเน็ต)
-function applyData(prod,promo,users,cust,ea,whmap,special){
+/* ชีทรับเคลม: Vendor code (col A) → เครดิต (col G) — ใช้จับสินค้าเข้าชื่อร้านตามวันเครดิต */
+function buildVendorCredit(rows){ const m={}; (rows||[]).forEach(function(r){ const code=clean(r['Vendor code'])||clean(r['VENDOR CODE']); const cr=clean(r['เครดิต']); if(code && !(code in m)) m[code]=cr; }); return m; }
+function applyData(prod,promo,users,cust,ea,whmap,special,rubclaim){
   PRODUCTS=prod||[]; PROMOS=promo||[]; USERS=users||[]; CUSTOMERS=(cust||[]).map(mapCustomer); SPECIAL_SHOPS=(special||[]).map(mapSpecial);
+  VENDOR_CREDIT=buildVendorCredit(rubclaim);
   // เปิดขายชิ้น (EA) เฉพาะ CAT SIZE ที่คอลัมน์ Allow_EA ไม่ว่าง → สินค้าที่ CAT SIZE เดียวกันก็ขายชิ้นได้ ("ไม่กำหนดขนาด" ห้ามขายชิ้นเสมอ)
   EA_SET=new Set((ea||[]).filter(r=>clean(r['Allow_EA'])).map(r=>clean(r['CAT SIZE']).toLowerCase()).filter(s=>s && s!=='ไม่กำหนดขนาด'));
   if(whmap) WH_BY_AREA=whmap;   // map พื้นที่→WH ส่วนใหญ่ (โชว์สินค้าตามคลังของพื้นที่ร้าน)
@@ -2007,24 +2035,25 @@ function applyData(prod,promo,users,cust,ea,whmap,special){
 async function loadAll(silent){
   localStorage.removeItem('rop_products');   // ของเก่าเคยเก็บที่นี่ (28MB) — ย้ายไป IndexedDB แล้ว คืนพื้นที่
   // ── วาดทันทีจากแคช: สินค้าอ่านจาก IndexedDB, ที่เหลืออ่านจาก localStorage ──
-  const small=['rop_promo','rop_users','rop_customers','rop_ea','rop_whmap','rop_special'].map(k=>getCached(k,true));
+  const small=['rop_promo','rop_users','rop_customers','rop_ea','rop_whmap','rop_special','rop_rubclaim'].map(k=>getCached(k,true));
   const prodCache=await idbGet('rop_products');
-  const haveCache=prodCache && small.slice(0,4).every(Boolean);   // whmap ไม่บังคับสำหรับ instant paint
-  if(haveCache){ applyData(prodCache,small[0],small[1],small[2],small[3],small[4],small[5]); renderAll(); }   // ⚡ instant paint
+  const haveCache=prodCache && small.slice(0,4).every(Boolean);   // whmap/rubclaim ไม่บังคับสำหรับ instant paint
+  if(haveCache){ applyData(prodCache,small[0],small[1],small[2],small[3],small[4],small[5],small[6]); renderAll(); }   // ⚡ instant paint
   else if(!silent){ showSpinner('กำลังโหลดสินค้า...'); }
   try{
     let prod;
     try{ prod=await fetchProductsSmart(); idbSet('rop_products',prod); }   // ⚡ parse ใน Web Worker (UI ไม่ค้าง) — มี fallback เมน thread
     catch(e){ if(!prodCache) throw e; prod=prodCache; }   // เน็ตล่ม → ใช้แคช
-    const [promo,users,cust,ea,whmap,special]=await Promise.all([
+    const [promo,users,cust,ea,whmap,special,rubclaim]=await Promise.all([
       getData('rop_promo',()=>fetchCsvExport(CFG.promoSheetId,CFG.promoGid)),
       getData('rop_users',()=>fetchCsvGid(CFG.usersSheetId,CFG.usersGid)),
       getData('rop_customers',()=>fetchCsvGid(CFG.regSheetId,CFG.regGid)),
       getData('rop_ea',()=>fetchCsvExport(CFG.regSheetId,CFG.eaGid)),   // gviz มั่วกับชีทนี้ (รวมคอลัมน์) → ใช้ export
       getData('rop_whmap',()=>fetchCsvExport(CFG.regSheetId,CFG.customerGid).then(buildWhByArea)),   // map พื้นที่→WH จากชีท Customer
-      getData('rop_special',()=>fetchCsvGid(CFG.regSheetId,CFG.specialGid)),   // ร้านทำราคาพิเศษ (ร้านส่ง)
+      getData('rop_special',()=>fetchCsvExport(CFG.regSheetId,CFG.specialGid)),   // ร้านทำราคาพิเศษ (ร้านส่ง) — ใช้ export (gviz มั่วเมื่อเพิ่มคอลัมน์)
+      getData('rop_rubclaim',()=>fetchCsvExport(CFG.promoSheetId,'1980490376')),   // ชีทรับเคลม (Vendor code → เครดิต)
     ]);
-    applyData(prod,promo,users,cust,ea,whmap,special);
+    applyData(prod,promo,users,cust,ea,whmap,special,rubclaim);
     await resolveLogin();
     ensureUidLinked(currentCustomer);   // เผื่อมี LINE uid ใหม่ที่ยังไม่ผูกกับร้าน
     renderAll();

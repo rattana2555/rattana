@@ -550,9 +550,9 @@ function writeOrderToSheet(d, opts) {
         if (qtyCol>=0)    sh.getRange(ex.row, qtyCol+1).setValue(it.qty || 0);
         if (priceCol>=0)  sh.getRange(ex.row, priceCol+1).setValue(it.price || 0);
         if (totalCol>=0)  sh.getRange(ex.row, totalCol+1).setValue(it.total || 0);
-        if (opts.updateShop) {   // ร้านส่ง: ตอนกดส่ง สลับชื่อ/รหัสร้านตามใบกำกับที่เลือก (draft ลงชื่อ default ไว้)
-          if (shopCol>=0) sh.getRange(ex.row, shopCol+1).setValue(d.customerName || '');
-          if (codeCol>=0) sh.getRange(ex.row, codeCol+1).setValue(d.shopCode || '');
+        if (opts.updateShop) {   // ร้านส่ง: ตอนกดส่ง สลับชื่อ/รหัสร้านตามเงื่อนไข/ใบกำกับต่อชิ้น (draft ลงชื่อ default ไว้)
+          if (shopCol>=0) sh.getRange(ex.row, shopCol+1).setValue(it.shopName || d.customerName || '');
+          if (codeCol>=0) sh.getRange(ex.row, codeCol+1).setValue(it.shopCode || d.shopCode || '');
         }
       } else {
         appendOrderRow(sh, headers, bcCol, d, it);
@@ -580,7 +580,7 @@ function appendOrderRow(sh, headers, bcCol, d, it) {
     'เวลา': Utilities.formatDate(now,'Asia/Bangkok','HH.mm'),
     'email': d.uid || '',
     'ชื่อ-สกุล': d.salemanName || '', 'รหัสเซลล์': d.salemanCode || '', 'คลัง': d.warehouse || '', 'คลังส่ง': d.warehouse || '',
-    'ชื่อร้าน': d.customerName || '', 'รหัสร้าน': d.shopCode || '',
+    'ชื่อร้าน': it.shopName || d.customerName || '', 'รหัสร้าน': it.shopCode || d.shopCode || '',   // ร้านส่ง: ชื่อ/รหัสต่อชิ้นตามเงื่อนไข
     'รูปแบบ': typeKey(it.type), 'Barcode': (it.barcode || ''), 'ชื่อสินค้า': it.name || '',
     'ยกเลิก': '', 'จำนวน': it.qty || 0, 'หน่วย': it.unit || '', 'ราคา': it.price || 0,
     'ยอดเงินรวม': (it.total || 0), 'orderId': d.orderId || '',
