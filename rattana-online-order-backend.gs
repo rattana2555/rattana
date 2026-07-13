@@ -784,6 +784,22 @@ function allUidsForShop(phone, fallbackUid){
       }
     }
   }catch(e){} }
+  // ร้านทำราคาพิเศษ (ร้านส่ง): หา User ID จากชีทร้านพิเศษด้วย (ไม่อยู่ในชีทลงทะเบียน) → ส่งสรุปเข้าไลน์ได้
+  if(phone){ try{
+    var ssp = SpreadsheetApp.openById(REG_SPREADSHEET_ID);
+    var shp = getSheetByGid(ssp, SPECIAL_SHEET_GID);
+    if(shp){
+      var HP = shp.getRange(1,1,1,shp.getLastColumn()).getValues()[0].map(function(h){return String(h).trim();});
+      var pP=HP.indexOf('เบอร์'), uP=HP.indexOf('User ID');
+      var lastP=shp.getLastRow();
+      if(pP>=0 && uP>=0 && lastP>=2){
+        var valsP=shp.getRange(2,1,lastP-1,shp.getLastColumn()).getValues();
+        for(var k=0;k<valsP.length;k++){
+          if(String(valsP[k][pP]).replace(/\D/g,'')===phone){ var up=String(valsP[k][uP]||'').trim(); if(up) recips[up]=1; }
+        }
+      }
+    }
+  }catch(e){} }
   return Object.keys(recips);
 }
 function pushLineOrder(d, sh){
