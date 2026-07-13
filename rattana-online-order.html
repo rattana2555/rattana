@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Rattana Online Order v3.03</title>
+<title>Rattana Online Order v3.04</title>
 <link rel="icon" type="image/png" href="roo-logo.png">
 <link rel="apple-touch-icon" href="roo-logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -343,7 +343,7 @@ body.dark .dseg.active{color:var(--gold-light)}
 <header>
   <div class="brand">
     <div class="logo-box"><img class="logo-img" id="logoImg" alt=""><span class="logo-ring" id="logoRing"></span></div>
-    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.03</i></div>
+    <div class="logo-text">RATTANA<span>ONLINE ORDER</span><i class="ver">v3.04</i></div>
   </div>
   <div class="h-spacer"></div>
   <button class="icon-btn" id="btnRefresh" title="รีเฟรช" onclick="refreshData()">↻</button>
@@ -640,8 +640,8 @@ function cancelItem(key){ if(cart[key]){ removedItems[key]=Object.assign({},cart
 function buildOrderItems(activeStatus, routeSpecial){
   // ร้านพิเศษ + ตอนกดส่ง: จับสินค้าแต่ละชิ้น → ชื่อร้าน/รหัสตามเงื่อนไข (draft ไม่ route = ชื่อ default)
   const rt=(it,src)=>{ if(routeSpecial && isSpecial(currentCustomer)){ const p=findProduct(src.name)||((barcodeEntry(src.barcode)||{}).p); const id=p?identityForProduct(p):null; if(id){ it.shopName=id.name; it.shopCode=id.code; } } return it; };
-  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return rt({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | '),status:activeStatus}, i);});
-  computeGifts().forEach(g=>items.push(rt({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from,status:activeStatus}, g)));
+  const items=Object.values(cart).map(i=>{const up=itemUnitPrice(i);return rt({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:(i.promo||[]).join(' | '),status:activeStatus,img:i.img||''}, i);});
+  computeGifts().forEach(g=>items.push(rt({name:g.name,qty:g.qty,unit:(g.unitDetail||'ของแถม'),type:'แถม',barcode:g.barcode||'',price:0,total:0,promo:'ของแถมจาก '+g.from,status:activeStatus,img:g.img||''}, g)));
   Object.values(removedItems).forEach(i=>{const up=itemUnitPrice(i);items.push({name:i.name,qty:i.qty,unit:(i.unitDetail||i.unitName),type:i.type||'ขาย',barcode:i.barcode||'',price:up,total:i.qty*up,promo:((i.promo&&i.promo.join)?i.promo.join(' | '):''),status:'ไม่อนุมัติ'});});
   return items;
 }

@@ -815,15 +815,19 @@ function pushLineOrder(d, sh){
   var rows = items.map(function(it, i){
     var isGift = it.type==='แถม';
     var bg = isGift ? '#f1fbf4' : (i%2 ? '#f7f8fc' : '#ffffff');
-    return { type:'box', layout:'vertical', paddingAll:'10px', cornerRadius:'10px', backgroundColor:bg, margin:'sm',
+    var hasImg = it.img && /^https/i.test(String(it.img));
+    var thumb = hasImg
+      ? { type:'image', url:String(it.img), size:'full', aspectMode:'cover', aspectRatio:'1:1' }   // รูปสินค้าจริง (SKU_USAGE)
+      : { type:'text', text:(isGift?'🎁':'🛍️'), size:'xl', align:'center', gravity:'center' };       // ไม่มีรูป → ไอคอนถุงเดิม
+    return { type:'box', layout:'horizontal', spacing:'md', paddingAll:'10px', cornerRadius:'10px', backgroundColor:bg, margin:'sm',
       contents:[
-        { type:'box', layout:'baseline', contents:[
-          { type:'text', text:(isGift?'🎁':'🛍️'), size:'sm', flex:0 },
-          { type:'text', text:String(it.name||''), size:'sm', weight:'bold', wrap:true, color:(isGift?'#1e9e57':NAVY), margin:'sm' }
-        ]},
-        { type:'box', layout:'horizontal', margin:'sm', contents:[
-          { type:'text', text:'× '+(it.qty||0)+' '+(it.unit||''), size:'xs', color:MUTE, flex:3, wrap:true, gravity:'center' },
-          { type:'text', text:(isGift?'ฟรี ♥':numFmt(it.total)+' ฿'), size:'sm', align:'end', weight:'bold', color:(isGift?'#1e9e57':NAVY), flex:2, gravity:'center' }
+        { type:'box', layout:'vertical', width:'48px', height:'48px', flex:0, cornerRadius:'8px', backgroundColor:'#ffffff', borderWidth:'1px', borderColor:'#eef0f6', contents:[ thumb ] },
+        { type:'box', layout:'vertical', flex:1, spacing:'xs', justifyContent:'center', contents:[
+          { type:'text', text:String(it.name||''), size:'sm', weight:'bold', wrap:true, color:(isGift?'#1e9e57':NAVY) },
+          { type:'box', layout:'horizontal', contents:[
+            { type:'text', text:'× '+(it.qty||0)+' '+(it.unit||''), size:'xs', color:MUTE, flex:3, wrap:true, gravity:'center' },
+            { type:'text', text:(isGift?'ฟรี ♥':numFmt(it.total)+' ฿'), size:'sm', align:'end', weight:'bold', color:(isGift?'#1e9e57':NAVY), flex:2, gravity:'center' }
+          ]}
         ]}
       ]};
   });
