@@ -519,6 +519,8 @@ function writeOrderToSheet(d, opts) {
     var oidCol=col('orderId'), bcCol=col('Barcode'), typeCol=col('รูปแบบ'), unitCol=col('หน่วย');
     var qtyCol=col('จำนวน'), priceCol=col('ราคา'), totalCol=col('ยอดเงินรวม'), statusCol=col('สถานะอนุมัติ');
     var shopCol=col('ชื่อร้าน'), codeCol=col('รหัสร้าน');   // ร้านส่ง: อัปเดตตัวตน (ใบกำกับ) ตอนกดส่ง
+    var dateCol=col('วัน'), timeCol=col('เวลา');   // กดยืนยัน → เปลี่ยนเป็นวัน/เวลาที่กดส่ง (draft อาจคนละวัน)
+    var _now = new Date(), nowDate = Utilities.formatDate(_now,'Asia/Bangkok','dd/MM/yyyy'), nowTime = Utilities.formatDate(_now,'Asia/Bangkok','HH.mm');
     var items = d.items || [];
 
     // map เฉพาะ "แถวที่ยังไม่จบ" (สถานะยังไม่ใช่ อนุมัติ/ไม่อนุมัติ) ของ orderId นี้ : key → {row}
@@ -553,6 +555,10 @@ function writeOrderToSheet(d, opts) {
         if (opts.updateShop) {   // ร้านส่ง: ตอนกดส่ง สลับชื่อ/รหัสร้านตามเงื่อนไข/ใบกำกับต่อชิ้น (draft ลงชื่อ default ไว้)
           if (shopCol>=0) sh.getRange(ex.row, shopCol+1).setValue(it.shopName || d.customerName || '');
           if (codeCol>=0) sh.getRange(ex.row, codeCol+1).setValue(it.shopCode || d.shopCode || '');
+        }
+        if (opts.stampDate) {   // กดยืนยัน → เปลี่ยน วัน/เวลา ของแถว draft เป็นตอนกดส่ง (ทั้งออเดอร์วันเดียวกัน)
+          if (dateCol>=0) sh.getRange(ex.row, dateCol+1).setValue(nowDate);
+          if (timeCol>=0) sh.getRange(ex.row, timeCol+1).setValue(nowTime);
         }
       } else {
         appendOrderRow(sh, headers, bcCol, d, it);
@@ -638,7 +644,7 @@ function handleOrder(d) {
     }
     props.setProperty(pkey, sig + '~~' + new Date().getTime());   // จองสิทธิ์ก่อนเขียน (กันสองเครื่องชนกัน)
   }
-  var r = special ? writeOrderToSheet(d, {sheetName:SPECIAL_ORDER_SHEET_NAME, updateShop:true}) : writeOrderToSheet(d);
+  var r = special ? writeOrderToSheet(d, {sheetName:SPECIAL_ORDER_SHEET_NAME, updateShop:true, stampDate:true}) : writeOrderToSheet(d, {stampDate:true});
   if (!r.ok) return r;
   try { pushLineOrder(d, r.sh); } catch (e) {}      // ส่งสรุปเข้าไลน์ลูกค้า (ทุก User ID ของร้าน)
   try { pushDiscordOrder(d); } catch (e) {}         // แจ้งเตือนแอดมิน (ORDER ROO) เข้า Discord
