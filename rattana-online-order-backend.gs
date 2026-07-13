@@ -520,6 +520,7 @@ function writeOrderToSheet(d, opts) {
     var qtyCol=col('จำนวน'), priceCol=col('ราคา'), totalCol=col('ยอดเงินรวม'), statusCol=col('สถานะอนุมัติ');
     var shopCol=col('ชื่อร้าน'), codeCol=col('รหัสร้าน');   // ร้านส่ง: อัปเดตตัวตน (ใบกำกับ) ตอนกดส่ง
     var dateCol=col('วัน'), timeCol=col('เวลา');   // กดยืนยัน → เปลี่ยนเป็นวัน/เวลาที่กดส่ง (draft อาจคนละวัน)
+    var deliverCol=col('รูปแบบการจัดส่ง');   // อัปเดตทุกแถวตามค่าปัจจุบัน (กันบิลเดียวปนกันถ้าเปลี่ยนวิธีรับกลางคัน)
     var _now = new Date(), nowDate = Utilities.formatDate(_now,'Asia/Bangkok','dd/MM/yyyy'), nowTime = Utilities.formatDate(_now,'Asia/Bangkok','HH.mm');
     var items = d.items || [];
 
@@ -552,6 +553,7 @@ function writeOrderToSheet(d, opts) {
         if (qtyCol>=0)    sh.getRange(ex.row, qtyCol+1).setValue(it.qty || 0);
         if (priceCol>=0)  sh.getRange(ex.row, priceCol+1).setValue(it.price || 0);
         if (totalCol>=0)  sh.getRange(ex.row, totalCol+1).setValue(it.total || 0);
+        if (deliverCol>=0 && d.deliver) sh.getRange(ex.row, deliverCol+1).setValue(d.deliver);   // sync วิธีรับสินค้าให้ทั้งบิลตรงกัน
         if (opts.updateShop) {   // ร้านส่ง: ตอนกดส่ง สลับชื่อ/รหัสร้านตามเงื่อนไข/ใบกำกับต่อชิ้น (draft ลงชื่อ default ไว้)
           if (shopCol>=0) sh.getRange(ex.row, shopCol+1).setValue(it.shopName || d.customerName || '');
           if (codeCol>=0) sh.getRange(ex.row, codeCol+1).setValue(it.shopCode || d.shopCode || '');
