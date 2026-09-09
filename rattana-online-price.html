@@ -1,0 +1,2828 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0D0D0D">
+<meta name="robots" content="noindex, nofollow">
+<title>Rattana Online Price</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+/* ============================================================
+   Design system — Modern Premium Minimalist
+   Obsidian Black · Pure White · Crimson Red   (zero emoji)
+   ============================================================ */
+:root{
+  /* Brand palette */
+  --obsidian:#0D0D0D; --charcoal:#1A1A1A;
+  --crimson:#E60023;  --neon:#FF1744;
+  --white:#FFFFFF;    --gray:#A1A1A1;
+
+  /* Surfaces — dark is the default */
+  --bg:#0D0D0D;
+  --surface:rgba(255,255,255,0.035);
+  --surface-solid:#141414;
+  --raised:#1A1A1A;
+  --text:#FFFFFF;
+  --muted:#A1A1A1;
+  --line:rgba(255,255,255,0.10);
+  --line-2:rgba(255,255,255,0.20);
+  --row-alt:rgba(255,255,255,0.022);
+  --row-hover:rgba(230,0,35,0.07);
+  --glow:rgba(230,0,35,0.22);
+  --invert-text:#0D0D0D;
+  --scrim:rgba(0,0,0,0.72);
+
+  /* Spacing — 8pt */
+  --s-xs:4px; --s-sm:8px; --s-md:16px; --s-lg:24px; --s-xl:32px;
+
+  /* Shape — soft, rounded */
+  --r:16px; --r-sm:10px; --r-lg:22px; --r-pill:999px;
+
+  /* Elevation — layered, soft, with a top highlight for depth */
+  --sh-sm:0 1px 2px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.22);
+  --sh-md:0 2px 6px rgba(0,0,0,.28), 0 10px 28px rgba(0,0,0,.34);
+  --sh-lg:0 4px 12px rgba(0,0,0,.32), 0 28px 60px rgba(0,0,0,.48);
+  --sh-red:0 6px 16px rgba(230,0,35,.18), 0 18px 44px rgba(230,0,35,.22);
+  --edge:inset 0 1px 0 rgba(255,255,255,.07);
+  --surface-grad:linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.018) 55%, rgba(255,255,255,.008));
+
+  /* Type */
+  --f-display:'Anuphan',system-ui,sans-serif;
+  --f-body:'Anuphan',system-ui,sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,'Courier New',monospace;
+}
+body.light{
+  --bg:#F4F4F5;
+  --surface:rgba(13,13,13,0.025);
+  --surface-solid:#FFFFFF;
+  --raised:#FFFFFF;
+  --text:#0D0D0D;
+  --muted:#6E6E73;
+  --line:rgba(13,13,13,0.13);
+  --line-2:rgba(13,13,13,0.26);
+  --row-alt:rgba(13,13,13,0.022);
+  --row-hover:rgba(230,0,35,0.06);
+  --glow:rgba(230,0,35,0.13);
+  --invert-text:#FFFFFF;
+  --scrim:rgba(13,13,13,0.55);
+  --sh-sm:0 1px 2px rgba(13,13,13,.06), 0 2px 6px rgba(13,13,13,.05);
+  --sh-md:0 2px 6px rgba(13,13,13,.07), 0 10px 28px rgba(13,13,13,.08);
+  --sh-lg:0 4px 12px rgba(13,13,13,.08), 0 28px 60px rgba(13,13,13,.14);
+  --edge:inset 0 1px 0 rgba(255,255,255,.85);
+  --surface-grad:linear-gradient(160deg, rgba(255,255,255,.95), rgba(255,255,255,.75));
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+img{max-width:100%}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+body{
+  text-rendering:optimizeLegibility;
+  font-family:var(--f-body); font-size:14.5px; line-height:1.62; letter-spacing:.005em;
+  min-height:100dvh; overflow-x:hidden;
+  background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased; -webkit-overflow-scrolling:touch;
+  transition:background .25s,color .25s;
+}
+/* fixed crimson atmosphere behind everything */
+body::before{
+  content:''; position:fixed; width:760px; height:760px; border-radius:50%;
+  background:var(--crimson); filter:blur(200px); opacity:.10;
+  left:-330px; top:-300px; pointer-events:none; z-index:0;
+}
+body.light::before{opacity:.07}
+.page,.modal-overlay,#backToTop,.toast,#spinner{position:relative;z-index:1}
+button{font-family:inherit;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,select,textarea{font-family:inherit;font-size:16px}
+svg{display:block;flex-shrink:0}
+::selection{background:var(--crimson);color:#fff}
+
+/* ── Header ── */
+header{
+  background:rgba(13,13,13,.86); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  color:#fff; padding:12px 16px; position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:12px;
+  border-bottom:1px solid var(--line); box-shadow:0 1px 0 0 var(--crimson);
+  padding-top:max(12px,env(safe-area-inset-top));
+}
+body.light header{background:rgba(255,255,255,.86);color:var(--text)}
+.logo-text{font-family:var(--f-display);font-weight:700;letter-spacing:.10em;font-size:15px;white-space:nowrap;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:760px){.logo-text{font-size:13px;letter-spacing:.02em}}
+@media(max-width:560px){.ver{display:none}}
+@media(max-width:430px){.logo-text span{display:none}}
+.logo-text span{color:var(--crimson)}
+.ver{font-family:var(--f-mono);font-size:10px;background:rgba(230,0,35,.14);border:1px solid rgba(230,0,35,.38);color:var(--neon);padding:2px 7px;font-weight:500;letter-spacing:.04em}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.icon-btn{
+  background:transparent;color:var(--text);border:1px solid var(--line-2);
+  width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+  transition:border-color .15s,background .15s;flex-shrink:0;border-radius:var(--r-pill);
+}
+.icon-btn:hover{border-color:var(--crimson);background:rgba(230,0,35,.08)}
+
+/* ── Tabs ── */
+.tab-nav{
+  display:flex; background:rgba(13,13,13,.82); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--line); padding:0 8px; gap:2px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  position:sticky; top:62px; z-index:99;
+}
+body.light .tab-nav{background:rgba(255,255,255,.82)}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{
+  background:transparent;border:none;color:var(--muted);
+  padding:13px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;
+  transition:color .18s;margin-bottom:-1px;display:inline-flex;align-items:center;gap:8px;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--crimson);font-weight:700}
+.tab-btn.active::before{
+  content:'';width:5px;height:5px;border-radius:50%;background:var(--neon);
+  box-shadow:0 0 8px 2px rgba(255,23,68,.8);
+}
+.tab-btn .cnt{font-family:var(--f-mono);font-size:10px;background:rgba(255,255,255,.10);padding:2px 6px;font-weight:500;color:var(--muted)}
+.tab-btn.active .cnt{background:rgba(230,0,35,.16);color:var(--neon)}
+
+/* ── Layout ── */
+.page{min-height:100dvh;display:flex;flex-direction:column}
+.content{flex:1;padding:14px;max-width:1500px;margin:0 auto;width:100%}
+@media(min-width:640px){.content{padding:20px}}
+.grid-2{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.grid-2{grid-template-columns:1fr 1fr}}
+
+/* ── Cards (glass) ── */
+.card{
+  background:var(--surface-grad); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+  border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--sh-md), var(--edge); overflow:hidden;
+}
+.card-gold{position:relative}
+.card-gold::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,var(--crimson),rgba(230,0,35,0));border-radius:var(--r) var(--r) 0 0}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+}
+.card-head h3{font-family:var(--f-display);font-size:16.5px;font-weight:600;letter-spacing:0;display:inline-flex;align-items:center;gap:9px}
+.card-body{padding:16px}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;padding:9px 17px;border-radius:var(--r-pill);
+  font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;
+  border:1px solid transparent;min-height:44px;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--text);color:var(--invert-text);border-color:transparent;box-shadow:var(--sh-sm)}
+.btn-primary:hover{opacity:.85}
+.btn-gold{background:linear-gradient(180deg,#F5123B,var(--crimson));color:#fff;border-color:transparent;box-shadow:var(--sh-red), inset 0 1px 0 rgba(255,255,255,.28)}
+.btn-gold:hover{background:var(--neon);border-color:var(--neon)}
+.btn-outline{background:transparent;color:var(--text);border-color:var(--line-2)}
+.btn-outline:hover{border-color:var(--crimson);background:rgba(230,0,35,.07)}
+.btn-danger{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.btn-sm{padding:6px 12px;font-size:12px;min-height:36px}
+.btn-block{width:100%;justify-content:center}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:var(--r-pill);font-size:10.5px;font-weight:600;white-space:nowrap;letter-spacing:.02em;border:1px solid transparent}
+.badge-ok{background:rgba(255,255,255,.07);color:var(--text);border-color:var(--line)}
+.badge-warn{background:transparent;color:var(--muted);border-color:var(--line-2)}
+.badge-danger{background:rgba(230,0,35,.16);color:var(--neon);border-color:rgba(230,0,35,.45)}
+.badge-info{background:rgba(255,255,255,.05);color:var(--muted);border-color:var(--line)}
+.badge-mute{background:transparent;color:var(--muted);border-color:var(--line)}
+body.light .badge-ok{background:rgba(13,13,13,.06)}
+body.light .badge-danger{background:rgba(230,0,35,.10);color:var(--crimson)}
+/* platform badges — four readings, three colours */
+.chan-cell{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.pb{display:inline-flex;align-items:center;padding:3px 9px;border-radius:var(--r-pill);font-size:10.5px;font-weight:700;letter-spacing:.03em;border:1px solid transparent;white-space:nowrap}
+.pb-shp{background:var(--crimson);color:#fff;border-color:var(--crimson)}
+.pb-lzd{background:transparent;color:var(--text);border-color:var(--text)}
+.pb-amz{background:rgba(255,255,255,.10);color:var(--text);border-color:transparent}
+body.light .pb-amz{background:rgba(13,13,13,.08)}
+.pb-tm{background:transparent;color:var(--muted);border-color:var(--line-2)}
+
+/* ── Chips ── */
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{
+  background:transparent;border:1px solid var(--line);color:var(--muted);
+  padding:8px 14px;border-radius:var(--r-pill);font-size:12px;font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all .15s;min-height:36px;display:inline-flex;align-items:center;gap:6px;
+}
+.chip:hover{border-color:var(--line-2);color:var(--text)}
+.chip.on{background:var(--text);border-color:var(--text);color:var(--invert-text)}
+.chip.on .n{background:rgba(0,0,0,.16);color:inherit}
+body.light .chip.on .n{background:rgba(255,255,255,.22)}
+.chip .n{font-family:var(--f-mono);background:rgba(255,255,255,.08);padding:1px 6px;border-radius:var(--r-pill);font-size:10px;font-weight:500}
+.chip.warnchip.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.chip.warnchip.on .n{background:rgba(0,0,0,.22)}
+
+/* ── Filter bar ── */
+.filter-bar{
+  background:var(--surface); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px;
+  box-shadow:var(--sh-sm), var(--edge);
+  display:flex;flex-direction:column;gap:12px;
+}
+.f-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.22em;text-transform:uppercase;margin-bottom:7px}
+
+/* ── Inputs ── */
+.input{
+  height:46px;padding:0 16px;border-radius:var(--r-pill);border:1px solid var(--line);
+  background:transparent;color:var(--text);font-size:16px;font-family:inherit;
+  outline:none;width:100%;transition:border-color .15s,box-shadow .15s;
+}
+.input::placeholder{color:var(--muted)}
+.input:focus{border-color:var(--crimson);box-shadow:0 0 0 3px rgba(230,0,35,.14)}
+.input-sm{height:36px;font-size:13px;border-radius:var(--r-sm)}
+.search-wrap{position:relative}
+.search-wrap .input{padding-left:42px}
+.search-wrap .s-ico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+
+/* ── Stat cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
+@media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr);gap:14px}}
+.stat-card{
+  background:var(--surface); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--line);border-radius:var(--r);padding:18px;
+  box-shadow:var(--sh-sm), var(--edge);position:relative;overflow:hidden;
+}
+.stat-card::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:var(--line-2)}
+.stat-card .s-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+.stat-card .s-value{font-family:var(--f-display);font-size:27px;font-weight:700;line-height:1.15;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.stat-card .s-sub{font-size:10.5px;color:var(--muted);margin-top:7px;line-height:1.5}
+.stat-card.danger::before{background:linear-gradient(90deg,var(--crimson),rgba(230,0,35,.1))}
+.stat-card.danger{box-shadow:var(--sh-red), var(--edge)}
+.stat-card.danger .s-value{color:var(--crimson)}
+.stat-card.warning::before{background:linear-gradient(90deg,var(--neon),rgba(255,23,68,.1))}
+.stat-card.warning .s-value{color:var(--neon)}
+.stat-card.success::before,.stat-card.info::before{background:linear-gradient(90deg,rgba(255,255,255,.45),rgba(255,255,255,.05))}
+body.light .stat-card.success::before,body.light .stat-card.info::before{background:linear-gradient(90deg,rgba(13,13,13,.32),rgba(13,13,13,.04))}
+@media(min-width:640px){.stat-card .s-value{font-size:30px}}
+
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl{width:100%;border-collapse:collapse;min-width:1060px}
+.tbl thead{background:var(--bg);position:sticky;top:0;z-index:5}
+.tbl thead th{
+  padding:11px 9px;text-align:left;font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap;
+  border-bottom:1px solid var(--crimson);cursor:pointer;user-select:none;transition:color .15s;
+}
+.tbl thead th:hover{color:var(--text)}
+.tbl thead th.nosort{cursor:default}
+.tbl thead th.nosort:hover{color:var(--muted)}
+.tbl thead th .sort-ind{display:inline-flex;vertical-align:middle;margin-left:4px;color:var(--neon)}
+.tbl tbody tr{border-bottom:1px solid var(--line);transition:background .12s}
+.tbl tbody tr:nth-child(even){background:var(--row-alt)}
+.tbl tbody tr:hover{background:var(--row-hover)}
+.tbl tbody tr.dirty{background:rgba(230,0,35,.10)!important;box-shadow:inset 2px 0 0 var(--crimson)}
+.tbl tbody tr.alert{box-shadow:inset 2px 0 0 var(--neon)}
+.tbl td{padding:9px;font-size:12.5px;vertical-align:middle}
+.tbl td.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12px}
+.tbl td.code{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.tbl .empty-row td{text-align:center;padding:56px 20px;color:var(--muted);font-size:14px}
+.pname{font-weight:600;max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.psub{font-size:10.5px;color:var(--muted);max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+
+/* ── Price input ── */
+.pinput{
+  width:94px;height:38px;padding:0 12px;border-radius:var(--r-sm);
+  border:1px solid var(--line-2);background:transparent;color:var(--text);
+  font-family:var(--f-mono);font-size:13px;font-weight:700;text-align:right;outline:none;
+  font-variant-numeric:tabular-nums;transition:border-color .15s,box-shadow .15s;
+}
+.pinput:focus{border-color:var(--crimson);box-shadow:0 0 0 3px rgba(230,0,35,.16)}
+.pinput.changed{border-color:var(--crimson);background:rgba(230,0,35,.10);color:var(--neon)}
+.delta{font-family:var(--f-mono);font-size:10px;font-weight:700;display:block;margin-top:3px;text-align:right}
+.delta.up{color:var(--text)}
+.delta.down{color:var(--neon)}
+
+/* ── Checkbox ── */
+.cbx{width:20px;height:20px;accent-color:var(--crimson);cursor:pointer}
+
+/* ── Modal ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:var(--scrim);z-index:9000;
+  align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);overflow-y:auto;
+}
+.modal-overlay.open{display:flex}
+.modal-overlay{overscroll-behavior:contain}
+.modal{overscroll-behavior:contain;scrollbar-gutter:stable}
+body.modal-open{overflow:hidden;position:fixed;width:100%;left:0;right:0}
+/* keep the page from jumping when the scrollbar disappears */
+body.modal-open .page{padding-right:var(--sbw,0px)}
+.modal{
+  background:var(--raised);border:1px solid var(--line);
+  border-radius:var(--r-lg);max-width:560px;width:100%;max-height:92dvh;overflow-y:auto;
+  box-shadow:var(--sh-lg), var(--edge);animation:slideUp .26s cubic-bezier(.2,.8,.2,1);overflow:hidden;position:relative;
+}
+.modal::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,var(--crimson),rgba(230,0,35,0));z-index:2}
+.modal.wide{max-width:820px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-family:var(--f-display);font-size:16.5px;font-weight:600;display:inline-flex;align-items:center;gap:10px}
+.modal-close{background:transparent;border:1px solid transparent;color:var(--muted);cursor:pointer;padding:9px;line-height:0;border-radius:var(--r-pill)}
+.modal-close:hover{color:var(--text);border-color:var(--line)}
+.modal-body{padding:20px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:16px;
+  padding:14px 20px;border-radius:var(--r);z-index:9999;animation:slideIn .3s cubic-bezier(.2,.8,.2,1);
+  font-weight:500;box-shadow:var(--sh-lg);max-width:90vw;font-size:13px;
+  background:var(--raised);color:var(--text);border:1px solid var(--line);border-left:2px solid var(--muted);
+}
+.toast-success{border-left-color:var(--text)}
+.toast-error{border-left-color:var(--crimson);color:var(--neon)}
+.toast-warning{border-left-color:var(--neon)}
+.toast-info{border-left-color:var(--muted)}
+
+/* ── Spinner / loading ── */
+#spinner{display:none;position:fixed;inset:0;background:var(--scrim);align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(6px)}
+#spinner.show{display:flex}
+.spinner-box{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);padding:34px 44px;text-align:center;min-width:250px;box-shadow:var(--sh-lg), var(--edge)}
+.spinner-ring{width:44px;height:44px;border:2px solid var(--line);border-top-color:var(--crimson);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+#spinner p{font-size:13px;color:var(--muted)}
+#loadingBar{position:fixed;top:0;left:0;height:2px;background:var(--crimson);width:0;transition:width .4s;z-index:10000;box-shadow:0 0 10px 1px rgba(230,0,35,.7)}
+
+/* ── Back to top ── */
+#backToTop{
+  position:fixed;bottom:max(24px,calc(16px + env(safe-area-inset-bottom)));
+  right:max(16px,calc(12px + env(safe-area-inset-right)));
+  background:linear-gradient(180deg,#F5123B,var(--crimson));color:#fff;border:none;border-radius:var(--r-pill);
+  width:48px;height:48px;display:none;align-items:center;justify-content:center;
+  box-shadow:var(--sh-red);z-index:90;
+}
+#backToTop.show{display:flex}
+
+/* ── Bulk bar ── */
+.bulkbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;
+  background:var(--surface); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px;
+  box-shadow:var(--sh-sm), var(--edge);position:relative;overflow:hidden;
+}
+.bulkbar::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--crimson),rgba(230,0,35,0))}
+.bulkbar .sel{font-size:12.5px;color:var(--muted)}
+.bulkbar .sel b{font-family:var(--f-mono);color:var(--neon);font-weight:700}
+
+/* ── Notes ── */
+.note{background:var(--surface);border:1px solid var(--line);border-left:2px solid var(--muted);border-radius:var(--r-sm);padding:14px 16px;font-size:12.5px;line-height:1.7;color:var(--muted)}
+.note b{color:var(--text)}
+.note.warn{border-left-color:var(--crimson)}
+.note.warn b{color:var(--neon)}
+
+/* ── Code block ── */
+pre.code{
+  background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);
+  padding:16px;overflow-x:auto;font-family:var(--f-mono);font-size:11px;line-height:1.7;
+  max-height:360px;white-space:pre;
+}
+ol.steps{margin:0 0 0 18px;font-size:13px;line-height:1.9;color:var(--muted)}
+ol.steps li{margin-bottom:4px}
+ol.steps b{color:var(--text)}
+ol.steps code{font-family:var(--f-mono);font-size:11.5px;color:var(--neon)}
+
+/* ── Fee table ── */
+.fee-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.fee-tbl th{text-align:left;padding:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.18em;border-bottom:1px solid var(--line)}
+.fee-tbl td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.fee-tbl td.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tbl-wrap{border-radius:0 0 var(--r) var(--r)}
+.tbl tbody tr:hover{box-shadow:inset 0 0 0 1px rgba(230,0,35,.12)}
+
+/* ── Rank rows ── */
+.rankrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.rankrow:last-child{border-bottom:none}
+.rankrow .rk{
+  width:26px;height:26px;flex-shrink:0;border-radius:var(--r-pill);border:1px solid var(--line-2);
+  font-family:var(--f-mono);font-size:10px;font-weight:700;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+}
+.rankrow .rn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rankrow .rv{font-weight:700;white-space:nowrap}
+
+/* ── Utilities ── */
+.flex{display:flex}.flex-between{display:flex;align-items:center;justify-content:space-between}
+.gap-8{gap:8px}.gap-12{gap:12px}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}
+.txt-muted{color:var(--muted)}.txt-sm{font-size:12px}.txt-bold{font-weight:700}
+.txt-danger{color:var(--neon)}.txt-success{color:var(--text)}.txt-gold{color:var(--crimson)}
+.mono{font-family:var(--f-mono)}
+[hidden]{display:none!important}
+
+/* ── Load notice ── */
+.notice-panel{position:fixed;inset:0;z-index:9500;background:rgba(13,13,13,.95);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+body.light .notice-panel{background:rgba(244,244,245,.96)}
+.notice-card{max-width:660px;width:100%;background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px;box-shadow:var(--sh-lg), var(--edge);position:relative;overflow:hidden}
+.notice-card::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,var(--crimson),rgba(230,0,35,0))}
+.notice-card h2{font-family:var(--f-display);font-size:22px;font-weight:700;letter-spacing:-.005em;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.notice-card h2 span{color:var(--crimson);display:flex}
+.notice-card .lead{font-size:13.5px;line-height:1.75;color:var(--muted);margin-bottom:22px}
+.notice-card .lead b{color:var(--text)}
+.notice-step{display:flex;gap:14px;padding:16px 0;border-top:1px solid var(--line)}
+.notice-step .n{width:26px;height:26px;flex-shrink:0;border-radius:var(--r-pill);border:1px solid var(--crimson);color:var(--crimson);font-family:var(--f-mono);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.notice-step .b{flex:1;min-width:0}
+.notice-step .b h4{font-size:14px;font-weight:700;margin-bottom:5px}
+.notice-step .b p{font-size:12.5px;line-height:1.7;color:var(--muted)}
+.notice-step code{font-family:var(--f-mono);font-size:11.5px;color:var(--neon);background:rgba(230,0,35,.10);padding:2px 6px}
+.notice-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.notice-err{font-family:var(--f-mono);font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;margin-top:16px;max-height:160px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+
+/* ── Product thumbnails ── */
+.thumb{width:38px;height:38px;flex-shrink:0;border-radius:var(--r-sm);overflow:hidden;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);box-shadow:var(--sh-sm)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .45s ease}
+.thumb img.rdy{opacity:1}
+.thumb .ph{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.namecell{display:flex;align-items:center;gap:11px;min-width:0;cursor:pointer;border-radius:var(--r-sm);padding:2px;margin:-2px;transition:background .15s}
+.namecell:hover{background:rgba(230,0,35,.07)}
+.namecell:hover .pname{color:var(--neon)}
+.namecell .txts{min-width:0}
+
+/* ── Product modal ── */
+.pm-head{display:flex;gap:18px;align-items:flex-start;padding:22px;border-bottom:1px solid var(--line);background:var(--surface-grad)}
+.pm-img{width:104px;height:104px;flex-shrink:0;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);box-shadow:var(--sh-md)}
+.pm-img img{width:100%;height:100%;object-fit:contain;display:block;padding:8px;opacity:0;transition:opacity .45s ease}
+.pm-img img.rdy{opacity:1}
+.pm-t{min-width:0;flex:1;display:flex;flex-direction:column;gap:8px}
+.pm-t h3{font-family:var(--f-display);font-size:20px;font-weight:700;letter-spacing:-.005em;line-height:1.35}
+.pm-sub{font-size:12.5px;color:var(--muted);line-height:1.6}
+.pm-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
+.pm-stat{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:18px 22px 0}
+@media(min-width:620px){.pm-stat{grid-template-columns:repeat(4,1fr)}}
+.pm-stat .s{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 13px;box-shadow:var(--edge)}
+.pm-stat .s .l{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:5px}
+.pm-stat .s .v{font-family:var(--f-display);font-size:20px;font-weight:700;letter-spacing:-.005em;font-variant-numeric:tabular-nums}
+.pm-sec{padding:20px 22px 0}
+.pm-sec h4{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:11px}
+.pm-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.pm-tbl th{text-align:left;padding:8px 9px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;border-bottom:1px solid var(--line);white-space:nowrap}
+.pm-tbl td{padding:10px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+.pm-tbl td.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pm-tbl tr:last-child td{border-bottom:none}
+.pm-fee{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:620px){.pm-fee{grid-template-columns:1fr 1fr}}
+.fb{border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px;background:var(--surface)}
+.fb .h{display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap}
+.fb-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:11.5px;border-bottom:1px dashed var(--line)}
+.fb-row:last-child{border-bottom:none}
+.fb-row span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.fb-row .rate{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.fb-row b{font-family:var(--f-mono);white-space:nowrap}
+.fb-tot{display:flex;justify-content:space-between;gap:10px;margin-top:9px;padding-top:9px;border-top:1px solid var(--line);font-size:12px;font-weight:700}
+.fb-tot b{font-family:var(--f-mono);color:var(--neon)}
+
+/* ── Out-of-stock grid ── */
+.og{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.oc{background:var(--surface-grad);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-sm), var(--edge);cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,border-color .16s;display:flex;flex-direction:column}
+.oc:hover{transform:translateY(-4px);box-shadow:var(--sh-md), var(--edge);border-color:rgba(230,0,35,.28)}
+.oc:hover .im img{transform:scale(1.035)}
+.oc .im{height:132px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.oc .im img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transform:scale(1.02);
+  transition:opacity .5s ease, transform .6s cubic-bezier(.2,.8,.2,1)}
+.oc .im img.rdy{opacity:1;transform:scale(1)}
+.oc .im .imw{display:contents}
+.oc .im{background:radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,.05), rgba(255,255,255,.012) 60%, transparent)}
+.oc .im::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:1;
+  box-shadow:inset 0 -22px 34px -24px rgba(0,0,0,.55);}
+body.light .oc .im::after{box-shadow:inset 0 -22px 34px -26px rgba(13,13,13,.18)}
+.oc .bd{padding:13px 14px;display:flex;flex-direction:column;gap:9px;flex:1}
+.oc .nm{font-size:13.5px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.oc .mt{font-size:10.5px;color:var(--muted);font-family:var(--f-mono)}
+.oc .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+.oc .risk{position:absolute;z-index:3;top:9px;left:9px;background:var(--crimson);color:#fff;font-size:9.5px;font-weight:700;padding:4px 9px;border-radius:var(--r-pill);letter-spacing:.04em;box-shadow:var(--sh-sm)}
+.oc .flag{position:absolute;z-index:3;top:9px;right:9px;background:rgba(13,13,13,.72);color:var(--muted);border:1px solid var(--line);font-size:9px;font-weight:700;padding:4px 8px;border-radius:var(--r-pill);letter-spacing:.04em;backdrop-filter:blur(8px)}
+body.light .oc .flag{background:rgba(255,255,255,.82)}
+/* gallery variant — taller frame, whole product visible */
+.gc .im{height:172px;padding:14px}
+.gc .im img{object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,.35))}
+body.light .gc .im img{filter:drop-shadow(0 8px 16px rgba(13,13,13,.12))}
+.gc .pr{font-family:var(--f-display);font-size:17px;font-weight:700;letter-spacing:-.005em}
+.gc .pr small{font-family:var(--f-body);font-size:10.5px;font-weight:500;color:var(--muted);margin-left:4px}
+.gc .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:9px;border-top:1px solid var(--line);font-size:10.5px;color:var(--muted)}
+.units{display:flex;gap:5px;flex-wrap:wrap}
+.uchip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:var(--r-pill);font-size:10px;font-weight:700;border:1px solid var(--line-2);color:var(--text);background:var(--surface)}
+.uchip b{font-family:var(--f-mono);font-weight:700;color:var(--muted)}
+.oc .pick{position:absolute;z-index:3;bottom:9px;right:9px;width:26px;height:26px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:rgba(13,13,13,.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2}
+body.light .oc .pick{background:rgba(255,255,255,.8)}
+.oc.sel{border-color:var(--crimson);box-shadow:0 0 0 1px var(--crimson), var(--sh-md)}
+.viewsw{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r-pill);overflow:hidden}
+.viewsw .vs{background:transparent;color:var(--muted);border:none;padding:8px 14px;font-size:12px;font-weight:600;font-family:inherit;display:inline-flex;align-items:center;gap:6px;min-height:36px}
+.viewsw .vs.on{background:var(--text);color:var(--invert-text)}
+/* editable rows inside the product popup */
+.pm-tbl .pinput{width:96px;height:36px}
+.pm-tbl td.edit{text-align:right}
+.pm-grp{margin-top:16px}
+.pm-grp .gh{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.pm-grp .gh b{font-family:var(--f-display);font-size:15px;font-weight:700;letter-spacing:0}
+.pm-grp .gh .cnt2{font-family:var(--f-mono);font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:2px 8px;border-radius:var(--r-pill)}
+.gc .foot .mono{font-family:var(--f-mono)}
+
+@keyframes shimmer{from{background-position:130% 0}to{background-position:-130% 0}}
+.oc .im:has(img:not(.rdy)){
+  background-image:linear-gradient(100deg, transparent 28%, rgba(255,255,255,.07) 48%, transparent 68%);
+  background-size:230% 100%;
+  animation:shimmer 1.5s ease-in-out infinite;
+}
+body.light .oc .im:has(img:not(.rdy)){
+  background-image:linear-gradient(100deg, transparent 28%, rgba(13,13,13,.05) 48%, transparent 68%);
+}
+.pm-img:has(img:not(.rdy)){
+  background-image:linear-gradient(100deg, transparent 28%, rgba(255,255,255,.07) 48%, transparent 68%);
+  background-size:230% 100%;
+  animation:shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div id="loadingBar"></div>
+<div id="spinner"><div class="spinner-box"><div class="spinner-ring"></div><p id="spinnerMsg">กำลังโหลด...</p></div></div>
+
+<div class="page">
+  <header>
+    <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
+    <span class="ver" id="verTag">v4.1</span>
+    <div class="hdr-right">
+      <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
+      <button class="icon-btn" id="btnRefresh" title="รีเฟรช"><span data-ico="refresh"></span></button>
+      <button class="icon-btn" id="btnTheme" title="สลับธีม"><span data-ico="sun"></span></button>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="price">สินค้า &amp; ราคา <span class="cnt" id="cntProd">0</span></button>
+    <button class="tab-btn" data-tab="out">ของหมด <span class="cnt" id="cntOut">0</span></button>
+    <button class="tab-btn" data-tab="low">ราคาต่ำ <span class="cnt" id="cntLow">0</span></button>
+    <button class="tab-btn" data-tab="dash">ภาพรวม</button>
+    <button class="tab-btn" data-tab="settings">ตั้งค่า</button>
+  </nav>
+
+  <div class="content">
+
+    <!-- ============ TAB: สินค้า & ราคา (รวม 3 หน้าเดิม) ============ -->
+    <section id="tab-price">
+      <div class="filter-bar">
+        <div>
+          <div class="f-label">ช่องทางขาย</div>
+          <div class="chip-row" id="fPlatform"></div>
+        </div>
+        <div>
+          <div class="f-label">หน่วยขาย</div>
+          <div class="chip-row" id="fUnit"></div>
+        </div>
+        <div>
+          <div class="f-label">สถานะ</div>
+          <div class="chip-row" id="fStatus"></div>
+        </div>
+        <div class="search-wrap">
+          <span class="s-ico" data-ico="search"></span>
+          <input class="input" id="fSearch" type="text" placeholder="ค้นหาชื่อสินค้า / ชื่อในแอพ / บาร์โค้ด..." autocomplete="off">
+        </div>
+      </div>
+
+      <div class="stat-grid" id="priceStats"></div>
+
+      <div class="bulkbar">
+        <label class="flex gap-8" style="align-items:center;cursor:pointer">
+          <input type="checkbox" class="cbx" id="selAll"> <span class="sel">เลือกทั้งหน้า</span>
+        </label>
+        <span class="sel">เลือกแล้ว <b id="selCount">0</b> รายการ</span>
+        <div style="margin-left:auto" class="flex gap-8" style="flex-wrap:wrap">
+          <div class="viewsw" id="viewSwitch">
+            <button class="vs on" data-view="card"><span data-ico="box"></span> การ์ด</button>
+            <button class="vs" data-view="table"><span data-ico="chart"></span> ตาราง</button>
+          </div>
+          <button class="btn btn-gold btn-sm" id="btnBulk"><span data-ico="sliders"></span> ปรับราคาหลายตัว</button>
+          <button class="btn btn-outline btn-sm" id="btnFixAll"><span data-ico="check"></span> แก้ติ๊กให้ตรงสต็อก</button>
+          <button class="btn btn-outline btn-sm" id="btnExport"><span data-ico="download"></span> Excel</button>
+          <button class="btn btn-outline btn-sm" id="btnReset"><span data-ico="undo"></span> คืนค่าเดิม</button>
+        </div>
+      </div>
+
+      <div id="viewCard">
+        <div class="card card-gold">
+          <div class="card-head">
+            <h3><span data-ico="tag"></span> สินค้า <span class="txt-muted txt-sm mono" id="galCount"></span></h3>
+            <span class="txt-sm txt-muted">กดที่สินค้าเพื่อดู/แก้ราคาทุกช่องทางในที่เดียว</span>
+          </div>
+          <div class="card-body"><div class="og" id="galGrid"></div></div>
+        </div>
+        <div class="flex" style="justify-content:center;padding:18px 0">
+          <button class="btn btn-outline" id="galMore" hidden>แสดงเพิ่ม</button>
+        </div>
+      </div>
+
+      <div class="card card-gold" id="viewTable" hidden>
+        <div class="card-head">
+          <h3><span data-ico="tag"></span> รายการขายรายบรรทัด <span class="txt-muted txt-sm mono" id="rowCount"></span></h3>
+          <span class="txt-sm txt-muted">แก้ช่อง <b class="txt-gold">ราคาตั้ง</b> แล้วกำไร/Margin จะคำนวณสดทันที</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl" id="priceTbl">
+            <thead><tr>
+              <th class="nosort" style="width:36px"></th>
+              <th class="nosort" style="width:36px" title="ติ๊ก = มีของ/เปิดขาย"><span data-ico="check"></span></th>
+              <th data-key="name" data-type="str">สินค้า <span class="sort-ind"></span></th>
+              <th data-key="chan" data-type="str">ช่องทาง <span class="sort-ind"></span></th>
+              <th data-key="cost" data-type="num">ต้นทุน <span class="sort-ind"></span></th>
+              <th data-key="fee" data-type="num">ค่าธรรมเนียม <span class="sort-ind"></span></th>
+              <th data-key="pack" data-type="num">ค่าแพ็ค <span class="sort-ind"></span></th>
+              <th data-key="list" data-type="num">ราคาตั้ง <span class="sort-ind"></span></th>
+              <th data-key="profit" data-type="num">กำไร <span class="sort-ind"></span></th>
+              <th data-key="margin" data-type="num">Margin <span class="sort-ind"></span></th>
+              <th data-key="stock" data-type="num">สต็อก(ลัง) <span class="sort-ind"></span></th>
+              <th data-key="barcode" data-type="str">บาร์โค้ด <span class="sort-ind"></span></th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+
+    <section id="tab-out" hidden>
+      <div class="stat-grid" id="outStats"></div>
+      <div class="filter-bar">
+        <div>
+          <div class="f-label">กรอง</div>
+          <div class="chip-row" id="oMode"></div>
+        </div>
+        <div>
+          <div class="f-label">ช่องทางที่หมด</div>
+          <div class="chip-row" id="oPlatform"></div>
+        </div>
+        <div class="search-wrap">
+          <span class="s-ico" data-ico="search"></span>
+          <input class="input" id="oSearch" type="text" placeholder="ค้นหาสินค้า / บาร์โค้ด..." autocomplete="off">
+        </div>
+      </div>
+      <div class="card card-gold">
+        <div class="card-head">
+          <h3><span data-ico="box"></span> สินค้าหมดสต็อก <span class="txt-muted txt-sm mono" id="outCount"></span></h3>
+          <span class="txt-sm txt-muted">กดที่สินค้าเพื่อดูราคา/ค่าธรรมเนียมทุกช่องทาง</span>
+        </div>
+        <div class="card-body"><div class="og" id="outGrid"></div></div>
+      </div>
+      <div class="flex" style="justify-content:center;padding:18px 0">
+        <button class="btn btn-outline" id="outMore" hidden>แสดงเพิ่ม</button>
+      </div>
+    </section>
+
+    <!-- ============ TAB: ราคาต่ำ ============ -->
+    <section id="tab-low" hidden>
+      <div class="stat-grid" id="lowStats"></div>
+      <div class="note warn mb-12">
+        <b>เกณฑ์ที่ใช้:</b> กำไรน้อยกว่า <b id="lowRuleP">25</b> บาท <b>หรือ</b> Margin น้อยกว่า <b id="lowRuleM">7</b>%
+        &nbsp;·&nbsp; แก้เกณฑ์ได้ที่แท็บตั้งค่า<br>
+        กดที่สินค้าเพื่อเปิดหน้าปรับราคาได้ทันที — ราคาที่แก้จะไปรวมกับรายการที่รอบันทึก
+      </div>
+      <div class="filter-bar">
+        <div>
+          <div class="f-label">กรอง</div>
+          <div class="chip-row" id="lMode"></div>
+        </div>
+        <div>
+          <div class="f-label">ช่องทางที่ราคาต่ำ</div>
+          <div class="chip-row" id="lPlatform"></div>
+        </div>
+        <div class="search-wrap">
+          <span class="s-ico" data-ico="search"></span>
+          <input class="input" id="lSearch" type="text" placeholder="ค้นหาสินค้า / บาร์โค้ด..." autocomplete="off">
+        </div>
+      </div>
+      <div class="card card-gold">
+        <div class="card-head">
+          <h3><span data-ico="alert"></span> สินค้าที่ควรปรับราคา <span class="txt-muted txt-sm mono" id="lowCount"></span></h3>
+          <span class="txt-sm txt-muted">กดที่สินค้าเพื่อปรับราคาทุกช่องทาง</span>
+        </div>
+        <div class="card-body"><div class="og" id="lowGrid"></div></div>
+      </div>
+      <div class="flex" style="justify-content:center;padding:18px 0">
+        <button class="btn btn-outline" id="lowMore" hidden>แสดงเพิ่ม</button>
+      </div>
+    </section>
+
+    <!-- ============ TAB: ภาพรวม ============ -->
+    <section id="tab-dash" hidden>
+      <div class="stat-grid" id="dashStats"></div>
+      <div class="card card-gold mb-12">
+        <div class="card-head"><h3><span data-ico="chart"></span> สรุปรายช่องทาง</h3></div>
+        <div class="tbl-wrap">
+          <table class="tbl" style="min-width:760px">
+            <thead><tr>
+              <th class="nosort">ช่องทาง / หน่วย</th>
+              <th class="nosort">สินค้า</th>
+              <th class="nosort">ติ๊กแล้ว</th>
+              <th class="nosort">ไม่ติ๊ก</th>
+              <th class="nosort">ต้องแก้ติ๊ก</th>
+              <th class="nosort">Margin เฉลี่ย</th>
+              <th class="nosort">Margin ต่ำกว่าเกณฑ์</th>
+            </tr></thead>
+            <tbody id="dashChanBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card card-gold">
+          <div class="card-head"><h3><span data-ico="alert"></span> Margin ต่ำสุด 15 อันดับ</h3></div>
+          <div class="card-body" id="dashLow"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3><span data-ico="hex"></span> Margin สูงสุด 15 อันดับ</h3></div>
+          <div class="card-body" id="dashHigh"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: ตั้งค่า ============ -->
+    <section id="tab-settings" hidden>
+      <div class="card card-gold mb-12">
+        <div class="card-head"><h3><span data-ico="linked"></span> เชื่อมต่อเพื่อบันทึกกลับ Google Sheet</h3></div>
+        <div class="card-body">
+          <div class="note mb-12">
+            แอพอ่านข้อมูลจาก Google Sheet ได้เลยโดยไม่ต้องตั้งค่า แต่ถ้าจะให้ <b>กดบันทึกแล้วราคาเข้าชีทอัตโนมัติ</b>
+            ต้องติดตั้ง Apps Script 1 ครั้ง (ทำครั้งเดียวจบ ~5 นาที) แล้ววาง URL ที่ได้ลงช่องด้านล่าง
+          </div>
+          <div class="field mb-12">
+            <label>Apps Script Web App URL</label>
+            <input class="input" id="setWebApp" type="text" placeholder="https://script.google.com/macros/s/AKfycb.../exec" autocomplete="off">
+          </div>
+          <div class="field mb-12">
+            <label>รหัสลับ (Token) — ต้องตรงกับในสคริปต์</label>
+            <input class="input" id="setToken" type="text" placeholder="ตั้งรหัสลับของคุณเอง (อย่าใช้ค่าตัวอย่าง)" autocomplete="off">
+          </div>
+          <div class="flex gap-8" style="flex-wrap:wrap">
+            <button class="btn btn-gold" id="btnTestConn"><span data-ico="plug"></span> ทดสอบการเชื่อมต่อ</button>
+            <button class="btn btn-outline" id="btnShowScript"><span data-ico="copy"></span> ดูโค้ด Apps Script + วิธีติดตั้ง</button>
+          </div>
+          <div id="connResult" class="mt-12"></div>
+        </div>
+      </div>
+
+      <div class="card card-gold mb-12">
+        <div class="card-head"><h3><span data-ico="hexgear"></span> เกณฑ์และค่าเริ่มต้น</h3></div>
+        <div class="card-body">
+          <div class="field mb-12" style="max-width:300px">
+            <label>Margin ต่ำกว่านี้ = ควรปรับราคา (%)</label>
+            <input class="input" id="setMinMargin" type="number" step="0.5" value="7">
+          </div>
+          <div class="field mb-12" style="max-width:300px">
+            <label>กำไรต่ำกว่านี้ = ควรปรับราคา (บาท)</label>
+            <input class="input" id="setMinProfit" type="number" step="1" value="25">
+          </div>
+          <div class="field mb-12" style="max-width:300px">
+            <label>รีเฟรชข้อมูลอัตโนมัติทุก (วินาที) — 0 = ปิด</label>
+            <input class="input" id="setAutoRefresh" type="number" step="30" min="0" value="0">
+          </div>
+          <button class="btn btn-primary" id="btnSaveSettings">บันทึกการตั้งค่า</button>
+        </div>
+      </div>
+
+      <div class="card card-gold">
+        <div class="card-head">
+          <h3><span data-ico="chart"></span> อัตราค่าธรรมเนียมที่แอพถอดได้จากชีท</h3>
+          <span class="txt-sm txt-muted">คำนวณย้อนกลับจากข้อมูลจริง</span>
+        </div>
+        <div class="card-body">
+          <div class="note mb-12">
+            แอพไม่ได้เชื่อ % ที่เขียนในหัวคอลัมน์ แต่<b>ถอดอัตราจริงจากตัวเลขในชีท</b> (บางหัวคอลัมน์เป็นค่าเก่า)
+            แก้ได้ทุกช่อง ทั้ง<b>ประเภท</b> (% / บาทคงที่ / ไม่คิด) และ<b>ตัวเลข</b> กด "บันทึก" แล้วกำไรกับ Margin
+            ทั้งแอพจะคำนวณใหม่ทันที และจำค่าไว้ในเครื่องนี้
+          </div>
+          <div class="note warn mb-12">
+            <b>ยังไม่เขียนกลับเข้าชีท</b> — คอลัมน์ค่าธรรมเนียมในชีทเป็น<b>สูตร</b> ถ้าแอพเขียนตัวเลขทับลงไป
+            สูตรของแถวนั้นจะหายถาวร แอพเลยเขียนกลับแค่ 2 คอลัมน์เดิม (ช่อง A และ ราคาตั้ง) เท่านั้น<br>
+            ถ้าอยากให้แก้อัตราในชีทได้ด้วย ผมต้องเห็นสูตรจริงก่อนว่าเขียนไว้แบบไหน แล้วจะทำให้แก้เฉพาะตัวเลขอัตราในสูตรได้
+          </div>
+          <div id="feeTables"></div>
+          <button class="btn btn-primary mt-12" id="btnSaveFees">บันทึกอัตราค่าธรรมเนียม</button>
+          <button class="btn btn-outline mt-12" id="btnResetFees">คืนค่าที่ถอดจากชีท</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<button id="backToTop" title="กลับขึ้นบน"><span data-ico="arrowup"></span></button>
+
+<!-- Product modal -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal wide" style="max-width:900px">
+    <div class="modal-head">
+      <h3><span data-ico="tag"></span> รายละเอียดสินค้า</h3>
+      <button class="modal-close" data-close><span data-ico="close"></span></button>
+    </div>
+    <div class="modal-body" id="pmBody" style="padding:0"></div>
+    <div class="modal-foot"><button class="btn btn-outline" data-close>ปิด</button></div>
+  </div>
+</div>
+
+<!-- Bulk modal -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3><span data-ico="sliders"></span> ปรับราคาหลายตัวพร้อมกัน</h3>
+      <button class="modal-close" data-close><span data-ico="close"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="field mb-12">
+        <label>ใช้กับ</label>
+        <div class="chip-row" id="bScope">
+          <button class="chip on" data-scope="sel">เฉพาะที่เลือก (<span id="bSelN" class="mono">0</span>)</button>
+          <button class="chip" data-scope="filtered">ทุกแถวที่กรองอยู่ (<span id="bFilN" class="mono">0</span>)</button>
+        </div>
+      </div>
+      <div class="field mb-12">
+        <label>วิธีปรับ</label>
+        <div class="chip-row" id="bMode">
+          <button class="chip on" data-mode="pct">ปรับเป็น %</button>
+          <button class="chip" data-mode="amt">บวก/ลบ บาท</button>
+          <button class="chip" data-mode="margin">ตั้ง Margin เป้าหมาย</button>
+          <button class="chip" data-mode="set">ตั้งราคาคงที่</button>
+        </div>
+      </div>
+      <div class="field mb-12">
+        <label id="bValLabel">เปลี่ยนกี่ % (ใส่ลบเพื่อลดราคา)</label>
+        <input class="input" id="bValue" type="number" step="0.5" value="5">
+      </div>
+      <div class="field mb-12">
+        <label>ปัดเศษราคา</label>
+        <div class="chip-row" id="bRound">
+          <button class="chip on" data-round="0">ไม่ปัด</button>
+          <button class="chip" data-round="1">ปัดเป็นจำนวนเต็ม</button>
+          <button class="chip" data-round="5">ปัดขึ้นหลัก 5</button>
+          <button class="chip" data-round="10">ปัดขึ้นหลัก 10</button>
+          <button class="chip" data-round="9">ลงท้าย 9</button>
+        </div>
+      </div>
+      <div class="note" id="bPreview">เลือกเงื่อนไขแล้วกด "ดูตัวอย่าง"</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>ยกเลิก</button>
+      <button class="btn btn-primary" id="bPreviewBtn"><span data-ico="preview"></span> ดูตัวอย่าง</button>
+      <button class="btn btn-gold" id="bApply">ปรับราคาเลย</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save modal -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3><span data-ico="save"></span> บันทึกการเปลี่ยนแปลง</h3>
+      <button class="modal-close" data-close><span data-ico="close"></span></button>
+    </div>
+    <div class="modal-body" id="saveBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>ปิด</button>
+      <button class="btn btn-outline" id="btnCopyChanges"><span data-ico="copy"></span> คัดลอกไปวางในชีทเอง</button>
+      <button class="btn btn-gold" id="btnDoSave">เขียนกลับ Google Sheet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Script modal -->
+<div class="modal-overlay" id="scriptModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h3><span data-ico="copy"></span> ติดตั้ง Apps Script (ทำครั้งเดียว)</h3>
+      <button class="modal-close" data-close><span data-ico="close"></span></button>
+    </div>
+    <div class="modal-body">
+      <ol class="steps mb-12">
+        <li>เปิด Google Sheet → เมนู <b>ส่วนขยาย (Extensions)</b> → <b>Apps Script</b></li>
+        <li>ลบโค้ดเดิมที่มีอยู่ทั้งหมด แล้ววางโค้ดด้านล่างลงไป</li>
+        <li><b>แก้บรรทัด <code>TOKEN</code> เป็นรหัสลับของคุณเอง</b> แล้วกรอกรหัสเดียวกันในหน้าตั้งค่า — ห้ามใช้ค่าตัวอย่าง เพราะแอพเปิดสาธารณะ ใครก็อ่านโค้ดนี้ได้</li>
+        <li>กด <b>Deploy → New deployment</b> → เลือก type <b>Web app</b></li>
+        <li>ตั้ง <b>Execute as: Me</b> และ <b>Who has access: Anyone</b> → กด Deploy</li>
+        <li>อนุญาตสิทธิ์ (Authorize) → คัดลอก <b>Web app URL</b> มาวางในหน้าตั้งค่า</li>
+      </ol>
+      <div class="note warn mb-12">
+        <b>แอพเขียนลงชีทแค่ 2 คอลัมน์เท่านั้น</b> คือ ช่อง A (ติ๊ก) และ ราคาตั้ง — คอลัมน์สูตรอื่น ๆ
+        (ค่าธรรมเนียม กำไร Margin) ชีทจะคำนวณเองตามปกติ ไม่ถูกแตะต้อง
+      </div>
+      <pre class="code" id="gasCode"></pre>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" data-close>ปิด</button>
+      <button class="btn btn-gold" id="btnCopyScript"><span data-ico="copy"></span> คัดลอกโค้ด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Rattana Online Price v1.0
+   ============================================================ */
+const APP_VERSION = '4.1';
+const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
+
+/* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
+       No emoji anywhere in this app. ---- */
+const ICONS = {
+  save:     '<path d="M4 4h12l4 4v12H4z"/><path d="M8 4v6h8"/><path d="M8 20v-6h8v6"/>',
+  refresh:  '<path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5v5h-5"/>',
+  sun:      '<circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.4 5.4l2.1 2.1M16.5 16.5l2.1 2.1M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1"/>',
+  moon:     '<path d="M20 14.6A8.6 8.6 0 0 1 9.4 4 8.6 8.6 0 1 0 20 14.6z"/>',
+  sliders:  '<path d="M3.5 7h17M3.5 12h17M3.5 17h17"/><path d="M8.5 4.6v4.8M15 9.6v4.8M6.5 14.6v4.8"/>',
+  download: '<path d="M12 3v12"/><path d="M6.8 10.2 12 15.4l5.2-5.2"/><path d="M3.5 20.5h17"/>',
+  undo:     '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3.5v5h5"/>',
+  check:    '<path d="M4 12.4 9.4 17.8 20 6.2"/>',
+  close:    '<path d="M6 6l12 12M18 6 6 18"/>',
+  search:   '<circle cx="10.6" cy="10.6" r="6.6"/><path d="M15.3 15.3 20.5 20.5"/>',
+  plug:     '<path d="M9 2.5v6M15 2.5v6"/><path d="M5.5 8.5h13v3a6.5 6.5 0 0 1-13 0z"/><path d="M12 18v3.5"/>',
+  copy:     '<path d="M8.5 3.5h12v12"/><path d="M3.5 8.5h12v12h-12z"/>',
+  hexgear:  '<path d="M12 2.8 20.2 7.4v9.2L12 21.2 3.8 16.6V7.4z"/><circle cx="12" cy="12" r="3.1"/>',
+  hex:      '<path d="M12 2.8 20.2 7.4v9.2L12 21.2 3.8 16.6V7.4z"/>',
+  chart:    '<path d="M3.5 20.5h17"/><path d="M7 17v-5M11.7 17V6.5M16.4 17v-7.5"/>',
+  linked:   '<circle cx="9.4" cy="12" r="6"/><circle cx="14.6" cy="12" r="6"/>',
+  preview:  '<path d="M2.5 12 12 5.5 21.5 12 12 18.5z"/><circle cx="12" cy="12" r="3"/>',
+  alert:    '<path d="M3.5 5.5h17L12 20.5z"/><path d="M12 9.4v3.4"/>',
+  arrowup:  '<path d="M12 20.5V4.5"/><path d="M5.5 11 12 4.5 18.5 11"/>',
+  box:      '<path d="M12 3 20.8 8 12 13 3.2 8z"/><path d="M3.2 8v8L12 21l8.8-5V8"/>',
+  tag:      '<path d="M3.5 3.5h8L20.5 12.5 12.5 20.5 3.5 11.5z"/><circle cx="8" cy="8" r="1.6"/>',
+  caretUp:  '<path d="M12 7.5 19 16H5z" fill="currentColor" stroke="none"/>',
+  caretDown:'<path d="M12 16.5 5 8h14z" fill="currentColor" stroke="none"/>'
+};
+function ico(name, size){
+  const d = ICONS[name]; if (!d) return '';
+  size = size || 16;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" `
+       + `stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">${d}</svg>`;
+}
+function paintIcons(root){
+  (root || document).querySelectorAll('[data-ico]').forEach(el => {
+    el.innerHTML = ico(el.dataset.ico, +(el.dataset.icoSize) || 16);
+  });
+}
+
+const SHEETS = [
+  { gid:'749586326',  sheet:'SHP EA',      plat:'SHP',  platLabel:'Shopee',   unit:'EA' },
+  { gid:'309758466',  sheet:'SHP PA',      plat:'SHP',  platLabel:'Shopee',   unit:'PA' },
+  { gid:'207764561',  sheet:'SHP CS',      plat:'SHP',  platLabel:'Shopee',   unit:'CS' },
+  { gid:'949630062',  sheet:'Lazada EA',   plat:'LZD',  platLabel:'Lazada',   unit:'EA' },
+  { gid:'235622441',  sheet:'Lazada PA',   plat:'LZD',  platLabel:'Lazada',   unit:'PA' },
+  { gid:'1323816978', sheet:'Lazada CS',   plat:'LZD',  platLabel:'Lazada',   unit:'CS' },
+  { gid:'67526853',   sheet:'AMZ EA',      plat:'AMZ',  platLabel:'Amaze',    unit:'EA' },
+  { gid:'1872048532', sheet:'AMZ PA',      plat:'AMZ',  platLabel:'Amaze',    unit:'PA' },
+  { gid:'1081627989', sheet:'AMZ CS',      plat:'AMZ',  platLabel:'Amaze',    unit:'CS' },
+  { gid:'1565480064', sheet:'Thaimart EA', plat:'TM',   platLabel:'Thaimart', unit:'EA' },
+  { gid:'428393262',  sheet:'Thaimart PA', plat:'TM',   platLabel:'Thaimart', unit:'PA' },
+  { gid:'419328535',  sheet:'Thaimart CS', plat:'TM',   platLabel:'Thaimart', unit:'CS' }
+];
+const UNIT_LABEL = { EA:'ชิ้น (EA)', PA:'แพ็ค (PA)', CS:'ลัง (CS)' };
+const PLAT_ORDER = ['SHP','LZD','AMZ','TM'];
+
+/* Product photos live in the separate "Stocksync" master sheet, tab PDDT.
+   Barcodes sit in CODE EA/PA/BP/CS (cols B,D,F,H) and the Drive image link is
+   in SKU_USAGE (col CV) — the column name is misleading, the content is a photo.
+   Read through gviz with a column query so we pull ~0.9 MB instead of ~11 MB;
+   this is a barcode-keyed lookup, so gviz dropping blank rows does not matter. */
+const IMG_SHEET_ID = '16mYDqAqqJma-_0vCIAajy6bcjdOZ7F6VagxkdkqAB2I';
+const IMG_GID      = '635140262';
+const IMG_QUERY    = 'select B,D,F,H,CV where CV is not null';
+const IMG_CACHE_KEY = 'rop_img_v2';
+const IMG_TTL       = 24 * 60 * 60 * 1000;   // photos change rarely
+
+const CACHE_KEY  = 'rop_data_v3';
+const CFG_KEY    = 'rop_cfg_v1';
+const FEE_KEY    = 'rop_fees_v1';
+const CACHE_TTL  = 5*60*1000;
+
+/* ---------- state ---------- */
+const state = {
+  rows: [],            // all product rows
+  feeModels: {},       // gid -> [{label,kind,v}]
+  dirty: new Map(),    // key -> {list?, active?}
+  selected: new Set(),
+  filter: { plat:'ALL', unit:'ALL', status:'ALL', q:'' },
+  sFilter:{ issue:'ALL', plat:'ALL', q:'' },
+  oFilter:{ mode:'ALL', plat:'ALL', q:'' },
+  lFilter:{ mode:'ALL', plat:'ALL', q:'' },
+  gFilter:{ mode:'ALL', plat:'ALL', q:'' },
+  gShown: 36,           // grids render in pages so hundreds of cards never block paint
+  oShown: 36,
+  lShown: 36,
+  view: 'card',
+  openProduct: null,
+  skuGroup: null,       // barcode -> PDDT SKU key (filled once Stocksync loads)
+  products: null,       // barcode -> { image, listings[] }
+  sort:  { key:'margin', dir:'asc' },
+  sSort: { key:'stock',  dir:'asc' },
+  cfg:   { webApp:'', token:'', minMargin:7, minProfit:25, autoRefresh:0 },
+  autoTimer:null
+};
+
+/* ---------- utils ---------- */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const nf0 = new Intl.NumberFormat('th-TH',{maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const money = v => (v==null||isNaN(v)) ? '–' : nf2.format(v);
+const int   = v => (v==null||isNaN(v)) ? '–' : nf0.format(v);
+const pct   = v => (v==null||isNaN(v)) ? '–' : (v*100).toFixed(2)+'%';
+const esc   = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function num(s){
+  if (s==null) return null;
+  const t = String(s).replace(/,/g,'').replace(/%/g,'').replace(/ /g,'').trim();
+  if (t==='' || t==='-') return null;
+  const n = Number(t);
+  return isNaN(n) ? null : n;
+}
+function normH(h){
+  return String(h||'').replace(/[​‌‍﻿]/g,'').replace(/ /g,' ')
+         .replace(/\n/g,' ').replace(/\s+/g,' ').trim();
+}
+function lockScroll(on){
+  const b = document.body;
+  if (on){
+    if (b.classList.contains('modal-open')) return;
+    state.scrollY = window.scrollY || 0;
+    document.documentElement.style.setProperty('--sbw', (window.innerWidth - document.documentElement.clientWidth) + 'px');
+    b.style.top = (-state.scrollY) + 'px';
+    b.classList.add('modal-open');
+  } else {
+    if (!b.classList.contains('modal-open')) return;
+    b.classList.remove('modal-open');
+    b.style.top = '';
+    const html = document.documentElement, prev = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';          // restore instantly, don't animate back
+    window.scrollTo(0, state.scrollY || 0);
+    html.style.scrollBehavior = prev;
+  }
+}
+function openModal(sel){ const el = $(sel); if (!el) return; el.classList.add('open'); lockScroll(true); }
+function closeModal(el){
+  if (el) el.classList.remove('open');
+  if (!document.querySelector('.modal-overlay.open')) lockScroll(false);
+}
+const showSpinner = m => { $('#spinnerMsg').textContent = m||'กำลังโหลด...'; $('#spinner').classList.add('show'); };
+const hideSpinner = () => $('#spinner').classList.remove('show');
+const setLoading  = on => $('#loadingBar').style.width = on ? '85%' : '0';
+function showToast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + (type||'info');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+function formatThaiDateTime(d){
+  d = d instanceof Date ? d : new Date(d);
+  if (isNaN(d)) return '-';
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}.${p(d.getMinutes())}`;
+}
+
+/* ---------- RFC-4180 CSV parser ---------- */
+function parseCsv(text){
+  if (!text) return [];
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = []; let row = [], cell = '', inQuote = false;
+  for (let i=0; i<text.length; i++){
+    const ch = text[i];
+    if (inQuote){
+      if (ch === '"'){ if (text[i+1] === '"'){ cell += '"'; i++; } else inQuote = false; }
+      else cell += ch;
+    } else {
+      if (ch === '"') inQuote = true;
+      else if (ch === ','){ row.push(cell); cell = ''; }
+      else if (ch === '\r'){ /* skip */ }
+      else if (ch === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+  }
+  if (cell.length || row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* ---------- column mapping ---------- */
+function mapColumns(H){
+  const find = (test) => { for (let i=0;i<H.length;i++) if (H[i] && test(H[i],i)) return i; return -1; };
+  const has  = (...ks) => (h)=> ks.some(k=>h.indexOf(k)>=0);
+
+  const m = {};
+  m.name     = find(h=>h.indexOf('Stocksync')>=0 || h.indexOf('product detail')>=0);
+  m.category = find(has('หมวดหมู่'));
+  m.retail   = find(has('ราคาปลีก'));
+  m.qty      = find(has('จำนวนขาย'));
+  m.cost     = find(has('ราคาต้น'));
+  m.total    = find(has('รวมหักค่าธรรมเนียม'));
+  m.pack     = find(has('ค่าแพ็ค'));
+  m.list     = find(has('ราคาตั้ง'));
+  m.perUnit  = find(h=>h==='ต่อหน่วย');
+  m.net      = find(has('รายได้หลังหัก'));
+  m.netUnit  = find(has('รายได้/หน่วย'));
+  m.stock    = find(h=>h.indexOf('Stock')===0 && h.indexOf('sync')<0);
+  m.unitPA   = find(has('หน่วยนับ (PA)'));
+  m.unitCS   = find(has('หน่วยนับ (CS)'));
+  m.profit   = find(has('กำไร'));
+  m.margin   = find(has('Margin','Magin'));
+  m.barcode  = find(has('บาร์โค้ด','Barcode'));
+  m.appName  = find(has('ชื่อในแอพ'));
+  m.option   = find(h=>h==='ตัวเลือก');
+  m.promo    = find(has('ราคาโปร'));
+  m.image    = find(h => h.toUpperCase().indexOf('IMAGE') >= 0 || h.indexOf('รูป') >= 0);
+  m.active   = 0; // column A always
+  // fee columns = everything between cost and total
+  m.fees = [];
+  if (m.cost >= 0 && m.total > m.cost){
+    for (let i=m.cost+1; i<m.total; i++) if (H[i]) m.fees.push(i);
+  }
+  return m;
+}
+
+/* ---------- fee model fitting (derive real rates from data) ---------- */
+function fitFeeModel(dataRows, m, H){
+  const models = [];
+  for (const fi of m.fees){
+    const pairs = [];
+    for (const r of dataRows){
+      const v = num(r[fi]), lp = num(r[m.list]);
+      if (v != null && lp != null && lp > 0) pairs.push([v, lp]);
+    }
+    if (!pairs.length){ models.push({ col:fi, label:H[fi], kind:'zero', v:0 }); continue; }
+    const sv = pairs.reduce((a,p)=>a+p[0],0);
+    const sl = pairs.reduce((a,p)=>a+p[1],0);
+    if (sv === 0){ models.push({ col:fi, label:H[fi], kind:'zero', v:0 }); continue; }
+    const rate = sv/sl;
+    const resPct = pairs.reduce((a,p)=>a+Math.abs(p[0]-Math.round(rate*p[1])),0)/pairs.length;
+    const vals = pairs.map(p=>p[0]).sort((a,b)=>a-b);
+    const flat = vals[Math.floor(vals.length/2)];
+    const resFlat = pairs.reduce((a,p)=>a+Math.abs(p[0]-flat),0)/pairs.length;
+    if (resFlat <= resPct) models.push({ col:fi, label:H[fi], kind:'flat', v:+flat.toFixed(2) });
+    else                   models.push({ col:fi, label:H[fi], kind:'pct',  v:+rate.toFixed(5) });
+  }
+  return models;
+}
+
+/* ---------- recalc engine ---------- */
+function calcFees(models, listPrice){
+  let total = 0;
+  for (const f of models){
+    if (f.kind === 'pct')  total += Math.round(f.v * listPrice);
+    else if (f.kind === 'flat') total += f.v;
+  }
+  return total;
+}
+/** live figures for a row at a given list price */
+function calcRow(row, listPrice){
+  const models = state.feeModels[row.gid] || [];
+  const fee    = calcFees(models, listPrice);
+  const net    = listPrice - fee;
+  // calib = difference between sheet's own profit and our model at the ORIGINAL price
+  const profit = net - (row.cost||0) - (row.pack||0) + (row.calib||0);
+  const margin = listPrice > 0 ? profit/listPrice : null;
+  return { fee, net, profit, margin };
+}
+/** invert: list price that achieves a target margin.
+    Starts from the closed-form answer, then bisects against the EXACT (rounded)
+    fee model so the result really hits the target even at low prices. */
+function priceForMargin(row, targetMargin){
+  if (!(row.cost > 0)) return null;               // ไม่มีต้นทุน = คำนวณ margin เป้าหมายไม่ได้
+  const models = state.feeModels[row.gid] || [];
+  let sumPct = 0, sumFlat = 0;
+  for (const f of models){
+    if (f.kind === 'pct') sumPct += f.v;
+    else if (f.kind === 'flat') sumFlat += f.v;
+  }
+  const denom = 1 - sumPct - targetMargin;
+  if (denom <= 0.02) return null;                 // เป้าหมายสูงเกินกว่าค่าธรรมเนียมจะเอื้อ
+  const seed = (row.cost + (row.pack||0) + sumFlat - (row.calib||0)) / denom;
+  if (!isFinite(seed) || seed <= 0) return null;
+
+  let lo = seed*0.5, hi = seed*1.6;
+  for (let g=0; g<4 && calcRow(row, hi).margin < targetMargin; g++) hi *= 2;
+  if (calcRow(row, hi).margin < targetMargin) return null;
+  for (let i=0; i<60 && hi-lo > 0.005; i++){
+    const mid = (lo+hi)/2, mg = calcRow(row, mid).margin;
+    if (mg == null || !isFinite(mg)) break;
+    if (mg < targetMargin) lo = mid; else hi = mid;
+  }
+  return isFinite(hi) && hi > 0 ? Math.round(hi*100)/100 : null;   // hi = ฝั่งที่ถึงเป้าแล้ว
+}
+
+/* ---------- current values (with pending edits applied) ---------- */
+const curList   = r => { const d = state.dirty.get(r.key); return (d && d.list   != null) ? d.list   : r.list; };
+const curActive = r => { const d = state.dirty.get(r.key); return (d && d.active != null) ? d.active : r.active; };
+const isDirty   = r => state.dirty.has(r.key);
+
+function stockIssue(r){
+  const s = r.stock, a = curActive(r);
+  if (s == null) return 'none';
+  if (a  && s <= 0) return 'ticked_empty';   // ติ๊กไว้แต่ของหมด
+  if (!a && s >  0) return 'unticked_have';  // ไม่ติ๊กแต่มีของ
+  return 'none';
+}
+const ISSUE_LABEL = {
+  ticked_empty:  { t:'ติ๊กไว้แต่สต็อก 0', c:'badge-danger' },
+  unticked_have: { t:'ไม่ติ๊กแต่มีของ',   c:'badge-warn'   },
+  none:          { t:'ปกติ',              c:'badge-ok'     }
+};
+
+/* ============================================================
+   LOAD DATA
+   ============================================================ */
+const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+const gvizUrl= gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&headers=1`;
+
+async function fetchSheet(cfg){
+  let text;
+  try {
+    const res = await fetch(csvUrl(cfg.gid), { cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    text = await res.text();
+  } catch (e) {
+    const res = await fetch(gvizUrl(cfg.gid), { cache:'no-store' });
+    if (!res.ok) throw new Error('โหลด ' + cfg.sheet + ' ไม่สำเร็จ');
+    text = await res.text();
+  }
+  return parseCsv(text);
+}
+
+function buildRows(cfg, grid){
+  if (!grid.length) return [];
+  const H = grid[0].map(normH);
+  const m = mapColumns(H);
+  if (m.list < 0 || m.name < 0) return [];
+
+  // keep sheet row numbers: grid index i  ->  sheet row i+1
+  const raw = [];
+  for (let i=2; i<grid.length; i++){
+    const r = grid[i];
+    if (!r || r.length < 2) continue;
+    const nameV = (r[m.name]||'').trim();
+    const bcV   = m.barcode >= 0 ? (r[m.barcode]||'').trim() : '';
+    const apV   = m.appName >= 0 ? (r[m.appName]||'').trim() : '';
+    if (!nameV && !bcV && !apV) continue;          // truly empty row
+    raw.push({ r, sheetRow: i+1 });
+  }
+
+  state.feeModels[cfg.gid] = state.feeModels[cfg.gid] || fitFeeModel(raw.map(x=>x.r), m, H);
+  const models = state.feeModels[cfg.gid];
+
+  return raw.map(({r, sheetRow}) => {
+    const list = num(r[m.list]);
+    const row = {
+      key: cfg.gid + ':' + sheetRow,
+      gid: cfg.gid, sheet: cfg.sheet, sheetRow,
+      plat: cfg.plat, platLabel: cfg.platLabel, unit: cfg.unit,
+      colActive: m.active + 1,        // 1-based for Apps Script
+      colList:   m.list   + 1,
+      active:  String(r[m.active]||'').trim().toUpperCase() === 'TRUE',
+      name:    (r[m.name]||'').trim(),
+      appName: m.appName >= 0 ? (r[m.appName]||'').trim() : '',
+      option:  m.option  >= 0 ? (r[m.option] ||'').trim() : '',
+      category:m.category>= 0 ? (r[m.category]||'').trim(): '',
+      barcode: m.barcode >= 0 ? String(r[m.barcode]||'').trim() : '',
+      retail:  m.retail  >= 0 ? num(r[m.retail]) : null,
+      qty:     m.qty     >= 0 ? num(r[m.qty])    : null,
+      cost:    m.cost    >= 0 ? (num(r[m.cost]) || 0) : 0,
+      pack:    m.pack    >= 0 ? (num(r[m.pack]) || 0) : 0,
+      list:    list,
+      feeSheet:m.total   >= 0 ? num(r[m.total])  : null,
+      stock:   m.stock   >= 0 ? num(r[m.stock])  : null,
+      unitPA:  m.unitPA  >= 0 ? (r[m.unitPA]||'').trim() : '',
+      unitCS:  m.unitCS  >= 0 ? (r[m.unitCS]||'').trim() : '',
+      profitSheet: m.profit >= 0 ? num(r[m.profit]) : null,
+      promo:   m.promo   >= 0 ? num(r[m.promo]) : null,
+      image:   m.image   >= 0 ? (r[m.image]||'').trim() : '',
+      calib: 0
+    };
+    // calibrate so our model reproduces the sheet's profit exactly at the current price
+    if (list != null && list > 0 && row.profitSheet != null){
+      const modelProfit = list - calcFees(models, list) - row.cost - row.pack;
+      const diff = row.profitSheet - modelProfit;
+      if (Math.abs(diff) <= 5) row.calib = diff;   // only absorb small rounding gaps
+    }
+    return row;
+  });
+}
+
+async function loadData(useCache){
+  if (useCache){
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_KEY));
+      if (c && Date.now() - c.ts < CACHE_TTL && c.rows && c.rows.length){
+        state.rows = c.rows; state.feeModels = c.fees || {};
+        applyFeeOverrides(); buildProductIndex();
+        renderAll(); attachImages();
+        showToast('แสดงข้อมูลที่แคชไว้ กำลังอัปเดตล่าสุด...', 'info');
+      }
+    } catch(e){}
+  }
+  setLoading(true);
+  if (!state.rows.length) showSpinner('กำลังโหลดข้อมูลจาก Google Sheet...');
+  try {
+    state.feeModels = {};
+    const errors = [];
+    const grids = await Promise.all(SHEETS.map(c => fetchSheet(c).catch(e => {
+      console.warn(c.sheet, e); errors.push(c.sheet + ': ' + (e && e.message ? e.message : String(e))); return [];
+    })));
+    let rows = [];
+    SHEETS.forEach((c,i) => { rows = rows.concat(buildRows(c, grids[i])); });
+    if (!rows.length){ const err = new Error('โหลดข้อมูลจาก Google Sheet ไม่สำเร็จ'); err.detail = errors.join('\n'); throw err; }
+    state.rows = rows;
+    applyFeeOverrides();
+    buildProductIndex();
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts:Date.now(), rows, fees:state.feeModels })); } catch(e){}
+    renderAll();
+    attachImages();
+    hideNotice();
+    showToast('โหลดข้อมูลแล้ว ' + int(rows.length) + ' รายการ • ' + formatThaiDateTime(new Date()), 'success');
+  } catch (e){
+    console.error(e);
+    showToast('โหลดไม่สำเร็จ: ' + e.message, 'error');
+    if (!state.rows.length){
+      $('#priceTbl').querySelector('tbody').innerHTML =
+        `<tr class="empty-row"><td colspan="12">โหลดข้อมูลไม่สำเร็จ<br><span class="txt-sm">${esc(e.message)}</span></td></tr>`;
+      showLoadNotice(e);
+    }
+  } finally { hideSpinner(); setLoading(false); }
+}
+
+/* ============================================================
+   PRODUCT PHOTOS (Stocksync PDDT)
+   ============================================================ */
+function applyImageMap(map){
+  if (!map || !state.products) return 0;
+  let n = 0;
+  state.products.forEach(p => {
+    if (p.image) return;
+    for (const r of p.listings){
+      if (r.barcode && map[r.barcode]){ p.image = map[r.barcode]; n++; break; }
+    }
+  });
+  return n;
+}
+async function attachImages(){
+  if (!state.products || !state.products.size) return;
+  const wanted = [];
+  state.products.forEach(p => { if (p.barcode) wanted.push(p.barcode); });
+  if (!wanted.length) return;
+
+  // cached map is pruned to the barcodes we care about; '' records a known miss
+  try {
+    const c = JSON.parse(localStorage.getItem(IMG_CACHE_KEY));
+    if (c && Date.now() - c.ts < IMG_TTL && c.map && wanted.every(b => b in c.map)){
+      state.skuGroup = c.grp || {};
+      buildProductIndex();                 // regroup by SKU now that we know the mapping
+      applyImageMap(c.map); renderImageDependent(); return;
+    }
+  } catch (e) {}
+
+  try {
+    const url = 'https://docs.google.com/spreadsheets/d/' + IMG_SHEET_ID + '/gviz/tq?tqx=out:csv&gid='
+              + IMG_GID + '&headers=1&tq=' + encodeURIComponent(IMG_QUERY);
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const grid = parseCsv(await res.text());
+    const full = Object.create(null);   // barcode -> photo
+    const grp  = Object.create(null);   // barcode -> canonical SKU key (all pack sizes share one)
+    for (let i = 1; i < grid.length; i++){
+      const r = grid[i]; if (!r) continue;
+      const codes = [];
+      for (let k = 0; k < 4; k++){ const b = (r[k] || '').trim(); if (b) codes.push(b); }
+      if (!codes.length) continue;
+      const key = codes[0];
+      const img = (r[4] || '').trim();
+      codes.forEach(b => {
+        if (!(b in grp)) grp[b] = key;
+        if (img && !full[b]) full[b] = img;
+      });
+    }
+    const pruned = {}, prunedGrp = {};
+    wanted.forEach(b => {
+      pruned[b] = full[b] || '';                 // '' = looked up, no photo
+      if (grp[b]) prunedGrp[b] = grp[b];
+    });
+    try { localStorage.setItem(IMG_CACHE_KEY, JSON.stringify({ ts: Date.now(), map: pruned, grp: prunedGrp })); } catch (e) {}
+    state.skuGroup = prunedGrp;
+    buildProductIndex();
+    state.gShown = Math.max(state.gShown, 36);                          // regroup: one card per product, not per pack size
+    const n = applyImageMap(pruned);
+    renderImageDependent();
+    if (n) showToast('ดึงรูปสินค้าจาก Stocksync แล้ว ' + int(n) + ' รายการ', 'success');
+  } catch (e){
+    console.warn('image index', e);   // photos are a bonus — never break the app over them
+  }
+}
+function markLoadedImages(root){
+  (root || document).querySelectorAll('img:not(.rdy)').forEach(im => {
+    if (im.complete && im.naturalWidth > 0) im.classList.add('rdy');
+  });
+}
+function renderImageDependent(){
+  if (!state.rows.length) return;
+  renderGallery();
+  renderOut();
+  renderLow();
+  renderPriceTable();
+  setTimeout(markLoadedImages, 60);
+}
+
+/* ---------- fee overrides from settings ---------- */
+function applyFeeOverrides(){
+  try {
+    const ov = JSON.parse(localStorage.getItem(FEE_KEY) || '{}');
+    for (const gid in ov){
+      const m = state.feeModels[gid]; if (!m) continue;
+      ov[gid].forEach((o,i) => { if (m[i]) { m[i].kind = o.kind; m[i].v = o.v; } });
+    }
+  } catch(e){}
+}
+
+/* ============================================================
+   WHY DATA MAY NOT LOAD
+   Google returns no Access-Control-Allow-Origin header when the page's
+   origin is "null" — which is exactly what a page opened straight from
+   disk (file://) sends. The browser then blocks the response. Nothing in
+   this file can change that; the page has to be served over http(s).
+   ============================================================ */
+const isFileProtocol = () => location.protocol === 'file:';
+function hideNotice(){ const n = document.getElementById('loadNotice'); if (n) n.remove(); }
+function showLoadNotice(err){
+  hideNotice();
+  const fileMode = isFileProtocol();
+  const detail = err ? ((err.detail ? err.detail + '\n\n' : '') + (err.message || String(err))) : '';
+  const el = document.createElement('div');
+  el.id = 'loadNotice'; el.className = 'notice-panel';
+  el.innerHTML = `
+    <div class="notice-card">
+      <h2><span>${ico('alert', 24)}</span>${fileMode ? 'เปิดจากไฟล์ในเครื่อง — ดึงข้อมูลไม่ได้' : 'โหลดข้อมูลจาก Google Sheet ไม่สำเร็จ'}</h2>
+      <p class="lead">${fileMode
+        ? 'ไม่ใช่บั๊กของแอพ — <b>Google ไม่อนุญาตให้หน้าเว็บที่เปิดจากไฟล์ในเครื่องโดยตรงดึงข้อมูลชีท</b> (เหตุผลด้านความปลอดภัย CORS) แก้ได้ด้วยการเปิดแอพผ่าน http แทน ทำได้ 2 วิธีด้านล่าง'
+        : 'แอพติดต่อ Google Sheet ไม่ได้ สาเหตุที่เป็นไปได้คือ อินเตอร์เน็ตหลุด หรือชีทถูกเปลี่ยนการแชร์'}</p>
+      ${fileMode ? `
+      <div class="notice-step">
+        <div class="n">1</div>
+        <div class="b">
+          <h4>ดับเบิลคลิก <code>start-app.cmd</code> แทน (ง่ายสุด)</h4>
+          <p>ไฟล์นี้อยู่โฟลเดอร์เดียวกัน กดแล้วแอพจะเปิดผ่าน localhost ให้เอง แล้วข้อมูลจะเข้าทันที ปิดหน้าต่างดำเมื่อเลิกใช้</p>
+        </div>
+      </div>
+      <div class="notice-step">
+        <div class="n">2</div>
+        <div class="b">
+          <h4>หรืออัปขึ้น GitHub Pages (ใช้บนมือถือได้ด้วย)</h4>
+          <p>วางไฟล์ไว้ที่ <code>suratpoom.github.io/rattana-apps/</code> เหมือนแอพตัวอื่นของบริษัท แล้วเปิดจาก URL — เหมาะกับใช้งานจริงที่สุด</p>
+        </div>
+      </div>` : ''}
+      ${detail ? `<div class="notice-err">${esc(detail)}</div>` : ''}
+      <div class="notice-foot">
+        <button class="btn btn-gold" id="noticeRetry">${ico('refresh')} ลองโหลดอีกครั้ง</button>
+        <button class="btn btn-outline" id="noticeClose">ปิดหน้านี้</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  el.querySelector('#noticeRetry').addEventListener('click', () => { hideNotice(); loadData(false); });
+  el.querySelector('#noticeClose').addEventListener('click', hideNotice);
+}
+
+/* ============================================================
+   PRODUCTS — one barcode can be listed on several platforms/units
+   ============================================================ */
+const pkeyOf = r => (state.skuGroup && state.skuGroup[r.barcode])
+  || r.barcode || ('n:' + (r.name || r.appName || '?'));
+
+function buildProductIndex(){
+  const idx = new Map();
+  for (const r of state.rows){
+    r.pkey = pkeyOf(r);
+    let p = idx.get(r.pkey);
+    if (!p){ p = { key:r.pkey, barcode:r.barcode, name:'', appName:'', image:'', listings:[] }; idx.set(r.pkey, p); }
+    if (!p.name    && r.name)    p.name    = r.name;
+    if (!p.appName && r.appName) p.appName = r.appName;
+    if (!p.image   && r.image)   p.image   = r.image;
+    p.listings.push(r);
+  }
+  state.products = idx;
+}
+
+/** Google Drive share link -> a URL an <img> can actually load */
+function imgUrl(u, w){
+  if (!u) return '';
+  const m = /\/file\/d\/([A-Za-z0-9_-]{10,})/.exec(u) || /[?&]id=([A-Za-z0-9_-]{10,})/.exec(u);
+  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w' + (w || 400) : u;
+}
+
+/** deterministic geometric mark for products with no photo */
+function placeholderMark(seed, size){
+  let h = 0; const s = String(seed || '?');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  const shapes = [
+    '<path d="M7 15h34L24 43z"/>',
+    '<circle cx="19" cy="24" r="11.5"/><circle cx="29" cy="24" r="11.5"/>',
+    '<path d="M24 6 40 15v18L24 42 8 33V15z"/>',
+    '<rect x="9" y="9" width="30" height="30"/><path d="M9 9 39 39"/>',
+    '<path d="M24 5 43 24 24 43 5 24z"/>'
+  ];
+  const red = ((h >> 4) & 1) === 0;
+  return '<svg viewBox="0 0 48 48" width="' + (size || 26) + '" height="' + (size || 26) + '" fill="none" stroke="'
+       + (red ? '#E60023' : 'currentColor') + '" stroke-width="1.6" stroke-linejoin="miter" opacity="'
+       + (red ? '.8' : '.45') + '">' + shapes[h % shapes.length] + '</svg>';
+}
+
+/** thumbnail markup with a graceful fallback when the photo 404s */
+function thumbHtml(pkey, seed, cls, phSize){
+  const p = state.products && state.products.get(pkey);
+  const url = p && p.image ? imgUrl(p.image, 240) : '';
+  const ph = '<span class="ph"' + (url ? ' style="display:none"' : '') + '>' + placeholderMark(seed, phSize || 26) + '</span>';
+  const im = url ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" '
+                 + 'onload="this.classList.add(\'rdy\')" '
+                 + 'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : '';
+  return '<span class="' + (cls || 'thumb') + '">' + im + ph + '</span>';
+}
+
+const UNIT_WORD = { EA:'ชิ้น', PA:'แพ็ค', CS:'ลัง' };
+function sellsAs(r){
+  const bits = [];
+  if (r.qty)    bits.push('ครั้งละ ' + int(r.qty) + ' ' + (UNIT_WORD[r.unit] || ''));
+  if (r.unitPA) bits.push(r.unitPA);
+  if (r.unitCS) bits.push(r.unitCS);
+  return bits.join(' · ') || '–';
+}
+function feeBreakdownHtml(r, lp){
+  const models = state.feeModels[r.gid] || [];
+  const live = models.filter(f => f.kind !== 'zero');
+  let total = 0;
+  const rows = live.map(f => {
+    const v = f.kind === 'pct' ? Math.round(f.v * lp) : f.v;
+    total += v;
+    return '<div class="fb-row"><span>' + esc(String(f.label).replace(/\s+/g, ' ').trim()) + '</span>'
+         + '<span class="rate">' + (f.kind === 'pct' ? (f.v * 100).toFixed(2) + '%' : 'คงที่') + '</span>'
+         + '<b>' + money(v) + '</b></div>';
+  }).join('');
+  return '<div class="fb"><div class="h">' + platBadge(r) + '</div>'
+       + (rows || '<div class="fb-row"><span>ช่องทางนี้ไม่คิดค่าธรรมเนียม</span></div>')
+       + '<div class="fb-tot"><span>รวมหักจากราคา ' + money(lp) + '</span><b>' + money(total) + '</b></div>'
+       + '<div class="fb-row" style="border:none;padding-top:7px"><span>ค่าแพ็ค</span><b>' + money(r.pack) + '</b></div>'
+       + '</div>';
+}
+
+function pmRow(r){
+  const lp = curList(r), c = calcRow(r, lp || 0), on = curActive(r);
+  const noStock = r.stock != null && r.stock <= 0;
+  return '<tr data-key="' + esc(r.key) + '">'
+    + '<td><input type="checkbox" class="cbx pmact" data-key="' + esc(r.key) + '"' + (on ? ' checked' : '')
+    +   ' title="ติ๊ก = มีของ/เปิดขาย"></td>'
+    + '<td>' + platBadge(r) + '</td>'
+    + '<td class="txt-sm txt-muted">' + esc(sellsAs(r)) + '</td>'
+    + '<td class="num">' + money(r.cost) + '</td>'
+    + '<td class="num txt-muted" data-fee>' + money(c.fee) + '</td>'
+    + '<td class="edit"><input type="number" step="1" class="pinput pmprice' + (isDirty(r) && state.dirty.get(r.key).list != null ? ' changed' : '')
+    +   '" data-key="' + esc(r.key) + '" value="' + (lp == null ? '' : lp) + '"></td>'
+    + '<td class="num' + (c.profit < 0 ? ' txt-danger' : '') + '" data-profit>' + money(c.profit) + '</td>'
+    + '<td class="num" data-margin>' + marginBadge(c.margin) + '</td>'
+    + '<td class="num' + (noStock ? ' txt-danger txt-bold' : '') + '">' + (r.stock == null ? '–' : int(r.stock)) + '</td>'
+    + '</tr>';
+}
+function pmHead(){
+  return '<thead><tr>'
+    + '<th style="width:34px">ติ๊ก</th><th>ช่องทาง</th><th>ขายแบบ</th>'
+    + '<th style="text-align:right">ต้นทุน</th><th style="text-align:right">ค่าธรรมเนียม</th>'
+    + '<th style="text-align:right">ราคาตั้ง</th><th style="text-align:right">กำไร</th>'
+    + '<th style="text-align:right">Margin</th><th style="text-align:right">สต็อก</th>'
+    + '</tr></thead>';
+}
+function renderProductStats(p){
+  const ls = p.listings;
+  const prices = ls.map(r => curList(r)).filter(v => v != null && v > 0);
+  const stocks = ls.map(r => r.stock).filter(v => v != null);
+  const margins = ls.map(r => calcRow(r, curList(r) || 0).margin).filter(m => m != null && isFinite(m));
+  const on = ls.filter(r => curActive(r)).length;
+  const chans = new Set(ls.map(r => r.plat));
+  const el = document.getElementById('pmStat');
+  if (!el) return;
+  el.innerHTML =
+      '<div class="s"><div class="l">ช่องทาง</div><div class="v">' + int(chans.size) + '</div></div>'
+    + '<div class="s"><div class="l">ช่วงราคาตั้ง</div><div class="v" style="font-size:15px">'
+    +   (prices.length ? (money(Math.min.apply(null, prices)) + ' – ' + money(Math.max.apply(null, prices))) : '–') + '</div></div>'
+    + '<div class="s"><div class="l">สต็อกรวม (ลัง)</div><div class="v">' + (stocks.length ? int(stocks.reduce((a,b)=>a+b,0)) : '–') + '</div></div>'
+    + '<div class="s"><div class="l">Margin เฉลี่ย</div><div class="v">' + (margins.length ? (margins.reduce((a,b)=>a+b,0)/margins.length*100).toFixed(1) + '%' : '–') + '</div></div>';
+  const ob = document.getElementById('pmOnBadge');
+  if (ob) ob.textContent = 'เปิดขาย ' + int(on) + '/' + int(ls.length);
+}
+function renderProductFees(p){
+  const el = document.getElementById('pmFees');
+  if (el) el.innerHTML = p.listings.map(r => feeBreakdownHtml(r, curList(r) || 0)).join('');
+}
+
+function openProduct(pkey){
+  const p = state.products && state.products.get(pkey);
+  if (!p) return;
+  state.openProduct = pkey;
+
+  // group by unit so "ขายทั้งลังและแพ็ค" is obvious at a glance
+  const groups = ['CS','PA','EA'].map(u => ({
+    u, rows: p.listings.filter(r => r.unit === u)
+             .sort((a,b) => PLAT_ORDER.indexOf(a.plat) - PLAT_ORDER.indexOf(b.plat))
+  })).filter(g => g.rows.length);
+
+  const unitChips = groups.map(g =>
+    '<span class="uchip">' + UNIT_WORD[g.u] + ' <b>x' + g.rows.length + '</b></span>').join('');
+
+  $('#pmBody').innerHTML =
+    '<div class="pm-head">'
+    + thumbHtml(p.key, p.name || p.barcode, 'pm-img', 46)
+    + '<div class="pm-t">'
+    +   '<h3>' + esc(p.name || p.appName || '(ไม่มีชื่อ)') + '</h3>'
+    +   (p.appName && p.appName !== p.name ? '<div class="pm-sub">' + esc(p.appName) + '</div>' : '')
+    +   '<div class="pm-chips">'
+    +     (p.barcode ? '<span class="badge badge-mute mono">' + esc(p.barcode) + '</span>' : '')
+    +     '<span class="badge badge-info">' + int(p.listings.length) + ' รายการขาย</span>'
+    +     '<span class="badge badge-ok" id="pmOnBadge"></span>'
+    +   '</div>'
+    +   (unitChips ? '<div class="units" style="margin-top:4px">' + unitChips + '</div>' : '')
+    + '</div></div>'
+    + '<div class="pm-stat" id="pmStat"></div>'
+    + '<div class="pm-sec">'
+    +   '<h4>แก้ราคาได้ตรงนี้ — กำไร/Margin คำนวณสดทันที</h4>'
+    +   groups.map(g =>
+          '<div class="pm-grp"><div class="gh"><b>ขายแบบ ' + UNIT_WORD[g.u] + ' (' + g.u + ')</b>'
+          + '<span class="cnt2">' + int(g.rows.length) + ' ช่องทาง</span></div>'
+          + '<div class="tbl-wrap"><table class="pm-tbl" style="min-width:760px">' + pmHead()
+          + '<tbody>' + g.rows.map(pmRow).join('') + '</tbody></table></div></div>').join('')
+    + '</div>'
+    + '<div class="pm-sec" style="padding-bottom:22px"><h4>ค่าธรรมเนียมแยกตามแอพ</h4>'
+    +   '<div class="pm-fee" id="pmFees"></div>'
+    + '</div>';
+
+  renderProductStats(p);
+  renderProductFees(p);
+  openModal('#productModal');
+}
+
+/* ============================================================
+   PRODUCT GALLERY
+   ============================================================ */
+function productSummary(p){
+  const prices = [], stocks = [], margins = [];
+  let anyEmpty = false, risky = 0, on = 0;
+  for (const r of p.listings){
+    const lp = curList(r);
+    if (lp != null && lp > 0) prices.push(lp);
+    if (r.stock != null){ stocks.push(r.stock); if (r.stock <= 0){ anyEmpty = true; if (curActive(r)) risky++; } }
+    const m = calcRow(r, lp || 0).margin;
+    if (m != null && isFinite(m)) margins.push(m);
+    if (curActive(r)) on++;
+  }
+  return {
+    min: prices.length ? Math.min.apply(null, prices) : null,
+    max: prices.length ? Math.max.apply(null, prices) : null,
+    stock: stocks.length ? stocks.reduce((a,b)=>a+b,0) : null,
+    margin: margins.length ? margins.reduce((a,b)=>a+b,0)/margins.length : null,
+    chans: [...new Set(p.listings.map(r => r.plat))],
+    anyEmpty, risky, on, total: p.listings.length
+  };
+}
+/** a product is in view when any of its listings passes the page filters */
+function productPasses(p){
+  if (state.filter.status === 'noimg') {
+    if (p.image) return false;
+    return p.listings.some(r => passFilterBase(r));
+  }
+  return p.listings.some(r => passFilter(r));
+}
+function galleryList(){
+  const out = [];
+  state.products.forEach(p => {
+    if (!productPasses(p)) return;
+    out.push({ p, s: productSummary(p) });
+  });
+  out.sort((a, b) => (b.s.chans.length - a.s.chans.length)
+    || String(a.p.name || '').localeCompare(String(b.p.name || ''), 'th'));
+  return out;
+}
+function productCard(p, s, gallery){
+  const badge = s.risky ? '<span class="risk">ยังติ๊กขาย ' + int(s.risky) + '</span>'
+              : (s.anyEmpty ? '<span class="risk" style="background:var(--muted);color:var(--bg)">ของหมด</span>' : '');
+  const flag = (gallery && !p.image) ? '<span class="flag">ยังไม่มีรูป</span>' : '';
+  const price = s.min == null ? '–'
+    : (s.min === s.max ? money(s.min) : money(s.min) + ' – ' + money(s.max));
+  const units = ['CS','PA','EA'].map(u => {
+    const n = p.listings.filter(r => r.unit === u).length;
+    return n ? '<span class="uchip">' + UNIT_WORD[u] + ' <b>x' + n + '</b></span>' : '';
+  }).join('');
+  const dirtyN = p.listings.filter(r => isDirty(r)).length;
+  const picked = gallery && p.listings.some(r => state.selected.has(r.key));
+  return '<div class="oc' + (gallery ? ' gc' : '') + (picked ? ' sel' : '') + '" data-pkey="' + esc(p.key) + '">'
+    + '<div class="im">' + badge + flag + thumbHtml(p.key, p.name || p.barcode, 'imw', 40)
+    +   (gallery ? '<span class="pick"><input type="checkbox" class="cbx cardsel" data-pkey="' + esc(p.key) + '"'
+        + (picked ? ' checked' : '') + ' title="เลือกสำหรับปรับราคาหลายตัว"></span>' : '')
+    + '</div>'
+    + '<div class="bd">'
+    +   '<div class="nm">' + esc(p.name || p.appName || '(ไม่มีชื่อ)') + '</div>'
+    +   '<div class="mt">' + esc(p.barcode || '—') + '</div>'
+    +   (units ? '<div class="units">' + units + '</div>' : '')
+    +   '<div class="tags">' + s.chans.map(c => {
+          const r = p.listings.find(x => x.plat === c);
+          return '<span class="pb pb-' + c.toLowerCase() + '">' + esc(r.platLabel) + '</span>';
+        }).join('') + '</div>'
+    +   (gallery ? '<div class="foot"><span>สต็อก <b class="mono">' + (s.stock == null ? '–' : int(s.stock))
+        + '</b> ลัง</span><span>' + (dirtyN ? '<b class="txt-gold">แก้แล้ว ' + int(dirtyN) + '</b>'
+        : 'เปิดขาย <b class="mono">' + int(s.on) + '/' + int(s.total) + '</b>') + '</span></div>' : '')
+    + '</div></div>';
+}
+function renderGallery(){
+  if (!state.products) return;
+  $('#cntProd').textContent = int(state.products.size);
+  let withImg = 0, anyEmpty = 0, multi = 0;
+  state.products.forEach(p => {
+    if (p.image) withImg++;
+    if (p.listings.some(r => r.stock != null && r.stock <= 0)) anyEmpty++;
+    if (new Set(p.listings.map(r => r.plat)).size > 1) multi++;
+  });
+  if ($('#galStats')) $('#galStats').innerHTML =
+      '<div class="stat-card"><div class="s-label">สินค้าทั้งหมด</div><div class="s-value">' + int(state.products.size) + '</div><div class="s-sub">จาก ' + int(state.rows.length) + ' รายการขาย</div></div>'
+    + '<div class="stat-card info"><div class="s-label">ขายหลายช่องทาง</div><div class="s-value">' + int(multi) + '</div><div class="s-sub">เทียบราคาข้ามแอพได้</div></div>'
+    + '<div class="stat-card ' + (anyEmpty ? 'warning' : 'success') + '"><div class="s-label">มีช่องทางที่หมด</div><div class="s-value">' + int(anyEmpty) + '</div><div class="s-sub">ดูรายละเอียดที่แท็บของหมด</div></div>'
+    + '<div class="stat-card ' + (withImg < state.products.size ? 'danger' : 'success') + '"><div class="s-label">มีรูปสินค้า</div><div class="s-value">' + int(withImg) + '</div><div class="s-sub">ยังไม่มีรูป ' + int(state.products.size - withImg) + ' ตัว</div></div>';
+
+  const list = galleryList();
+  $('#galCount').textContent = '(' + int(list.length) + ' สินค้า)';
+  const shown = list.slice(0, state.gShown);
+  const g = $('#galGrid');
+  g.innerHTML = shown.length
+    ? shown.map(({ p, s }) => productCard(p, s, true)).join('')
+    : '<div class="txt-muted" style="grid-column:1/-1;text-align:center;padding:60px 20px">ไม่พบสินค้าตามเงื่อนไขนี้</div>';
+  const more = $('#galMore');
+  more.hidden = list.length <= state.gShown;
+  more.textContent = 'แสดงเพิ่ม (เหลืออีก ' + int(Math.max(0, list.length - state.gShown)) + ')';
+}
+
+/* ============================================================
+   LOW PRICE — profit or margin under the floor, so it needs re-pricing
+   ============================================================ */
+function lowFlags(r){
+  const lp = curList(r);
+  if (lp == null || lp <= 0) return null;
+  const c = calcRow(r, lp);
+  const lowP = c.profit != null && isFinite(c.profit) && c.profit < state.cfg.minProfit;
+  const lowM = c.margin != null && isFinite(c.margin) && c.margin * 100 < state.cfg.minMargin;
+  return (lowP || lowM) ? { lowP, lowM, profit: c.profit, margin: c.margin } : null;
+}
+function lowList(){
+  const f = state.lFilter, out = [];
+  state.products.forEach(p => {
+    const hits = [];
+    p.listings.forEach(r => { const x = lowFlags(r); if (x) hits.push({ r, ...x }); });
+    if (!hits.length) return;
+    if (f.mode === 'profit' && !hits.some(h => h.lowP)) return;
+    if (f.mode === 'margin' && !hits.some(h => h.lowM)) return;
+    if (f.plat !== 'ALL' && !hits.some(h => h.r.plat === f.plat)) return;
+    if (f.q){
+      const q = f.q.toLowerCase();
+      if (((p.name||'') + ' ' + (p.appName||'') + ' ' + (p.barcode||'')).toLowerCase().indexOf(q) < 0) return;
+    }
+    out.push({ p, hits });
+  });
+  out.sort((a, b) => Math.min.apply(null, a.hits.map(h => h.margin == null ? 9 : h.margin))
+                   - Math.min.apply(null, b.hits.map(h => h.margin == null ? 9 : h.margin)));
+  return out;
+}
+function renderLow(){
+  if (!state.products) return;
+  $('#lowRuleP').textContent = int(state.cfg.minProfit);
+  $('#lowRuleM').textContent = state.cfg.minMargin;
+  let prodLow = 0, listLow = 0, byP = 0, byM = 0;
+  state.products.forEach(p => {
+    let any = false;
+    p.listings.forEach(r => { const x = lowFlags(r); if (x){ any = true; listLow++; if (x.lowP) byP++; if (x.lowM) byM++; } });
+    if (any) prodLow++;
+  });
+  $('#cntLow').textContent = int(prodLow);
+  $('#lowStats').innerHTML =
+      '<div class="stat-card ' + (prodLow ? 'danger' : 'success') + '"><div class="s-label">สินค้าที่ควรปรับราคา</div><div class="s-value">' + int(prodLow) + '</div><div class="s-sub">จาก ' + int(state.products.size) + ' สินค้า</div></div>'
+    + '<div class="stat-card warning"><div class="s-label">กำไรต่ำกว่า ' + int(state.cfg.minProfit) + ' บาท</div><div class="s-value">' + int(byP) + '</div><div class="s-sub">นับแยกตามช่องทาง</div></div>'
+    + '<div class="stat-card warning"><div class="s-label">Margin ต่ำกว่า ' + state.cfg.minMargin + '%</div><div class="s-value">' + int(byM) + '</div><div class="s-sub">นับแยกตามช่องทาง</div></div>'
+    + '<div class="stat-card"><div class="s-label">รายการขายที่เข้าเกณฑ์</div><div class="s-value">' + int(listLow) + '</div><div class="s-sub">จาก ' + int(state.rows.length) + ' รายการ</div></div>';
+
+  const list = lowList();
+  $('#lowCount').textContent = '(' + int(list.length) + ' สินค้า)';
+  const g = $('#lowGrid');
+  if (!list.length){
+    g.innerHTML = '<div class="txt-muted" style="grid-column:1/-1;text-align:center;padding:60px 20px">ไม่มีสินค้าที่เข้าเกณฑ์ราคาต่ำ</div>';
+    $('#lowMore').hidden = true;
+    return;
+  }
+  const shownL = list.slice(0, state.lShown);
+  $('#lowMore').hidden = list.length <= state.lShown;
+  $('#lowMore').textContent = 'แสดงเพิ่ม (เหลืออีก ' + int(Math.max(0, list.length - state.lShown)) + ')';
+  g.innerHTML = shownL.map(({ p, hits }) => {
+    const s = productSummary(p);
+    s.chans = [...new Set(hits.map(h => h.r.plat))];
+    s.risky = 0; s.anyEmpty = false;
+    const worst = hits.reduce((a, b) => (a.margin == null ? 9 : a.margin) <= (b.margin == null ? 9 : b.margin) ? a : b);
+    const tag = worst.lowM && worst.margin != null
+      ? 'Margin ' + (worst.margin * 100).toFixed(1) + '%'
+      : 'กำไร ' + money(worst.profit);
+    let html = productCard(p, s, false);
+    return html.replace('<div class="im">', '<div class="im"><span class="risk">' + tag + '</span>');
+  }).join('');
+}
+
+/* ============================================================
+   OUT OF STOCK
+   ============================================================ */
+function outOfStockList(){
+  const f = state.oFilter;
+  const out = [];
+  state.products.forEach(p => {
+    const empty = p.listings.filter(r => r.stock != null && r.stock <= 0);
+    if (!empty.length) return;
+    const risky = empty.filter(r => curActive(r));
+    if (f.mode === 'risk' && !risky.length) return;
+    if (f.mode === 'off'  && risky.length)  return;
+    if (f.plat !== 'ALL' && !empty.some(r => r.plat === f.plat)) return;
+    if (f.q){
+      const q = f.q.toLowerCase();
+      if (((p.name || '') + ' ' + (p.appName || '') + ' ' + (p.barcode || '')).toLowerCase().indexOf(q) < 0) return;
+    }
+    out.push({ p, empty, risky });
+  });
+  out.sort((a, b) => (b.risky.length - a.risky.length) || (b.empty.length - a.empty.length)
+    || String(a.p.name || '').localeCompare(String(b.p.name || ''), 'th'));
+  return out;
+}
+function renderOut(){
+  if (!state.products) return;
+  let prodEmpty = 0, prodRisk = 0, listEmpty = 0;
+  state.products.forEach(p => {
+    const e = p.listings.filter(r => r.stock != null && r.stock <= 0);
+    if (e.length){ prodEmpty++; listEmpty += e.length; if (e.some(r => curActive(r))) prodRisk++; }
+  });
+  $('#cntOut').textContent = int(prodEmpty);
+  $('#outStats').innerHTML =
+      '<div class="stat-card ' + (prodEmpty ? 'warning' : 'success') + '"><div class="s-label">สินค้าที่หมด</div><div class="s-value">' + int(prodEmpty) + '</div><div class="s-sub">จาก ' + int(state.products.size) + ' สินค้าทั้งหมด</div></div>'
+    + '<div class="stat-card ' + (prodRisk ? 'danger' : 'success') + '"><div class="s-label">หมดแต่ยังติ๊กขาย</div><div class="s-value">' + int(prodRisk) + '</div><div class="s-sub">เสี่ยงลูกค้าสั่งแล้วไม่มีของ</div></div>'
+    + '<div class="stat-card"><div class="s-label">รายการขายที่หมด</div><div class="s-value">' + int(listEmpty) + '</div><div class="s-sub">นับแยกตามช่องทาง</div></div>'
+    + '<div class="stat-card success"><div class="s-label">สินค้าที่ยังมีของ</div><div class="s-value">' + int(state.products.size - prodEmpty) + '</div><div class="s-sub">สต็อกมากกว่า 0</div></div>';
+
+  const list = outOfStockList();
+  $('#outCount').textContent = '(' + int(list.length) + ' สินค้า)';
+  const g = $('#outGrid');
+  if (!list.length){
+    g.innerHTML = '<div class="txt-muted" style="grid-column:1/-1;text-align:center;padding:60px 20px">ไม่มีสินค้าที่หมดสต็อกตามเงื่อนไขนี้</div>';
+    $('#outMore').hidden = true;
+    return;
+  }
+  const shownO = list.slice(0, state.oShown);
+  $('#outMore').hidden = list.length <= state.oShown;
+  $('#outMore').textContent = 'แสดงเพิ่ม (เหลืออีก ' + int(Math.max(0, list.length - state.oShown)) + ')';
+  g.innerHTML = shownO.map(({ p, empty, risky }) => {
+    const s = productSummary(p);
+    s.chans = [...new Set(empty.map(r => r.plat))];   // only the channels that are actually out
+    s.risky = risky.length;
+    s.anyEmpty = true;
+    return productCard(p, s, false);
+  }).join('');
+}
+
+/* ============================================================
+   FILTERING + SORT
+   ============================================================ */
+function passFilterBase(r){          // platform + unit + text only
+  const f = state.filter;
+  if (f.plat !== 'ALL' && r.plat !== f.plat) return false;
+  if (f.unit !== 'ALL' && r.unit !== f.unit) return false;
+  if (f.q){
+    const q = f.q.toLowerCase();
+    if ((r.name+' '+r.appName+' '+r.option+' '+r.barcode+' '+r.category).toLowerCase().indexOf(q) < 0) return false;
+  }
+  return true;
+}
+function passFilter(r){
+  const f = state.filter;
+  if (f.status === 'noimg'){
+    const p = state.products && state.products.get(r.pkey);
+    if (p && p.image) return false;
+    return passFilterBase(r);
+  }
+  if (f.plat !== 'ALL' && r.plat !== f.plat) return false;
+  if (f.unit !== 'ALL' && r.unit !== f.unit) return false;
+  if (f.status !== 'ALL'){
+    const a = curActive(r), iss = stockIssue(r);
+    const mg = calcRow(r, curList(r) || 0).margin;
+    if (f.status === 'on'      && !a) return false;
+    if (f.status === 'off'     &&  a) return false;
+    if (f.status === 'nostock' && !(r.stock != null && r.stock <= 0)) return false;
+    if (f.status === 'lowmg'   && !(mg != null && mg*100 < state.cfg.minMargin)) return false;
+    if (f.status === 'issue'   && iss === 'none') return false;
+    if (f.status === 'edited'  && !isDirty(r)) return false;
+  }
+  if (f.q){
+    const q = f.q.toLowerCase();
+    if ((r.name+' '+r.appName+' '+r.option+' '+r.barcode+' '+r.category).toLowerCase().indexOf(q) < 0) return false;
+  }
+  return true;
+}
+function sortKeyVal(r, key){
+  switch(key){
+    case 'name':    return r.name || r.appName || '';
+    case 'chan':    return r.platLabel + ' ' + r.unit;
+    case 'cost':    return r.cost;
+    case 'pack':    return r.pack;
+    case 'list':    return curList(r);
+    case 'fee':     return calcRow(r, curList(r)||0).fee;
+    case 'profit':  return calcRow(r, curList(r)||0).profit;
+    case 'margin':  { const m = calcRow(r, curList(r)||0).margin; return m == null ? 9e9 : m; }
+    case 'stock':   return r.stock == null ? 9e9 : r.stock;
+    case 'barcode': return r.barcode;
+    case 'issue':   return ISSUE_LABEL[stockIssue(r)].t;
+    default: return '';
+  }
+}
+function sortRows(rows, st){
+  const mul = st.dir === 'asc' ? 1 : -1;
+  return rows.slice().sort((a,b) => {
+    const va = sortKeyVal(a, st.key), vb = sortKeyVal(b, st.key);
+    if (typeof va === 'number' || typeof vb === 'number'){
+      const na = (va==null||isNaN(va)) ? 9e9 : va, nb = (vb==null||isNaN(vb)) ? 9e9 : vb;
+      return (na-nb)*mul;
+    }
+    return String(va||'').localeCompare(String(vb||''),'th')*mul;
+  });
+}
+const filteredRows = () => sortRows(state.rows.filter(passFilter), state.sort);
+
+/* ============================================================
+   RENDER — price tab
+   ============================================================ */
+function marginBadge(mg){
+  if (mg == null) return '<span class="badge badge-mute">–</span>';
+  const p = mg*100, min = state.cfg.minMargin;
+  let c = 'badge-ok';
+  if (p < 0) c = 'badge-danger';
+  else if (p < min) c = 'badge-danger';
+  else if (p < min*2) c = 'badge-warn';
+  return `<span class="badge ${c}">${p.toFixed(2)}%</span>`;
+}
+function platBadge(r){
+  const cls = { SHP:'pb-shp', LZD:'pb-lzd', AMZ:'pb-amz', TM:'pb-tm' }[r.plat] || 'pb-tm';
+  return `<span class="chan-cell"><span class="pb ${cls}">${esc(r.platLabel)}</span><span class="badge badge-mute">${r.unit}</span></span>`;
+}
+
+function renderPriceTable(){
+  const rows = filteredRows();
+  const tb = $('#priceTbl').querySelector('tbody');
+  $('#rowCount').textContent = '(' + int(rows.length) + ' รายการ)';
+  $('#bFilN').textContent = int(rows.length);
+
+  if (!rows.length){
+    tb.innerHTML = '<tr class="empty-row"><td colspan="12">ไม่พบรายการที่ตรงเงื่อนไข</td></tr>';
+    updateSortIndicators('priceTbl', state.sort); return;
+  }
+  const html = rows.map(r => {
+    const lp = curList(r);
+    const c  = calcRow(r, lp || 0);
+    const d  = isDirty(r);
+    const changed = d && state.dirty.get(r.key).list != null;
+    const diff = changed ? (lp - r.list) : 0;
+    const iss = stockIssue(r);
+    const sub = [r.appName, r.option].filter(Boolean).join(' • ');
+    return `<tr class="${d?'dirty':''} ${iss!=='none'?'alert':''}" data-key="${r.key}">
+      <td><input type="checkbox" class="cbx rowsel" data-key="${r.key}" ${state.selected.has(r.key)?'checked':''}></td>
+      <td><input type="checkbox" class="cbx rowact" data-key="${r.key}" ${curActive(r)?'checked':''} title="ติ๊ก = มีของ/เปิดขาย"></td>
+      <td>
+        <div class="namecell" data-pkey="${esc(r.pkey)}" title="กดดูรายละเอียดสินค้า">
+          ${thumbHtml(r.pkey, r.name || r.barcode, 'thumb', 22)}
+          <div class="txts">
+            <div class="pname" title="${esc(r.name)}">${esc(r.name || '(ไม่มีชื่อ)')}</div>
+            ${sub ? `<div class="psub" title="${esc(sub)}">${esc(sub)}</div>` : ''}
+          </div>
+        </div>
+      </td>
+      <td>${platBadge(r)}</td>
+      <td class="num">${money(r.cost)}</td>
+      <td class="num txt-muted">${money(c.fee)}</td>
+      <td class="num txt-muted">${money(r.pack)}</td>
+      <td class="num">
+        <input type="number" step="1" class="pinput ${changed?'changed':''}" data-key="${r.key}" value="${lp==null?'':lp}">
+        ${changed && diff ? `<span class="delta ${diff>0?'up':'down'}">${diff>0?'+':''}${money(diff)}</span>` : ''}
+      </td>
+      <td class="num ${c.profit<0?'txt-danger':''}"><b>${money(c.profit)}</b></td>
+      <td class="num">${marginBadge(c.margin)}</td>
+      <td class="num ${(r.stock!=null&&r.stock<=0)?'txt-danger txt-bold':''}">${r.stock==null?'–':int(r.stock)}</td>
+      <td class="code">${esc(r.barcode)}</td>
+    </tr>`;
+  }).join('');
+  tb.innerHTML = html;
+  updateSortIndicators('priceTbl', state.sort);
+  $('#selAll').checked = rows.length > 0 && rows.every(r => state.selected.has(r.key));
+}
+
+function renderPriceStats(){
+  const rows = state.rows.filter(passFilter);
+  const on   = rows.filter(r => curActive(r)).length;
+  const mgs  = rows.map(r => calcRow(r, curList(r)||0).margin).filter(m => m != null && isFinite(m));
+  const avg  = mgs.length ? mgs.reduce((a,b)=>a+b,0)/mgs.length : null;
+  const low  = mgs.filter(m => m*100 < state.cfg.minMargin).length;
+  $('#priceStats').innerHTML = `
+    <div class="stat-card"><div class="s-label">สินค้าที่แสดง</div><div class="s-value">${int(rows.length)}</div><div class="s-sub">จากทั้งหมด ${int(state.rows.length)} รายการ</div></div>
+    <div class="stat-card success"><div class="s-label">ติ๊กแล้ว · เปิดขาย</div><div class="s-value">${int(on)}</div><div class="s-sub">ไม่ติ๊ก ${int(rows.length-on)} รายการ</div></div>
+    <div class="stat-card info"><div class="s-label">Margin เฉลี่ย</div><div class="s-value">${avg==null?'–':(avg*100).toFixed(2)+'%'}</div><div class="s-sub">คำนวณจากราคาปัจจุบัน</div></div>
+    <div class="stat-card ${low?'danger':''}"><div class="s-label">Margin ต่ำกว่า ${state.cfg.minMargin}%</div><div class="s-value">${int(low)}</div><div class="s-sub">ควรพิจารณาปรับราคาขึ้น</div></div>`;
+}
+
+/* ============================================================
+   RENDER — stock tab
+   ============================================================ */
+
+/* ============================================================
+   RENDER — dashboard
+   ============================================================ */
+function renderDash(){
+  const all = state.rows;
+  const mgs = all.map(r => calcRow(r, curList(r)||0).margin).filter(m => m != null && isFinite(m));
+  const avg = mgs.length ? mgs.reduce((a,b)=>a+b,0)/mgs.length : 0;
+  const te  = all.filter(r => stockIssue(r)==='ticked_empty').length;
+  const uh  = all.filter(r => stockIssue(r)==='unticked_have').length;
+  const low = mgs.filter(m => m*100 < state.cfg.minMargin).length;
+  $('#dashStats').innerHTML = `
+    <div class="stat-card"><div class="s-label">สินค้าทั้งหมด</div><div class="s-value">${int(all.length)}</div><div class="s-sub">${SHEETS.length} ชีท • 4 ช่องทาง</div></div>
+    <div class="stat-card info"><div class="s-label">Margin เฉลี่ยรวม</div><div class="s-value">${(avg*100).toFixed(2)}%</div><div class="s-sub">ถ่วงเท่ากันทุกรายการ</div></div>
+    <div class="stat-card ${low?'danger':'success'}"><div class="s-label">Margin ต่ำกว่า ${state.cfg.minMargin}%</div><div class="s-value">${int(low)}</div><div class="s-sub">ควรปรับราคาขึ้น</div></div>
+    <div class="stat-card ${(te+uh)?'warning':'success'}"><div class="s-label">ติ๊กไม่ตรงสต็อก</div><div class="s-value">${int(te+uh)}</div><div class="s-sub">หมดแต่ติ๊ก ${int(te)} • มีของแต่ไม่ติ๊ก ${int(uh)}</div></div>`;
+
+  const body = [];
+  for (const p of PLAT_ORDER){
+    for (const u of ['EA','PA','CS']){
+      const rs = all.filter(r => r.plat===p && r.unit===u);
+      if (!rs.length) continue;
+      const on = rs.filter(r=>curActive(r)).length;
+      const iss= rs.filter(r=>stockIssue(r)!=='none').length;
+      const ms = rs.map(r=>calcRow(r,curList(r)||0).margin).filter(m=>m!=null&&isFinite(m));
+      const av = ms.length ? ms.reduce((a,b)=>a+b,0)/ms.length : null;
+      const lo = ms.filter(m=>m*100<state.cfg.minMargin).length;
+      body.push(`<tr>
+        <td><b>${esc(rs[0].platLabel)}</b> <span class="badge badge-mute">${esc(UNIT_LABEL[u])}</span></td>
+        <td class="num">${int(rs.length)}</td>
+        <td class="num txt-success">${int(on)}</td>
+        <td class="num txt-muted">${int(rs.length-on)}</td>
+        <td class="num ${iss?'txt-danger txt-bold':''}">${int(iss)}</td>
+        <td class="num">${av==null?'–':(av*100).toFixed(2)+'%'}</td>
+        <td class="num ${lo?'txt-danger':''}">${int(lo)}</td>
+      </tr>`);
+    }
+  }
+  $('#dashChanBody').innerHTML = body.join('');
+
+  const withMg = all.map(r => ({ r, m: calcRow(r, curList(r)||0).margin }))
+                    .filter(x => x.m != null && isFinite(x.m));
+  const rank = (arr) => arr.map((x,i) => `<div class="rankrow">
+      <div class="rk">${i+1}</div>
+      <div class="rn" title="${esc(x.r.name)}">${esc(x.r.name||x.r.appName||'-')}<br><span class="txt-sm txt-muted">${esc(x.r.platLabel)} ${x.r.unit} • ตั้ง ${money(curList(x.r))}</span></div>
+      <div class="rv">${marginBadge(x.m)}</div>
+    </div>`).join('') || '<div class="txt-muted txt-sm">ไม่มีข้อมูล</div>';
+  $('#dashLow').innerHTML  = rank(withMg.slice().sort((a,b)=>a.m-b.m).slice(0,15));
+  $('#dashHigh').innerHTML = rank(withMg.slice().sort((a,b)=>b.m-a.m).slice(0,15));
+}
+
+/* ============================================================
+   RENDER — settings (fee tables)
+   ============================================================ */
+function renderFeeTables(){
+  const out = [];
+  for (const c of SHEETS){
+    const m = state.feeModels[c.gid];
+    if (!m) continue;
+    out.push('<div class="mb-16"><div class="txt-bold mb-8">' + esc(c.sheet)
+      + ' <span class="badge badge-mute">' + esc(c.platLabel) + ' · ' + esc(UNIT_LABEL[c.unit]) + '</span></div>'
+      + (m.length
+        ? '<table class="fee-tbl"><thead><tr><th>คอลัมน์ค่าธรรมเนียม</th><th style="width:160px">คิดแบบ</th><th style="width:150px">ค่า</th></tr></thead><tbody>'
+          + m.map((f, i) => {
+              const label = String(f.label || '').replace(/\s+/g, ' ').trim() || '(คอลัมน์ไม่มีชื่อ)';
+              const val = f.kind === 'pct' ? (f.v * 100).toFixed(3) : (f.kind === 'flat' ? f.v : 0);
+              return '<tr>'
+                + '<td>' + esc(label) + '</td>'
+                + '<td><select class="input input-sm feekind" data-gid="' + c.gid + '" data-i="' + i + '">'
+                +   '<option value="pct"'  + (f.kind === 'pct'  ? ' selected' : '') + '>% ของราคาตั้ง</option>'
+                +   '<option value="flat"' + (f.kind === 'flat' ? ' selected' : '') + '>บาท คงที่</option>'
+                +   '<option value="zero"' + (f.kind === 'zero' ? ' selected' : '') + '>ไม่คิด</option>'
+                + '</select></td>'
+                + '<td class="num"><input class="input input-sm feeinp" style="text-align:right" data-gid="' + c.gid + '" data-i="' + i + '"'
+                +   ' type="number" step="0.001" value="' + val + '"' + (f.kind === 'zero' ? ' disabled' : '') + '>'
+                +   ' <span class="txt-sm txt-muted feeunit">' + (f.kind === 'pct' ? '%' : f.kind === 'flat' ? 'บาท' : '—') + '</span></td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table>'
+        : '<div class="txt-muted txt-sm">ชีทนี้ไม่มีคอลัมน์ค่าธรรมเนียม</div>')
+      + '</div>');
+  }
+  $('#feeTables').innerHTML = out.join('') || '<div class="txt-muted">ยังไม่มีข้อมูล — กดรีเฟรชก่อน</div>';
+}
+
+/* ============================================================
+   SORT INDICATORS + HEADER BINDING
+   ============================================================ */
+function updateSortIndicators(tableId, st){
+  $$('#'+tableId+' thead th').forEach(th => {
+    const ind = th.querySelector('.sort-ind'); if (!ind) return;
+    ind.innerHTML = th.dataset.key === st.key ? ico(st.dir==='asc' ? 'caretUp' : 'caretDown', 11) : '';
+  });
+}
+function bindHeaderSort(tableId, st, rerender){
+  $$('#'+tableId+' thead th').forEach(th => {
+    if (!th.dataset.key) return;
+    th.addEventListener('click', () => {
+      const key = th.dataset.key, type = th.dataset.type || 'str';
+      if (st.key === key) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+      else { st.key = key; st.dir = (type === 'num') ? 'desc' : 'asc'; }
+      rerender();
+    });
+  });
+}
+
+/* ============================================================
+   RENDER ALL
+   ============================================================ */
+function renderAll(){
+  renderChips();
+  renderPriceStats();
+  renderPriceTable();
+  renderGallery();
+  renderOut();
+  renderLow();
+  renderDash();
+  setTimeout(markLoadedImages, 60);
+  renderFeeTables();
+  updateDirtyUI();
+}
+function renderChips(){
+  const cnt = (fn) => state.rows.filter(fn).length;
+  const pf = state.filter;
+  $('#fPlatform').innerHTML =
+    `<button class="chip ${pf.plat==='ALL'?'on':''}" data-v="ALL">ทั้งหมด <span class="n">${int(state.rows.length)}</span></button>` +
+    PLAT_ORDER.map(p => {
+      const label = (SHEETS.find(s=>s.plat===p)||{}).platLabel || p;
+      return `<button class="chip ${pf.plat===p?'on':''}" data-v="${p}">${esc(label)} <span class="n">${int(cnt(r=>r.plat===p))}</span></button>`;
+    }).join('');
+  $('#fUnit').innerHTML =
+    `<button class="chip ${pf.unit==='ALL'?'on':''}" data-v="ALL">ทั้งหมด</button>` +
+    ['EA','PA','CS'].map(u => `<button class="chip ${pf.unit===u?'on':''}" data-v="${u}">${esc(UNIT_LABEL[u])} <span class="n">${int(cnt(r=>r.unit===u))}</span></button>`).join('');
+  const st = [
+    ['ALL','ทั้งหมด',null],
+    ['on','ติ๊กแล้ว · เปิดขาย', r=>curActive(r)],
+    ['off','ไม่ติ๊ก (หมด)', r=>!curActive(r)],
+    ['nostock','สต็อก 0', r=>r.stock!=null&&r.stock<=0],
+    ['lowmg','Margin ต่ำ', r=>{const m=calcRow(r,curList(r)||0).margin; return m!=null&&m*100<state.cfg.minMargin;}],
+    ['issue','ติ๊กไม่ตรงสต็อก', r=>stockIssue(r)!=='none'],
+    ['noimg','ยังไม่มีรูป', null],
+    ['edited','แก้ไขแล้ว', r=>isDirty(r)]
+  ];
+  $('#fStatus').innerHTML = st.map(([v,l,fn]) =>
+    `<button class="chip ${(v==='issue'||v==='lowmg')?'warnchip':''} ${pf.status===v?'on':''}" data-v="${v}">${l}${fn?` <span class="n">${int(cnt(fn))}</span>`:''}</button>`).join('');
+
+  const sf = state.sFilter;
+  const lf = state.lFilter;
+  $('#lMode').innerHTML = [
+    ['ALL','เข้าเกณฑ์ทั้งหมด',true],
+    ['profit','กำไรต่ำ (< ' + int(state.cfg.minProfit) + ' บาท)',false],
+    ['margin','Margin ต่ำ (< ' + state.cfg.minMargin + '%)',false]
+  ].map(([v,l,warn]) => `<button class="chip ${warn?'warnchip':''} ${lf.mode===v?'on':''}" data-v="${v}">${l}</button>`).join('');
+  $('#lPlatform').innerHTML =
+    `<button class="chip ${lf.plat==='ALL'?'on':''}" data-v="ALL">ทั้งหมด</button>` +
+    PLAT_ORDER.map(p => {
+      const label = (SHEETS.find(s=>s.plat===p)||{}).platLabel || p;
+      return `<button class="chip ${lf.plat===p?'on':''}" data-v="${p}">${esc(label)}</button>`;
+    }).join('');
+
+  const of = state.oFilter;
+  $('#oMode').innerHTML = [
+    ['ALL','ของหมดทั้งหมด',false],
+    ['risk','หมดแต่ยังติ๊กขาย',true],
+    ['off','หมดและปิดขายแล้ว',false]
+  ].map(([v,l,warn]) => `<button class="chip ${warn?'warnchip':''} ${of.mode===v?'on':''}" data-v="${v}">${l}</button>`).join('');
+  $('#oPlatform').innerHTML =
+    `<button class="chip ${of.plat==='ALL'?'on':''}" data-v="ALL">ทั้งหมด</button>` +
+    PLAT_ORDER.map(p => {
+      const label = (SHEETS.find(s=>s.plat===p)||{}).platLabel || p;
+      return `<button class="chip ${of.plat===p?'on':''}" data-v="${p}">${esc(label)}</button>`;
+    }).join('');
+}
+
+/* ============================================================
+   DIRTY TRACKING
+   ============================================================ */
+function setDirty(key, patch){
+  const r = state.rows.find(x => x.key === key); if (!r) return;
+  const d = state.dirty.get(key) || {};
+  Object.assign(d, patch);
+  // drop entry when it matches the original again
+  const sameList   = (d.list   == null) || (d.list   === r.list);
+  const sameActive = (d.active == null) || (d.active === r.active);
+  if (sameList && sameActive) state.dirty.delete(key);
+  else {
+    if (d.list   != null && d.list   === r.list)   delete d.list;
+    if (d.active != null && d.active === r.active) delete d.active;
+    state.dirty.set(key, d);
+  }
+  updateDirtyUI();
+}
+function updateDirtyUI(){
+  const n = state.dirty.size;
+  $('#dirtyCount').textContent = n ? '(' + int(n) + ')' : '';
+  $('#btnSave').disabled = n === 0;
+  $('#selCount').textContent = int(state.selected.size);
+  $('#bSelN').textContent = int(state.selected.size);
+}
+
+/* ============================================================
+   BULK EDIT
+   ============================================================ */
+function roundPrice(v, mode){
+  if (v == null || !isFinite(v)) return v;
+  switch (String(mode)){
+    case '1':  return Math.round(v);
+    case '5':  return Math.ceil(v/5)*5;
+    case '10': return Math.ceil(v/10)*10;
+    case '9':  { const b = Math.ceil((v-9)/10)*10 + 9; return b < v ? b+10 : b; }
+    default:   return Math.round(v*100)/100;
+  }
+}
+function bulkTargets(){
+  const scope = $('#bScope .chip.on').dataset.scope;
+  if (scope === 'sel') return state.rows.filter(r => state.selected.has(r.key));
+  return state.rows.filter(passFilter);
+}
+function bulkCompute(){
+  const mode  = $('#bMode .chip.on').dataset.mode;
+  const round = $('#bRound .chip.on').dataset.round;
+  const val   = Number($('#bValue').value);
+  const out   = []; let skipped = 0, same = 0;
+  for (const r of bulkTargets()){
+    const cur = curList(r);
+    let np = null;
+    if (mode === 'pct'){ if (cur == null){ skipped++; continue; } np = cur * (1 + val/100); }
+    else if (mode === 'amt'){ if (cur == null){ skipped++; continue; } np = cur + val; }
+    else if (mode === 'set'){ np = val; }
+    else if (mode === 'margin'){ np = priceForMargin(r, val/100); }
+    if (np == null || !isFinite(np) || np <= 0){ skipped++; continue; }
+    np = roundPrice(np, round);
+    if (np === cur){ same++; continue; }
+    out.push({ r, np, cur });
+  }
+  out.skipped = skipped; out.same = same;
+  return out;
+}
+function bulkNote(list){
+  const bits = [];
+  if (list.same)    bits.push(`ราคาเท่าเดิม ${int(list.same)}`);
+  if (list.skipped) bits.push(`คำนวณไม่ได้ ${int(list.skipped)} (ไม่มีต้นทุน/ราคา หรือเป้าหมายสูงเกินไป)`);
+  return bits.length ? `<div class="txt-sm txt-muted mt-8">ข้าม: ${bits.join(' • ')}</div>` : '';
+}
+function bulkPreview(){
+  const list = bulkCompute();
+  if (!list.length){
+    $('#bPreview').innerHTML = '<b>ไม่มีรายการที่จะเปลี่ยน</b> — ลองเปลี่ยนเงื่อนไขหรือขอบเขต' + bulkNote(list);
+    return;
+  }
+  const sample = list.slice(0,6).map(x => {
+    const c = calcRow(x.r, x.np);
+    return `<div class="flex-between" style="gap:8px;padding:3px 0;border-bottom:1px dashed var(--border)">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.r.name||x.r.appName)}</span>
+      <span class="txt-sm">${money(x.cur)} → <b class="txt-gold">${money(x.np)}</b> ${marginBadge(c.margin)}</span></div>`;
+  }).join('');
+  $('#bPreview').innerHTML = `<b>จะเปลี่ยน ${int(list.length)} รายการ</b>${list.length>6?' (แสดง 6 ตัวอย่างแรก)':''}<div class="mt-8">${sample}</div>${bulkNote(list)}`;
+}
+function bulkApply(){
+  const list = bulkCompute();
+  if (!list.length){ showToast('ไม่มีรายการที่จะเปลี่ยน','warning'); return; }
+  list.forEach(x => setDirty(x.r.key, { list:x.np }));
+  closeModal($('#bulkModal'));
+  renderAll();
+  showToast('ปรับราคา ' + int(list.length) + ' รายการแล้ว — อย่าลืมกดบันทึก', 'success');
+}
+
+/* ============================================================
+   SAVE
+   ============================================================ */
+function buildUpdates(){
+  const ups = [];
+  for (const [key, d] of state.dirty){
+    const r = state.rows.find(x => x.key === key); if (!r) continue;
+    if (d.list   != null) ups.push({ gid:r.gid, row:r.sheetRow, col:r.colList,   value:d.list,   sheet:r.sheet, name:r.name });
+    if (d.active != null) ups.push({ gid:r.gid, row:r.sheetRow, col:r.colActive, value:d.active, sheet:r.sheet, name:r.name });
+  }
+  return ups;
+}
+function openSaveModal(){
+  const ups = buildUpdates();
+  if (!ups.length) return;
+  const byS = {};
+  ups.forEach(u => { (byS[u.sheet] = byS[u.sheet] || []).push(u); });
+  const rowsHtml = Object.keys(byS).map(s => {
+    const list = byS[s];
+    const pr = list.filter(u => typeof u.value === 'number').length;
+    const tk = list.length - pr;
+    return `<tr><td><b>${esc(s)}</b></td><td class="num">${int(pr)}</td><td class="num">${int(tk)}</td></tr>`;
+  }).join('');
+  const connected = !!state.cfg.webApp;
+  $('#saveBody').innerHTML = `
+    <div class="stat-grid mb-12" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat-card"><div class="s-label">รายการที่แก้</div><div class="s-value">${int(state.dirty.size)}</div></div>
+      <div class="stat-card info"><div class="s-label">ช่องที่จะเขียน</div><div class="s-value">${int(ups.length)}</div></div>
+    </div>
+    <table class="fee-tbl mb-12"><thead><tr><th>ชีท</th><th style="width:110px">ราคาตั้ง</th><th style="width:110px">ติ๊ก A</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+    ${connected
+      ? '<div class="note">เชื่อมต่อ Apps Script แล้ว — กด "เขียนกลับ Google Sheet" ได้เลย</div>'
+      : '<div class="note warn">ยังไม่ได้ตั้งค่า Apps Script — ตอนนี้ใช้ปุ่ม <b>คัดลอกไปวางในชีทเอง</b> ได้ก่อน หรือไปที่แท็บ <b>ตั้งค่า</b> เพื่อเชื่อมต่อ (ทำครั้งเดียว)</div>'}`;
+  $('#btnDoSave').disabled = !connected;
+  openModal('#saveModal');
+}
+async function doSave(){
+  const ups = buildUpdates();
+  if (!ups.length) return;
+  if (!state.cfg.webApp){ showToast('ยังไม่ได้ตั้งค่า Apps Script URL','warning'); return; }
+  showSpinner('กำลังเขียนกลับ Google Sheet...');
+  try {
+    const res = await fetch(state.cfg.webApp, {
+      method:'POST', redirect:'follow',
+      body: JSON.stringify({ action:'update', token:state.cfg.token,
+        updates: ups.map(u => ({ gid:u.gid, row:u.row, col:u.col, value:u.value })) })
+    });
+    const out = await res.json();
+    if (!out.ok) throw new Error(out.error || 'ปฏิเสธการเขียน');
+    // commit locally
+    for (const [key, d] of state.dirty){
+      const r = state.rows.find(x => x.key === key); if (!r) continue;
+      if (d.list   != null) r.list   = d.list;
+      if (d.active != null) r.active = d.active;
+    }
+    state.dirty.clear();
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts:Date.now(), rows:state.rows, fees:state.feeModels })); } catch(e){}
+    closeModal($('#saveModal'));
+    renderAll();
+    showToast('บันทึกเข้า Google Sheet แล้ว ' + int(out.updated) + ' ช่อง', 'success');
+  } catch (e){
+    console.error(e);
+    showToast('บันทึกไม่สำเร็จ: ' + e.message, 'error');
+  } finally { hideSpinner(); }
+}
+function copyChanges(){
+  const ups = buildUpdates();
+  const colLetter = n => { let s=''; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; };
+  const lines = ['ชีท\tช่อง\tสินค้า\tค่าใหม่'];
+  ups.forEach(u => lines.push(`${u.sheet}\t${colLetter(u.col)}${u.row}\t${u.name}\t${typeof u.value==='boolean'?(u.value?'TRUE':'FALSE'):u.value}`));
+  const txt = lines.join('\n');
+  navigator.clipboard.writeText(txt)
+    .then(()=>showToast('คัดลอกแล้ว ' + int(ups.length) + ' ช่อง — วางในชีทได้เลย','success'))
+    .catch(()=>{
+      const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove();
+      showToast('คัดลอกแล้ว','success');
+    });
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function exportExcel(rows, filename){
+  if (!rows.length){ showToast('ไม่มีข้อมูลให้ส่งออก','warning'); return; }
+  const data = rows.map(r => {
+    const lp = curList(r), c = calcRow(r, lp || 0);
+    return {
+      'ชีท': r.sheet, 'ช่องทาง': r.platLabel, 'หน่วย': UNIT_LABEL[r.unit],
+      'แถวในชีท': r.sheetRow,
+      'ติ๊ก (มีของ)': curActive(r) ? 'TRUE' : 'FALSE',
+      'สินค้า': r.name, 'ชื่อในแอพ': r.appName, 'ตัวเลือก': r.option,
+      'บาร์โค้ด': String(r.barcode||''),
+      'ราคาปลีก/ชิ้น': r.retail, 'จำนวนขาย': r.qty,
+      'ต้นทุน': r.cost, 'ค่าธรรมเนียม': c.fee, 'ค่าแพ็ค': r.pack,
+      'ราคาตั้งเดิม': r.list, 'ราคาตั้งใหม่': lp,
+      'ส่วนต่าง': (lp != null && r.list != null) ? +(lp - r.list).toFixed(2) : null,
+      'กำไร': isFinite(c.profit) ? +c.profit.toFixed(2) : null,
+      'Margin %': (c.margin == null || !isFinite(c.margin)) ? null : +(c.margin*100).toFixed(2),
+      'สต็อก (ลัง)': r.stock, 'หน่วยนับ PA': r.unitPA, 'หน่วยนับ CS': r.unitCS,
+      'สถานะติ๊ก': ISSUE_LABEL[stockIssue(r)].t
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  XLSX.writeFile(wb, `${filename}_${d.getFullYear()+543}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.xlsx`);
+  showToast('ส่งออก Excel แล้ว ' + int(rows.length) + ' รายการ','success');
+}
+
+/* ============================================================
+   APPS SCRIPT CODE
+   ============================================================ */
+function gasCode(){
+  return `/**
+ * Rattana Online Price — Sheet writer
+ * ติดตั้งใน Google Sheet: ส่วนขยาย > Apps Script
+ * Deploy > New deployment > Web app
+ *   Execute as: Me     |     Who has access: Anyone
+ */
+var SHEET_ID = '${SHEET_ID}';
+var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้องเปลี่ยน! รหัสนี้เป็นค่าตัวอย่างที่ทุกคนเห็นได้
+
+// คอลัมน์ที่อนุญาตให้เขียนเท่านั้น: 1 = ช่องติ๊ก A, และคอลัมน์ "ราคาตั้ง"
+var ALLOWED_HEADERS = ['ราคาตั้ง'];
+
+function doGet(e) {
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.1' });
+}
+
+function doPost(e) {
+  try {
+    var body = JSON.parse(e.postData.contents);
+    if (body.token !== TOKEN) return json({ ok: false, error: 'token ไม่ถูกต้อง' });
+
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var byId = {};
+    ss.getSheets().forEach(function (s) { byId[String(s.getSheetId())] = s; });
+
+    // จัดกลุ่มตาม (ชีท, คอลัมน์) เพื่อเขียนทีเดียวต่อคอลัมน์ — เร็วกว่าเขียนทีละช่องมาก
+    var groups = {};
+    (body.updates || []).forEach(function (u) {
+      var k = u.gid + '|' + u.col;
+      (groups[k] = groups[k] || []).push(u);
+    });
+
+    var n = 0;
+    Object.keys(groups).forEach(function (k) {
+      var arr = groups[k];
+      var sh  = byId[String(arr[0].gid)];
+      if (!sh) return;
+      var col = Number(arr[0].col);
+
+      // ป้องกันการเขียนผิดคอลัมน์
+      if (col !== 1) {
+        var head = String(sh.getRange(1, col).getValue() || '').replace(/\\s+/g, ' ').trim();
+        var ok = ALLOWED_HEADERS.some(function (h) { return head.indexOf(h) >= 0; });
+        if (!ok) return;
+      }
+
+      var rows = arr.map(function (u) { return Number(u.row); });
+      var min = Math.min.apply(null, rows), max = Math.max.apply(null, rows);
+      var rng  = sh.getRange(min, col, max - min + 1, 1);
+      var vals = rng.getValues();
+      arr.forEach(function (u) { vals[Number(u.row) - min][0] = u.value; n++; });
+      rng.setValues(vals);
+    });
+
+    SpreadsheetApp.flush();
+    return json({ ok: true, updated: n });
+  } catch (err) {
+    return json({ ok: false, error: String(err) });
+  }
+}
+
+function json(o) {
+  return ContentService.createTextOutput(JSON.stringify(o))
+                       .setMimeType(ContentService.MimeType.JSON);
+}`;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function loadCfg(){
+  try { Object.assign(state.cfg, JSON.parse(localStorage.getItem(CFG_KEY) || '{}')); } catch(e){}
+  $('#setWebApp').value      = state.cfg.webApp || '';
+  $('#setToken').value       = state.cfg.token || '';
+  $('#setMinMargin').value   = state.cfg.minMargin;
+  $('#setMinProfit').value   = state.cfg.minProfit;
+  $('#setAutoRefresh').value = state.cfg.autoRefresh || 0;
+}
+function saveCfg(){
+  state.cfg.webApp      = $('#setWebApp').value.trim();
+  state.cfg.token       = $('#setToken').value.trim();
+  state.cfg.minMargin   = Number($('#setMinMargin').value) || 0;
+  state.cfg.minProfit   = Number($('#setMinProfit').value) || 0;
+  state.cfg.autoRefresh = Number($('#setAutoRefresh').value) || 0;
+  localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg));
+  setupAutoRefresh();
+  renderAll();
+  showToast('บันทึกการตั้งค่าแล้ว','success');
+}
+function setupAutoRefresh(){
+  if (state.autoTimer) clearInterval(state.autoTimer);
+  const s = Math.max(0, state.cfg.autoRefresh|0);
+  if (s >= 30) state.autoTimer = setInterval(() => { if (!state.dirty.size) loadData(false); }, s*1000);
+}
+async function testConn(){
+  const url = $('#setWebApp').value.trim();
+  if (!url){ showToast('ใส่ URL ก่อน','warning'); return; }
+  $('#connResult').innerHTML = '<div class="txt-muted txt-sm">กำลังทดสอบ...</div>';
+  try {
+    const res = await fetch(url, { redirect:'follow' });
+    const out = await res.json();
+    $('#connResult').innerHTML = out.ok
+      ? `<div class="note"><b>เชื่อมต่อสำเร็จ</b> — ไฟล์: <b>${esc(out.name)}</b></div>`
+      : `<div class="note warn"><b>ไม่สำเร็จ</b> — ${esc(out.error||'ไม่ผ่าน')}</div>`;
+  } catch (e){
+    $('#connResult').innerHTML = `<div class="note warn"><b>เชื่อมต่อไม่ได้</b>: ${esc(e.message)}<br>
+      ตรวจว่า Deploy เป็น <b>Web app</b> และ <b>Who has access = Anyone</b> แล้ว</div>`;
+  }
+}
+function saveFees(){
+  const ov = {};
+  $('.feekind').forEach(sel => {
+    const gid = sel.dataset.gid, i = +sel.dataset.i;
+    const m = state.feeModels[gid]; if (!m || !m[i]) return;
+    const kind = sel.value;
+    const inp = document.querySelector('.feeinp[data-gid="' + gid + '"][data-i="' + i + '"]');
+    let v = inp ? Number(inp.value) : 0;
+    if (!isFinite(v)) v = 0;
+    m[i].kind = kind;
+    m[i].v = kind === 'pct' ? v / 100 : (kind === 'flat' ? v : 0);
+    (ov[gid] = ov[gid] || [])[i] = { kind: m[i].kind, v: m[i].v };
+  });
+  for (const gid in ov) state.feeModels[gid].forEach((f, i) => { if (!ov[gid][i]) ov[gid][i] = { kind: f.kind, v: f.v }; });
+  localStorage.setItem(FEE_KEY, JSON.stringify(ov));
+  renderAll();
+  showToast('บันทึกอัตราค่าธรรมเนียมแล้ว — คำนวณใหม่ทั้งหมด','success');
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function chipGroup(sel, onPick){
+  $(sel).addEventListener('click', e => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    $$(sel + ' .chip').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    onPick(c.dataset.v != null ? c.dataset.v : c.dataset.mode || c.dataset.scope || c.dataset.round);
+  });
+}
+function debounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
+
+function bindEvents(){
+  // tabs
+  $$('.tab-btn').forEach(b => b.addEventListener('click', () => {
+    $$('.tab-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    ['price','out','low','dash','settings'].forEach(t => $('#tab-'+t).hidden = (t !== b.dataset.tab));
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }));
+
+  // filters
+  const refilter = () => { state.gShown = 36; renderChips(); renderPriceStats(); renderPriceTable(); renderGallery(); };
+  chipGroup('#fPlatform', v => { state.filter.plat = v;   refilter(); });
+  chipGroup('#fUnit',     v => { state.filter.unit = v;   refilter(); });
+  chipGroup('#fStatus',   v => { state.filter.status = v; refilter(); });
+  $('#fSearch').addEventListener('input', debounce(e => { state.filter.q = e.target.value.trim(); refilter(); }, 220));
+  $('#galGrid').addEventListener('click', e => {
+    if (e.target.closest('.pick')) return;      // the checkbox is not a card click
+    const card = e.target.closest('.oc'); if (card) openProduct(card.dataset.pkey);
+  });
+  $('#galMore').addEventListener('click', () => { state.gShown += 36; renderGallery(); });
+  chipGroup('#oMode',     v => { state.oFilter.mode = v; state.oShown = 36; renderChips(); renderOut(); });
+  chipGroup('#oPlatform', v => { state.oFilter.plat = v; state.oShown = 36; renderChips(); renderOut(); });
+  $('#oSearch').addEventListener('input', debounce(e => { state.oFilter.q = e.target.value.trim(); state.oShown = 36; renderOut(); }, 220));
+  $('#outMore').addEventListener('click', () => { state.oShown += 36; renderOut(); });
+  chipGroup('#lMode',     v => { state.lFilter.mode = v; state.lShown = 36; renderChips(); renderLow(); });
+  chipGroup('#lPlatform', v => { state.lFilter.plat = v; state.lShown = 36; renderChips(); renderLow(); });
+  $('#lSearch').addEventListener('input', debounce(e => { state.lFilter.q = e.target.value.trim(); state.lShown = 36; renderLow(); }, 220));
+  $('#lowMore').addEventListener('click', () => { state.lShown += 36; renderLow(); });
+  $('#lowGrid').addEventListener('click', e => {
+    const card = e.target.closest('.oc'); if (card) openProduct(card.dataset.pkey);
+  });
+  $('#outGrid').addEventListener('click', e => {
+    const card = e.target.closest('.oc'); if (card) openProduct(card.dataset.pkey);
+  });
+  document.addEventListener('click', e => {
+    const cell = e.target.closest('.namecell'); if (cell) openProduct(cell.dataset.pkey);
+  });
+
+  // price table interactions
+  const priceBody = $('#priceTbl').querySelector('tbody');
+  priceBody.addEventListener('input', e => {
+    if (!e.target.classList.contains('pinput')) return;
+    const key = e.target.dataset.key;
+    const r   = state.rows.find(x => x.key === key); if (!r) return;
+    const v   = e.target.value === '' ? null : Number(e.target.value);
+    if (v == null || isNaN(v)) return;
+    setDirty(key, { list:v });
+    // live-update just this row
+    const tr = e.target.closest('tr');
+    const c  = calcRow(r, v);
+    const tds = tr.querySelectorAll('td');
+    tds[5].textContent = money(c.fee);
+    tds[8].innerHTML   = `<b>${money(c.profit)}</b>`;
+    tds[8].className   = 'num' + (c.profit < 0 ? ' txt-danger' : '');
+    tds[9].innerHTML   = marginBadge(c.margin);
+    tr.classList.toggle('dirty', isDirty(r));
+    e.target.classList.toggle('changed', v !== r.list);
+    let d = e.target.parentNode.querySelector('.delta');
+    const diff = v - (r.list || 0);
+    if (v !== r.list && r.list != null){
+      if (!d){ d = document.createElement('span'); e.target.parentNode.appendChild(d); }
+      d.className = 'delta ' + (diff > 0 ? 'up' : 'down');
+      d.textContent = (diff > 0 ? '+' : '') + money(diff);
+    } else if (d) d.remove();
+  });
+  priceBody.addEventListener('change', e => {
+    if (e.target.classList.contains('rowsel')){
+      const k = e.target.dataset.key;
+      e.target.checked ? state.selected.add(k) : state.selected.delete(k);
+      updateDirtyUI();
+    } else if (e.target.classList.contains('rowact')){
+      setDirty(e.target.dataset.key, { active: e.target.checked });
+      e.target.closest('tr').classList.toggle('dirty', state.dirty.has(e.target.dataset.key));
+      renderGallery(); renderChips();
+    }
+  });
+  $('#selAll').addEventListener('change', e => {
+    const rows = filteredRows();
+    rows.forEach(r => e.target.checked ? state.selected.add(r.key) : state.selected.delete(r.key));
+    $$('#priceTbl .rowsel').forEach(cb => cb.checked = e.target.checked);
+    updateDirtyUI();
+  });
+
+  // stock table
+
+  $('#viewSwitch').addEventListener('click', e => {
+    const b = e.target.closest('.vs'); if (!b) return;
+    state.view = b.dataset.view;
+    $$('#viewSwitch .vs').forEach(x => x.classList.toggle('on', x === b));
+    $('#viewCard').hidden  = state.view !== 'card';
+    $('#viewTable').hidden = state.view !== 'table';
+    localStorage.setItem('rop_view', state.view);
+  });
+  $('#galGrid').addEventListener('change', e => {
+    if (!e.target.classList.contains('cardsel')) return;
+    const p = state.products.get(e.target.dataset.pkey); if (!p) return;
+    p.listings.forEach(r => e.target.checked ? state.selected.add(r.key) : state.selected.delete(r.key));
+    e.target.closest('.oc').classList.toggle('sel', e.target.checked);
+    updateDirtyUI();
+  });
+  $('#btnFixAll').addEventListener('click', () => {
+    const bad = state.rows.filter(r => stockIssue(r) !== 'none');
+    if (!bad.length){ showToast('ไม่มีรายการที่ต้องแก้','info'); return; }
+    if (!confirm(`จะแก้ติ๊กให้ตรงกับสต็อก ${bad.length} รายการ\n(สต็อก 0 → เอาติ๊กออก, มีของ → ติ๊กกลับ)\n\nยืนยัน?`)) return;
+    bad.forEach(r => setDirty(r.key, { active: r.stock > 0 }));
+    renderAll();
+    showToast('แก้ติ๊ก ' + int(bad.length) + ' รายการแล้ว — อย่าลืมกดบันทึก','success');
+  });
+
+  // header sorting
+  bindHeaderSort('priceTbl', state.sort,  () => renderPriceTable());
+
+  // bulk modal
+  $('#btnBulk').addEventListener('click', () => {
+    $('#bFilN').textContent = int(state.rows.filter(passFilter).length);
+    $('#bSelN').textContent = int(state.selected.size);
+    $('#bPreview').innerHTML = 'เลือกเงื่อนไขแล้วกด "ดูตัวอย่าง"';
+    openModal('#bulkModal');
+  });
+  chipGroup('#bScope', () => {});
+  chipGroup('#bRound', () => {});
+  chipGroup('#bMode', m => {
+    const L = { pct:'เปลี่ยนกี่ % (ใส่ลบเพื่อลดราคา)', amt:'บวก/ลบ กี่บาท (ใส่ลบเพื่อลดราคา)',
+                margin:'Margin เป้าหมาย (%) — แอพจะคำนวณราคาตั้งย้อนกลับให้', set:'ตั้งราคาเป็น (บาท)' };
+    $('#bValLabel').textContent = L[m];
+    $('#bValue').value = m === 'margin' ? 12 : m === 'set' ? 0 : m === 'amt' ? 10 : 5;
+  });
+  $('#bPreviewBtn').addEventListener('click', bulkPreview);
+  $('#bApply').addEventListener('click', bulkApply);
+
+  // save
+  // --- product popup: edit price / tick right inside it ---
+  $('#pmBody').addEventListener('input', e => {
+    if (!e.target.classList.contains('pmprice')) return;
+    const key = e.target.dataset.key;
+    const r = state.rows.find(x => x.key === key); if (!r) return;
+    const v = e.target.value === '' ? null : Number(e.target.value);
+    if (v == null || isNaN(v)) return;
+    setDirty(key, { list: v });
+    const c = calcRow(r, v), tr = e.target.closest('tr');
+    tr.querySelector('[data-fee]').textContent = money(c.fee);
+    const pf = tr.querySelector('[data-profit]');
+    pf.textContent = money(c.profit);
+    pf.className = 'num' + (c.profit < 0 ? ' txt-danger' : '');
+    tr.querySelector('[data-margin]').innerHTML = marginBadge(c.margin);
+    e.target.classList.toggle('changed', v !== r.list);
+    const p = state.products.get(state.openProduct);
+    if (p){ renderProductStats(p); renderProductFees(p); }
+  });
+  $('#pmBody').addEventListener('change', e => {
+    if (!e.target.classList.contains('pmact')) return;
+    setDirty(e.target.dataset.key, { active: e.target.checked });
+    const p = state.products.get(state.openProduct);
+    if (p) renderProductStats(p);
+  });
+  $('#productModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget || e.target.closest('[data-close]')){
+      state.openProduct = null;
+      lockScroll(false);
+      renderPriceStats(); renderPriceTable(); renderGallery(); renderOut(); renderLow(); renderChips(); renderDash();
+    }
+  });
+
+  $('#btnSave').addEventListener('click', openSaveModal);
+  $('#btnDoSave').addEventListener('click', doSave);
+  $('#btnCopyChanges').addEventListener('click', copyChanges);
+  $('#btnReset').addEventListener('click', () => {
+    if (!state.dirty.size){ showToast('ไม่มีการแก้ไข','info'); return; }
+    if (!confirm('ยกเลิกการแก้ไขทั้งหมด ' + state.dirty.size + ' รายการ?')) return;
+    state.dirty.clear(); renderAll(); showToast('คืนค่าเดิมแล้ว','info');
+  });
+
+  // export
+  $('#btnExport').addEventListener('click', () => exportExcel(filteredRows(), 'Rattana_Online_Price'));
+
+  // settings
+  $('#btnSaveSettings').addEventListener('click', saveCfg);
+  $('#btnTestConn').addEventListener('click', testConn);
+  $('#feeTables').addEventListener('change', e => {
+    if (!e.target.classList.contains('feekind')) return;
+    const tr = e.target.closest('tr');
+    const inp = tr.querySelector('.feeinp'), unit = tr.querySelector('.feeunit');
+    const k = e.target.value;
+    inp.disabled = (k === 'zero');
+    if (k === 'zero') inp.value = 0;
+    unit.textContent = k === 'pct' ? '%' : k === 'flat' ? 'บาท' : '—';
+  });
+  $('#btnSaveFees').addEventListener('click', saveFees);
+  $('#btnResetFees').addEventListener('click', () => {
+    localStorage.removeItem(FEE_KEY);
+    showToast('ล้างค่าที่แก้ไว้แล้ว — กำลังโหลดใหม่','info');
+    loadData(false);
+  });
+  $('#btnShowScript').addEventListener('click', () => {
+    $('#gasCode').textContent = gasCode();
+    openModal('#scriptModal');
+  });
+  $('#btnCopyScript').addEventListener('click', () => {
+    navigator.clipboard.writeText(gasCode())
+      .then(()=>showToast('คัดลอกโค้ดแล้ว','success'))
+      .catch(()=>showToast('คัดลอกไม่สำเร็จ — เลือกข้อความแล้วกด Ctrl+C','warning'));
+  });
+
+  // modal close
+  $$('.modal-overlay').forEach(ov => {
+    ov.addEventListener('click', e => {
+      if (e.target === ov || e.target.closest('[data-close]')) closeModal(ov);
+    });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ const open = document.querySelector('.modal-overlay.open'); if (open) closeModal(open); }
+  });
+
+  // header buttons
+  $('#btnRefresh').addEventListener('click', async () => {
+    if (state.dirty.size && !confirm('มีการแก้ไขที่ยังไม่บันทึก ' + state.dirty.size + ' รายการ\nรีเฟรชจะล้างทิ้ง — ยืนยัน?')) return;
+    state.dirty.clear();
+    const b = $('#btnRefresh');
+    b.style.transition = 'transform .6s'; b.style.transform = 'rotate(360deg)';
+    await loadData(false);
+    setTimeout(()=>{ b.style.transform=''; b.style.transition=''; }, 600);
+  });
+  $('#btnTheme').addEventListener('click', () => {
+    const light = document.body.classList.toggle('light');
+    $('#btnTheme').innerHTML = ico(light ? 'moon' : 'sun');
+    localStorage.setItem('rop_theme', light ? 'light' : 'dark');
+  });
+
+  // back to top
+  window.addEventListener('scroll', () => $('#backToTop').classList.toggle('show', window.scrollY > 300));
+  $('#backToTop').addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' }));
+
+  window.addEventListener('beforeunload', e => {
+    if (state.dirty.size){ e.preventDefault(); e.returnValue = ''; }
+  });
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(function init(){
+  $('#verTag').textContent = 'v' + APP_VERSION;
+  if (localStorage.getItem('rop_theme') === 'light') document.body.classList.add('light');
+  state.view = localStorage.getItem('rop_view') === 'table' ? 'table' : 'card';
+  paintIcons();
+  $('#btnTheme').innerHTML = ico(document.body.classList.contains('light') ? 'moon' : 'sun');
+  loadCfg();
+  bindEvents();
+  $$('#viewSwitch .vs').forEach(x => x.classList.toggle('on', x.dataset.view === state.view));
+  $('#viewCard').hidden  = state.view !== 'card';
+  $('#viewTable').hidden = state.view !== 'table';
+  setupAutoRefresh();
+  if (isFileProtocol()) showLoadNotice(null);   // explain before the doomed requests
+  loadData(true);
+})();
+</script>
+</body>
+</html>
