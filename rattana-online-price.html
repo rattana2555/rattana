@@ -568,7 +568,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.7</span>
+    <span class="ver" id="verTag">v4.8</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
@@ -961,7 +961,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.7';
+const APP_VERSION = '4.8';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1594,6 +1594,16 @@ function imgUrl(u, w){
 }
 
 /** deterministic geometric mark for products with no photo */
+function imgFail(im){
+  if (!im.dataset.retry){
+    im.dataset.retry = '1';
+    const base = im.src.split('&r=')[0];
+    setTimeout(() => { im.src = base + '&r=' + Date.now(); }, 1200 + Math.random() * 900);
+    return;
+  }
+  im.style.display = 'none';
+  if (im.nextElementSibling) im.nextElementSibling.style.display = 'flex';
+}
 function placeholderMark(seed, size){
   let h = 0; const s = String(seed || '?');
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -1617,7 +1627,7 @@ function thumbHtml(pkey, seed, cls, phSize){
   const ph = '<span class="ph"' + (url ? ' style="display:none"' : '') + '>' + placeholderMark(seed, phSize || 26) + '</span>';
   const im = url ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" '
                  + 'onload="this.classList.add(\'rdy\')" '
-                 + 'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' : '';
+                 + 'onerror="imgFail(this)">' : '';
   return '<span class="' + (cls || 'thumb') + '">' + im + ph + '</span>';
 }
 
@@ -2610,7 +2620,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.7' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.8' });
 }
 
 function doPost(e) {
