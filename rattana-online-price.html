@@ -568,7 +568,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.6</span>
+    <span class="ver" id="verTag">v4.7</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
@@ -701,9 +701,10 @@ body.light .oc .im:has(img:not(.rdy)){
     <section id="tab-low" hidden>
       <div class="stat-grid" id="lowStats"></div>
       <div class="note warn mb-12">
-        <b>เกณฑ์ที่ใช้:</b> กำไรน้อยกว่า <b id="lowRuleP">25</b> บาท <b class="txt-gold">และ</b> Margin น้อยกว่า <b id="lowRuleM">7</b>% — ต้องเข้าทั้งสองข้อ
+        <b>เกณฑ์ที่ใช้:</b> Margin น้อยกว่า <b id="lowRuleM">7</b>% <b class="txt-gold">และ</b> กำไรต่ำกว่าเกณฑ์ของหน่วยขายนั้น — ต้องเข้าทั้งสองข้อ<br>
+        <span id="lowRuleP" class="txt-sm"></span>
         &nbsp;·&nbsp; แก้เกณฑ์ได้ที่แท็บตั้งค่า<br>
-        <span class="txt-sm">ตัวอย่าง: กำไร 15 บาท + Margin 2% <b>เข้าเกณฑ์</b> &nbsp;·&nbsp; กำไร 15 บาท + Margin 7.2% <b>ไม่เข้า</b> (Margin ผ่านแล้ว)</span><br>
+        <span class="txt-sm">ตัวอย่าง: ลัง กำไร 20 บาท + Margin 2% <b>เข้าเกณฑ์</b> &nbsp;·&nbsp; แพ็ค กำไร 20 บาท + Margin 2% <b>ไม่เข้า</b> (เกินเกณฑ์แพ็ค 15 บาทแล้ว)</span><br>
         <span class="txt-sm"><b class="txt-gold">ข้อยกเว้น:</b> ช่องทางที่ยังไม่คิดค่าธรรมเนียม (<span id="lowNoFee">—</span>) จะขึ้นเฉพาะตอน<b>ขาดทุน</b>เท่านั้น
         เพราะไม่ต้องเผื่อกำไรไว้จ่ายค่าธรรมเนียม — วันไหนใส่ค่าธรรมเนียมให้ช่องทางนั้น (ในชีทหรือหน้าตั้งค่า) จะกลับมาใช้เกณฑ์ปกติเอง</span><br>
         กดที่สินค้าเพื่อเปิดหน้าปรับราคาได้ทันที — ราคาที่แก้จะไปรวมกับรายการที่รอบันทึก
@@ -798,9 +799,16 @@ body.light .oc .im:has(img:not(.rdy)){
             <label>Margin ต่ำกว่านี้ (%) — ใช้คู่กับกำไรด้านล่าง</label>
             <input class="input" id="setMinMargin" type="number" step="0.5" value="7">
           </div>
-          <div class="field mb-12" style="max-width:300px">
-            <label>กำไรต่ำกว่านี้ (บาท) — เข้าทั้งสองข้อจึงขึ้นหน้าราคาต่ำ</label>
-            <input class="input" id="setMinProfit" type="number" step="1" value="25">
+          <div class="mb-12">
+            <label style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:8px">
+              กำไรต่ำกว่านี้ (บาท) — แยกตามหน่วยขาย
+            </label>
+            <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:420px">
+              <div class="field"><label>ลัง (CS)</label><input class="input" id="setMinProfitCS" type="number" step="1" value="25"></div>
+              <div class="field"><label>แพ็ค (PA)</label><input class="input" id="setMinProfitPA" type="number" step="1" value="15"></div>
+              <div class="field"><label>ชิ้น (EA)</label><input class="input" id="setMinProfitEA" type="number" step="1" value="15"></div>
+            </div>
+            <div class="txt-sm txt-muted mt-8">ต้องกำไรต่ำ <b>และ</b> Margin ต่ำกว่าเกณฑ์ด้านบน จึงจะขึ้นหน้าราคาต่ำ</div>
           </div>
           <div class="field mb-12" style="max-width:300px">
             <label>รีเฟรชข้อมูลอัตโนมัติทุก (วินาที) — 0 = ปิด</label>
@@ -953,7 +961,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.6';
+const APP_VERSION = '4.7';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1049,7 +1057,7 @@ const state = {
   products: null,       // barcode -> { image, listings[] }
   sort:  { key:'margin', dir:'asc' },
   sSort: { key:'stock',  dir:'asc' },
-  cfg:   { webApp:'', token:'', minMargin:7, minProfit:25, autoRefresh:0 },
+  cfg:   { webApp:'', token:'', minMargin:7, minProfitCS:25, minProfitPA:15, minProfitEA:15, autoRefresh:0 },
   autoTimer:null
 };
 
@@ -1848,6 +1856,14 @@ function renderGallery(){
 /* ============================================================
    LOW PRICE — profit or margin under the floor, so it needs re-pricing
    ============================================================ */
+/** how many baht a listing must clear before it stops counting as "ราคาต่ำ".
+    A carton has to earn more than a pack for the same effort. */
+function profitFloor(unit){
+  const c = state.cfg;
+  return unit === 'CS' ? c.minProfitCS
+       : unit === 'PA' ? c.minProfitPA
+       : c.minProfitEA;
+}
 /** does this channel actually deduct anything? (Thaimart charges nothing today) */
 function channelHasFees(gid){
   const m = state.feeModels[gid];
@@ -1868,7 +1884,7 @@ function lowFlags(r){
     return loss ? { lowP:true, lowM:true, noFee:true, profit, margin } : null;
   }
 
-  const lowP = profit != null && isFinite(profit) && profit < state.cfg.minProfit;
+  const lowP = profit != null && isFinite(profit) && profit < profitFloor(r.unit);
   const lowM = margin != null && isFinite(margin) && margin * 100 < state.cfg.minMargin;
   // both must be low — a thin margin on a big-ticket item, or a small baht profit
   // on a healthy margin, is not something to re-price
@@ -1911,7 +1927,9 @@ function noFeeChannels(){
 }
 function renderLow(){
   if (!state.products) return;
-  $('#lowRuleP').textContent = int(state.cfg.minProfit);
+  $('#lowRuleP').innerHTML = 'ลัง (CS) < <b>' + int(state.cfg.minProfitCS) + '</b> บาท'
+    + ' &nbsp;·&nbsp; แพ็ค (PA) < <b>' + int(state.cfg.minProfitPA) + '</b> บาท'
+    + ' &nbsp;·&nbsp; ชิ้น (EA) < <b>' + int(state.cfg.minProfitEA) + '</b> บาท';
   $('#lowRuleM').textContent = state.cfg.minMargin;
   const nf = $('#lowNoFee'); if (nf) nf.textContent = noFeeChannels().join(' · ') || 'ไม่มี';
   let prodLow = 0, listLow = 0, oneSide = 0, skippedNoFee = 0;
@@ -1922,7 +1940,7 @@ function renderLow(){
       if (x){ any = true; listLow++; return; }
       const lp = curList(r); if (lp == null || lp <= 0) return;
       const c = calcRow(r, lp);
-      const lowP = c.profit != null && isFinite(c.profit) && c.profit < state.cfg.minProfit;
+      const lowP = c.profit != null && isFinite(c.profit) && c.profit < profitFloor(r.unit);
       const lowM = c.margin != null && isFinite(c.margin) && c.margin * 100 < state.cfg.minMargin;
       if (!channelHasFees(r.gid)){ if (lowP || lowM) skippedNoFee++; return; }
       if (lowP !== lowM) oneSide++;      // low on exactly one side
@@ -2592,7 +2610,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.6' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.7' });
 }
 
 function doPost(e) {
@@ -2654,14 +2672,25 @@ function loadCfg(){
   $('#setWebApp').value      = state.cfg.webApp || '';
   $('#setToken').value       = state.cfg.token || '';
   $('#setMinMargin').value   = state.cfg.minMargin;
-  $('#setMinProfit').value   = state.cfg.minProfit;
+  // migrate the old single threshold: it was the carton number
+  if (state.cfg.minProfit != null && state.cfg.minProfitCS == null){
+    state.cfg.minProfitCS = state.cfg.minProfit;
+    state.cfg.minProfitPA = state.cfg.minProfitPA != null ? state.cfg.minProfitPA : 15;
+    state.cfg.minProfitEA = state.cfg.minProfitEA != null ? state.cfg.minProfitEA : 15;
+    delete state.cfg.minProfit;
+  }
+  $('#setMinProfitCS').value = state.cfg.minProfitCS;
+  $('#setMinProfitPA').value = state.cfg.minProfitPA;
+  $('#setMinProfitEA').value = state.cfg.minProfitEA;
   $('#setAutoRefresh').value = state.cfg.autoRefresh || 0;
 }
 function saveCfg(){
   state.cfg.webApp      = $('#setWebApp').value.trim();
   state.cfg.token       = $('#setToken').value.trim();
   state.cfg.minMargin   = Number($('#setMinMargin').value) || 0;
-  state.cfg.minProfit   = Number($('#setMinProfit').value) || 0;
+  state.cfg.minProfitCS = Number($('#setMinProfitCS').value) || 0;
+  state.cfg.minProfitPA = Number($('#setMinProfitPA').value) || 0;
+  state.cfg.minProfitEA = Number($('#setMinProfitEA').value) || 0;
   state.cfg.autoRefresh = Number($('#setAutoRefresh').value) || 0;
   localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg));
   setupAutoRefresh();
