@@ -582,7 +582,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.12</span>
+    <span class="ver" id="verTag">v4.13</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
@@ -979,7 +979,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.12';
+const APP_VERSION = '4.13';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1138,6 +1138,12 @@ function formatThaiDateTime(d){
   if (isNaN(d)) return '-';
   const p = n => String(n).padStart(2,'0');
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543} ${p(d.getHours())}.${p(d.getMinutes())}`;
+}
+function formatThaiTime(d){
+  d = d instanceof Date ? d : new Date(d);
+  if (isNaN(d)) return '-';
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getHours())}.${p(d.getMinutes())}`;
 }
 
 /* ---------- RFC-4180 CSV parser ---------- */
@@ -1765,7 +1771,8 @@ function thumbHtml(pkey, seed, cls, phSize){
   const p = state.products && state.products.get(pkey);
   const url = p && p.image ? imgUrl(p.image, 240) : '';
   const ph = '<span class="ph"' + (url ? ' style="display:none"' : '') + '>' + placeholderMark(seed, phSize || 26) + '</span>';
-  const im = url ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async" crossorigin="anonymous" '
+  const im = url ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async" '
+                 + (state.cfg.cutBg ? 'crossorigin="anonymous" ' : '')
                  + 'onload="this.classList.add(\'rdy\');stripBg(this)" '
                  + 'onerror="imgFail(this)">' : '';
   return '<span class="' + (cls || 'thumb') + '">' + im + ph + '</span>';
@@ -2763,7 +2770,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.12' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.13' });
 }
 
 function doPost(e) {
@@ -2852,8 +2859,10 @@ function saveCfg(){
   state.cfg.minProfitPA = Number($('#setMinProfitPA').value) || 0;
   state.cfg.minProfitEA = Number($('#setMinProfitEA').value) || 0;
   state.cfg.autoRefresh = Number($('#setAutoRefresh').value) || 0;
+  const cutChanged      = state.cfg.cutBg !== $('#setCutBg').checked;
   state.cfg.cutBg       = $('#setCutBg').checked;
   localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg));
+  if (cutChanged){ bgCache.clear(); location.reload(); return; }   // the img tags themselves change
   setupAutoRefresh();
   renderAll();
   showToast('บันทึกการตั้งค่าแล้ว','success');
