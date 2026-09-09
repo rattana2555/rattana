@@ -556,7 +556,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.1</span>
+    <span class="ver" id="verTag">v4.2</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <button class="icon-btn" id="btnRefresh" title="รีเฟรช"><span data-ico="refresh"></span></button>
@@ -931,7 +931,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1243,18 +1243,40 @@ const ISSUE_LABEL = {
 const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 const gvizUrl= gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&headers=1`;
 
-async function fetchSheet(cfg){
-  let text;
-  try {
-    const res = await fetch(csvUrl(cfg.gid), { cache:'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    text = await res.text();
-  } catch (e) {
-    const res = await fetch(gvizUrl(cfg.gid), { cache:'no-store' });
-    if (!res.ok) throw new Error('โหลด ' + cfg.sheet + ' ไม่สำเร็จ');
-    text = await res.text();
+/* Only /export keeps a 1:1 row mapping with the sheet. gviz silently drops blank
+   rows, which shifts every sheetRow and would make the write-back save a price
+   onto the wrong product — so gviz must NEVER be used as a fallback here.
+   Transient failures are handled by retrying instead. */
+async function fetchSheet(cfg, tries){
+  tries = tries || 3;
+  let lastErr;
+  for (let i = 1; i <= tries; i++){
+    try {
+      const res = await fetch(csvUrl(cfg.gid), { cache:'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (!text || text.indexOf(',') < 0) throw new Error('ข้อมูลว่าง');
+      return parseCsv(text);
+    } catch (e){
+      lastErr = e;
+      if (i < tries) await new Promise(r => setTimeout(r, 500 * i));
+    }
   }
-  return parseCsv(text);
+  throw new Error(cfg.sheet + ': ' + (lastErr && lastErr.message ? lastErr.message : 'โหลดไม่สำเร็จ'));
+}
+
+/** run at most `limit` fetches at once — 12 at once is what made them fail */
+async function mapLimit(items, limit, fn){
+  const out = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length){
+      const i = next++;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
 }
 
 function buildRows(cfg, grid){
@@ -1263,9 +1285,11 @@ function buildRows(cfg, grid){
   const m = mapColumns(H);
   if (m.list < 0 || m.name < 0) return [];
 
-  // keep sheet row numbers: grid index i  ->  sheet row i+1
+  // grid index i  ->  sheet row i+1 (true for /export, which keeps every row).
+  // Start after the header only; the blank spacer row is dropped by the filter
+  // below, so this stays correct whether or not that row exists.
   const raw = [];
-  for (let i=2; i<grid.length; i++){
+  for (let i=1; i<grid.length; i++){
     const r = grid[i];
     if (!r || r.length < 2) continue;
     const nameV = (r[m.name]||'').trim();
@@ -1333,12 +1357,17 @@ async function loadData(useCache){
   try {
     state.feeModels = {};
     const errors = [];
-    const grids = await Promise.all(SHEETS.map(c => fetchSheet(c).catch(e => {
-      console.warn(c.sheet, e); errors.push(c.sheet + ': ' + (e && e.message ? e.message : String(e))); return [];
-    })));
+    const grids = await mapLimit(SHEETS, 4, c => fetchSheet(c).catch(e => {
+      console.warn(c.sheet, e); errors.push(e && e.message ? e.message : String(e)); return [];
+    }));
     let rows = [];
     SHEETS.forEach((c,i) => { rows = rows.concat(buildRows(c, grids[i])); });
     if (!rows.length){ const err = new Error('โหลดข้อมูลจาก Google Sheet ไม่สำเร็จ'); err.detail = errors.join('\n'); throw err; }
+    if (errors.length){
+      const err = new Error('บางชีทโหลดไม่สำเร็จ ' + errors.length + ' ชีท — ตัวเลขที่เห็นยังไม่ครบ');
+      err.detail = errors.join('\n');
+      showLoadNotice(err);
+    }
     state.rows = rows;
     applyFeeOverrides();
     buildProductIndex();
@@ -2440,7 +2469,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.1' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.2' });
 }
 
 function doPost(e) {
