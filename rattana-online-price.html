@@ -556,7 +556,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.2</span>
+    <span class="ver" id="verTag">v4.3</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <button class="icon-btn" id="btnRefresh" title="รีเฟรช"><span data-ico="refresh"></span></button>
@@ -688,8 +688,9 @@ body.light .oc .im:has(img:not(.rdy)){
     <section id="tab-low" hidden>
       <div class="stat-grid" id="lowStats"></div>
       <div class="note warn mb-12">
-        <b>เกณฑ์ที่ใช้:</b> กำไรน้อยกว่า <b id="lowRuleP">25</b> บาท <b>หรือ</b> Margin น้อยกว่า <b id="lowRuleM">7</b>%
+        <b>เกณฑ์ที่ใช้:</b> กำไรน้อยกว่า <b id="lowRuleP">25</b> บาท <b class="txt-gold">และ</b> Margin น้อยกว่า <b id="lowRuleM">7</b>% — ต้องเข้าทั้งสองข้อ
         &nbsp;·&nbsp; แก้เกณฑ์ได้ที่แท็บตั้งค่า<br>
+        <span class="txt-sm">ตัวอย่าง: กำไร 15 บาท + Margin 2% <b>เข้าเกณฑ์</b> &nbsp;·&nbsp; กำไร 15 บาท + Margin 7.2% <b>ไม่เข้า</b> (Margin ผ่านแล้ว)</span><br>
         กดที่สินค้าเพื่อเปิดหน้าปรับราคาได้ทันที — ราคาที่แก้จะไปรวมกับรายการที่รอบันทึก
       </div>
       <div class="filter-bar">
@@ -779,11 +780,11 @@ body.light .oc .im:has(img:not(.rdy)){
         <div class="card-head"><h3><span data-ico="hexgear"></span> เกณฑ์และค่าเริ่มต้น</h3></div>
         <div class="card-body">
           <div class="field mb-12" style="max-width:300px">
-            <label>Margin ต่ำกว่านี้ = ควรปรับราคา (%)</label>
+            <label>Margin ต่ำกว่านี้ (%) — ใช้คู่กับกำไรด้านล่าง</label>
             <input class="input" id="setMinMargin" type="number" step="0.5" value="7">
           </div>
           <div class="field mb-12" style="max-width:300px">
-            <label>กำไรต่ำกว่านี้ = ควรปรับราคา (บาท)</label>
+            <label>กำไรต่ำกว่านี้ (บาท) — เข้าทั้งสองข้อจึงขึ้นหน้าราคาต่ำ</label>
             <input class="input" id="setMinProfit" type="number" step="1" value="25">
           </div>
           <div class="field mb-12" style="max-width:300px">
@@ -931,7 +932,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1806,7 +1807,9 @@ function lowFlags(r){
   const c = calcRow(r, lp);
   const lowP = c.profit != null && isFinite(c.profit) && c.profit < state.cfg.minProfit;
   const lowM = c.margin != null && isFinite(c.margin) && c.margin * 100 < state.cfg.minMargin;
-  return (lowP || lowM) ? { lowP, lowM, profit: c.profit, margin: c.margin } : null;
+  // both must be low — a thin margin on a big-ticket item, or a small baht profit
+  // on a healthy margin, is not something to re-price
+  return (lowP && lowM) ? { lowP, lowM, profit: c.profit, margin: c.margin } : null;
 }
 function lowList(){
   const f = state.lFilter, out = [];
@@ -1814,8 +1817,7 @@ function lowList(){
     const hits = [];
     p.listings.forEach(r => { const x = lowFlags(r); if (x) hits.push({ r, ...x }); });
     if (!hits.length) return;
-    if (f.mode === 'profit' && !hits.some(h => h.lowP)) return;
-    if (f.mode === 'margin' && !hits.some(h => h.lowM)) return;
+    if (f.mode === 'loss' && !hits.some(h => h.profit < 0)) return;
     if (f.plat !== 'ALL' && !hits.some(h => h.r.plat === f.plat)) return;
     if (f.q){
       const q = f.q.toLowerCase();
@@ -1831,18 +1833,28 @@ function renderLow(){
   if (!state.products) return;
   $('#lowRuleP').textContent = int(state.cfg.minProfit);
   $('#lowRuleM').textContent = state.cfg.minMargin;
-  let prodLow = 0, listLow = 0, byP = 0, byM = 0;
+  let prodLow = 0, listLow = 0, onlyP = 0, onlyM = 0;
   state.products.forEach(p => {
     let any = false;
-    p.listings.forEach(r => { const x = lowFlags(r); if (x){ any = true; listLow++; if (x.lowP) byP++; if (x.lowM) byM++; } });
+    p.listings.forEach(r => {
+      const x = lowFlags(r);
+      if (x){ any = true; listLow++; return; }
+      // not flagged — but was it close on one side only?
+      const lp = curList(r); if (lp == null || lp <= 0) return;
+      const c = calcRow(r, lp);
+      const lowP = c.profit != null && isFinite(c.profit) && c.profit < state.cfg.minProfit;
+      const lowM = c.margin != null && isFinite(c.margin) && c.margin * 100 < state.cfg.minMargin;
+      if (lowP && !lowM) onlyP++;
+      if (lowM && !lowP) onlyM++;
+    });
     if (any) prodLow++;
   });
   $('#cntLow').textContent = int(prodLow);
   $('#lowStats').innerHTML =
       '<div class="stat-card ' + (prodLow ? 'danger' : 'success') + '"><div class="s-label">สินค้าที่ควรปรับราคา</div><div class="s-value">' + int(prodLow) + '</div><div class="s-sub">จาก ' + int(state.products.size) + ' สินค้า</div></div>'
-    + '<div class="stat-card warning"><div class="s-label">กำไรต่ำกว่า ' + int(state.cfg.minProfit) + ' บาท</div><div class="s-value">' + int(byP) + '</div><div class="s-sub">นับแยกตามช่องทาง</div></div>'
-    + '<div class="stat-card warning"><div class="s-label">Margin ต่ำกว่า ' + state.cfg.minMargin + '%</div><div class="s-value">' + int(byM) + '</div><div class="s-sub">นับแยกตามช่องทาง</div></div>'
-    + '<div class="stat-card"><div class="s-label">รายการขายที่เข้าเกณฑ์</div><div class="s-value">' + int(listLow) + '</div><div class="s-sub">จาก ' + int(state.rows.length) + ' รายการ</div></div>';
+    + '<div class="stat-card"><div class="s-label">รายการขายที่เข้าเกณฑ์</div><div class="s-value">' + int(listLow) + '</div><div class="s-sub">จาก ' + int(state.rows.length) + ' รายการ</div></div>'
+    + '<div class="stat-card"><div class="s-label">กำไรต่ำ แต่ Margin ผ่าน</div><div class="s-value">' + int(onlyP) + '</div><div class="s-sub">ไม่เข้าเกณฑ์ — ของราคาถูก กำไรบางเป็นปกติ</div></div>'
+    + '<div class="stat-card"><div class="s-label">Margin ต่ำ แต่กำไรผ่าน</div><div class="s-value">' + int(onlyM) + '</div><div class="s-sub">ไม่เข้าเกณฑ์ — ของชิ้นใหญ่ กำไรบาทยังคุ้ม</div></div>';
 
   const list = lowList();
   $('#lowCount').textContent = '(' + int(list.length) + ' สินค้า)';
@@ -1860,9 +1872,8 @@ function renderLow(){
     s.chans = [...new Set(hits.map(h => h.r.plat))];
     s.risky = 0; s.anyEmpty = false;
     const worst = hits.reduce((a, b) => (a.margin == null ? 9 : a.margin) <= (b.margin == null ? 9 : b.margin) ? a : b);
-    const tag = worst.lowM && worst.margin != null
-      ? 'Margin ' + (worst.margin * 100).toFixed(1) + '%'
-      : 'กำไร ' + money(worst.profit);
+    const tag = (worst.margin != null ? (worst.margin * 100).toFixed(1) + '%' : '–')
+              + ' · ' + money(worst.profit) + '฿';
     let html = productCard(p, s, false);
     return html.replace('<div class="im">', '<div class="im"><span class="risk">' + tag + '</span>');
   }).join('');
@@ -2224,8 +2235,7 @@ function renderChips(){
   const lf = state.lFilter;
   $('#lMode').innerHTML = [
     ['ALL','เข้าเกณฑ์ทั้งหมด',true],
-    ['profit','กำไรต่ำ (< ' + int(state.cfg.minProfit) + ' บาท)',false],
-    ['margin','Margin ต่ำ (< ' + state.cfg.minMargin + '%)',false]
+    ['loss','ขาดทุน (กำไรติดลบ)',false]
   ].map(([v,l,warn]) => `<button class="chip ${warn?'warnchip':''} ${lf.mode===v?'on':''}" data-v="${v}">${l}</button>`).join('');
   $('#lPlatform').innerHTML =
     `<button class="chip ${lf.plat==='ALL'?'on':''}" data-v="ALL">ทั้งหมด</button>` +
@@ -2469,7 +2479,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.2' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.3' });
 }
 
 function doPost(e) {
