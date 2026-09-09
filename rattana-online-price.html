@@ -527,7 +527,7 @@ body.light .oc .im::after{box-shadow:inset 0 -22px 34px -26px rgba(13,13,13,.18)
 .oc .mt{font-size:10.5px;color:var(--muted);font-family:var(--f-mono)}
 .oc .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
 .oc .risk{position:absolute;z-index:3;top:9px;left:9px;background:var(--crimson);color:#fff;font-size:9.5px;font-weight:700;padding:4px 9px;border-radius:var(--r-pill);letter-spacing:.04em;box-shadow:var(--sh-sm)}
-.oc .flag{position:absolute;z-index:3;top:9px;right:9px;background:rgba(13,13,13,.72);color:var(--muted);border:1px solid var(--line);font-size:9px;font-weight:700;padding:4px 8px;border-radius:var(--r-pill);letter-spacing:.04em;backdrop-filter:blur(8px)}
+.oc .flag{position:absolute;z-index:3;top:9px;right:9px;background:rgba(13,13,13,.78);color:var(--muted);border:1px solid var(--line);font-size:9px;font-weight:700;padding:4px 8px;border-radius:var(--r-pill);letter-spacing:.04em}
 body.light .oc .flag{background:rgba(255,255,255,.82)}
 /* gallery variant — taller frame, whole product visible */
 .gc .im{height:172px;padding:14px}
@@ -539,8 +539,8 @@ body.light .gc .im img{filter:drop-shadow(0 8px 16px rgba(13,13,13,.12))}
 .units{display:flex;gap:5px;flex-wrap:wrap}
 .uchip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:var(--r-pill);font-size:10px;font-weight:700;border:1px solid var(--line-2);color:var(--text);background:var(--surface)}
 .uchip b{font-family:var(--f-mono);font-weight:700;color:var(--muted)}
-.oc .pick{position:absolute;z-index:3;bottom:9px;right:9px;width:26px;height:26px;border-radius:var(--r-pill);border:1px solid var(--line-2);background:rgba(13,13,13,.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2}
-body.light .oc .pick{background:rgba(255,255,255,.8)}
+.oc .pick{position:absolute;z-index:3;bottom:9px;right:9px;width:26px;height:26px;border-radius:var(--r-pill);border:1px solid rgba(255,255,255,.16);background:rgba(13,13,13,.62);display:flex;align-items:center;justify-content:center;z-index:2}
+.oc .pick .cbx{border-color:rgba(255,255,255,.6)}
 .oc.sel{border-color:var(--crimson);box-shadow:0 0 0 1px var(--crimson), var(--sh-md)}
 .viewsw{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--r-pill);overflow:hidden}
 .viewsw .vs{background:transparent;color:var(--muted);border:none;padding:8px 14px;font-size:12px;font-weight:600;font-family:inherit;display:inline-flex;align-items:center;gap:6px;min-height:36px}
@@ -582,7 +582,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.10</span>
+    <span class="ver" id="verTag">v4.11</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
@@ -979,7 +979,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.10';
+const APP_VERSION = '4.11';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -2760,7 +2760,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.10' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.11' });
 }
 
 function doPost(e) {
