@@ -353,6 +353,9 @@ body.modal-open .page{padding-right:var(--sbw,0px)}
 .spinner-box{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-lg);padding:34px 44px;text-align:center;min-width:250px;box-shadow:var(--sh-lg), var(--edge)}
 .spinner-ring{width:44px;height:44px;border:2px solid var(--line);border-top-color:var(--crimson);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
 #spinner p{font-size:13px;color:var(--muted)}
+@keyframes pend{0%,100%{box-shadow:var(--sh-red), inset 0 1px 0 rgba(255,255,255,.28)}
+  50%{box-shadow:0 0 0 4px rgba(230,0,35,.28), var(--sh-red), inset 0 1px 0 rgba(255,255,255,.28)}}
+#btnSave:not(:disabled){animation:pend 1.9s ease-in-out infinite}
 #loadingBar{position:fixed;top:0;left:0;height:2px;background:var(--crimson);width:0;transition:width .4s;z-index:10000;box-shadow:0 0 10px 1px rgba(230,0,35,.7)}
 
 /* ── Back to top ── */
@@ -556,7 +559,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.4</span>
+    <span class="ver" id="verTag">v4.5</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <button class="icon-btn" id="btnRefresh" title="รีเฟรช"><span data-ico="refresh"></span></button>
@@ -833,7 +836,13 @@ body.light .oc .im:has(img:not(.rdy)){
       <button class="modal-close" data-close><span data-ico="close"></span></button>
     </div>
     <div class="modal-body" id="pmBody" style="padding:0"></div>
-    <div class="modal-foot"><button class="btn btn-outline" data-close>ปิด</button></div>
+    <div class="modal-foot" style="justify-content:space-between">
+      <span id="pmDirty" class="txt-sm"></span>
+      <div class="flex gap-8">
+        <button class="btn btn-outline" data-close>ปิด</button>
+        <button class="btn btn-gold" id="pmSave" hidden><span data-ico="save"></span> บันทึกเข้าชีท</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -934,7 +943,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1652,6 +1661,20 @@ function renderProductStats(p){
   const ob = document.getElementById('pmOnBadge');
   if (ob) ob.textContent = 'เปิดขาย ' + int(on) + '/' + int(ls.length);
 }
+/** the app never writes straight through — say so where the editing happens */
+function updatePmDirty(){
+  const el = document.getElementById('pmDirty'), btn = document.getElementById('pmSave');
+  if (!el) return;
+  const n = state.dirty.size;
+  if (!n){
+    el.innerHTML = '<span class="txt-muted">แก้ราคาแล้วกด "บันทึกเข้าชีท" ถึงจะเขียนลง Google Sheet</span>';
+    if (btn) btn.hidden = true;
+    return;
+  }
+  el.innerHTML = '<b class="txt-danger">ยังไม่ได้บันทึก ' + int(n) + ' รายการ</b>'
+               + '<span class="txt-muted"> — ราคายังไม่เข้าชีท</span>';
+  if (btn) btn.hidden = false;
+}
 function renderProductFees(p){
   const el = document.getElementById('pmFees');
   if (el) el.innerHTML = p.listings.map(r => feeBreakdownHtml(r, curList(r) || 0)).join('');
@@ -1686,7 +1709,7 @@ function openProduct(pkey){
     + '</div></div>'
     + '<div class="pm-stat" id="pmStat"></div>'
     + '<div class="pm-sec">'
-    +   '<h4>แก้ราคาได้ตรงนี้ — กำไร/Margin คำนวณสดทันที</h4>'
+    +   '<h4>แก้ราคาได้ตรงนี้ — กำไร/Margin คำนวณสดทันที (ยังไม่เข้าชีทจนกว่าจะกดบันทึก)</h4>'
     +   groups.map(g =>
           '<div class="pm-grp"><div class="gh"><b>ขายแบบ ' + UNIT_WORD[g.u] + ' (' + g.u + ')</b>'
           + '<span class="cnt2">' + int(g.rows.length) + ' ช่องทาง</span></div>'
@@ -1699,6 +1722,7 @@ function openProduct(pkey){
 
   renderProductStats(p);
   renderProductFees(p);
+  updatePmDirty();
   openModal('#productModal');
 }
 
@@ -2418,7 +2442,10 @@ function openSaveModal(){
     <table class="fee-tbl mb-12"><thead><tr><th>ชีท</th><th style="width:110px">ราคาตั้ง</th><th style="width:110px">ติ๊ก A</th></tr></thead><tbody>${rowsHtml}</tbody></table>
     ${connected
       ? '<div class="note">เชื่อมต่อ Apps Script แล้ว — กด "เขียนกลับ Google Sheet" ได้เลย</div>'
-      : '<div class="note warn">ยังไม่ได้ตั้งค่า Apps Script — ตอนนี้ใช้ปุ่ม <b>คัดลอกไปวางในชีทเอง</b> ได้ก่อน หรือไปที่แท็บ <b>ตั้งค่า</b> เพื่อเชื่อมต่อ (ทำครั้งเดียว)</div>'}`;
+      : '<div class="note warn"><b>ยังเขียนกลับชีทไม่ได้ — ยังไม่ได้ติดตั้ง Apps Script</b><br>'
+        + 'แอพอ่านชีทได้อย่างเดียว การเขียนกลับต้องติดตั้งสคริปต์ในชีทก่อน 1 ครั้ง (~5 นาที) '
+        + 'ไปที่แท็บ <b>ตั้งค่า → ดูโค้ด Apps Script + วิธีติดตั้ง</b><br><br>'
+        + 'ระหว่างนี้กด <b>คัดลอกไปวางในชีทเอง</b> ด้านล่างได้ จะได้รายการช่องกับค่าใหม่ไปวางในชีทเอง</div>'}`;
   $('#btnDoSave').disabled = !connected;
   openModal('#saveModal');
 }
@@ -2514,7 +2541,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.4' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.5' });
 }
 
 function doPost(e) {
@@ -2790,12 +2817,14 @@ function bindEvents(){
     e.target.classList.toggle('changed', v !== r.list);
     const p = state.products.get(state.openProduct);
     if (p){ renderProductStats(p); renderProductFees(p); }
+    updatePmDirty();
   });
   $('#pmBody').addEventListener('change', e => {
     if (!e.target.classList.contains('pmact')) return;
     setDirty(e.target.dataset.key, { active: e.target.checked });
     const p = state.products.get(state.openProduct);
     if (p) renderProductStats(p);
+    updatePmDirty();
   });
   $('#productModal').addEventListener('click', e => {
     if (e.target === e.currentTarget || e.target.closest('[data-close]')){
@@ -2805,6 +2834,12 @@ function bindEvents(){
     }
   });
 
+  $('#pmSave').addEventListener('click', () => {
+    closeModal($('#productModal'));
+    state.openProduct = null;
+    renderPriceStats(); renderPriceTable(); renderGallery(); renderOut(); renderLow(); renderChips();
+    openSaveModal();
+  });
   $('#btnSave').addEventListener('click', openSaveModal);
   $('#btnDoSave').addEventListener('click', doSave);
   $('#btnCopyChanges').addEventListener('click', copyChanges);
