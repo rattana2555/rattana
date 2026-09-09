@@ -120,6 +120,9 @@ body.light header{background:rgba(255,255,255,.86);color:var(--text)}
 .logo-text span{color:var(--crimson)}
 .ver{font-family:var(--f-mono);font-size:10px;background:rgba(230,0,35,.14);border:1px solid rgba(230,0,35,.38);color:var(--neon);padding:2px 7px;font-weight:500;letter-spacing:.04em}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.freshness{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
+.freshness.stale{color:var(--neon)}
+@media(max-width:900px){.freshness{display:none}}
 .icon-btn{
   background:transparent;color:var(--text);border:1px solid var(--line-2);
   width:40px;height:40px;display:flex;align-items:center;justify-content:center;
@@ -356,6 +359,12 @@ body.modal-open .page{padding-right:var(--sbw,0px)}
 @keyframes pend{0%,100%{box-shadow:var(--sh-red), inset 0 1px 0 rgba(255,255,255,.28)}
   50%{box-shadow:0 0 0 4px rgba(230,0,35,.28), var(--sh-red), inset 0 1px 0 rgba(255,255,255,.28)}}
 #btnSave:not(:disabled){animation:pend 1.9s ease-in-out infinite}
+#updBar{position:fixed;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom));
+  z-index:9600;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;
+  background:var(--raised);border:1px solid var(--line);border-top:2px solid var(--crimson);
+  border-radius:var(--r);padding:14px 18px;box-shadow:var(--sh-lg),var(--edge);
+  font-size:13px;max-width:min(92vw,560px);animation:slideUp .26s cubic-bezier(.2,.8,.2,1)}
+#updBar b{color:var(--neon)}
 #loadingBar{position:fixed;top:0;left:0;height:2px;background:var(--crimson);width:0;transition:width .4s;z-index:10000;box-shadow:0 0 10px 1px rgba(230,0,35,.7)}
 
 /* ── Back to top ── */
@@ -559,10 +568,11 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.5</span>
+    <span class="ver" id="verTag">v4.6</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
-      <button class="icon-btn" id="btnRefresh" title="รีเฟรช"><span data-ico="refresh"></span></button>
+      <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
+      <button class="icon-btn" id="btnRefresh" title="ดึงข้อมูลใหม่จากชีท"><span data-ico="refresh"></span></button>
       <button class="icon-btn" id="btnTheme" title="สลับธีม"><span data-ico="sun"></span></button>
     </div>
   </header>
@@ -943,7 +953,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.6';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1034,6 +1044,7 @@ const state = {
   lShown: 36,
   view: 'card',
   openProduct: null,
+  loadedAt: null,
   skuGroup: null,       // barcode -> PDDT SKU key (filled once Stocksync loads)
   products: null,       // barcode -> { image, listings[] }
   sort:  { key:'margin', dir:'asc' },
@@ -1252,7 +1263,7 @@ const ISSUE_LABEL = {
 /* ============================================================
    LOAD DATA
    ============================================================ */
-const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}&_=${Date.now()}`;
 const gvizUrl= gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}&headers=1`;
 
 /* Only /export keeps a 1:1 row mapping with the sheet. gviz silently drops blank
@@ -1387,6 +1398,8 @@ async function loadData(useCache){
     renderAll();
     attachImages();
     hideNotice();
+    state.loadedAt = Date.now();
+    updateFreshness();
     showToast('โหลดข้อมูลแล้ว ' + int(rows.length) + ' รายการ • ' + formatThaiDateTime(new Date()), 'success');
   } catch (e){
     console.error(e);
@@ -1431,7 +1444,7 @@ async function attachImages(){
 
   try {
     const url = 'https://docs.google.com/spreadsheets/d/' + IMG_SHEET_ID + '/gviz/tq?tqx=out:csv&gid='
-              + IMG_GID + '&headers=1&tq=' + encodeURIComponent(IMG_QUERY);
+              + IMG_GID + '&headers=1&tq=' + encodeURIComponent(IMG_QUERY) + '&_=' + Date.now();
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const grid = parseCsv(await res.text());
@@ -1469,6 +1482,14 @@ function markLoadedImages(root){
   (root || document).querySelectorAll('img:not(.rdy)').forEach(im => {
     if (im.complete && im.naturalWidth > 0) im.classList.add('rdy');
   });
+}
+function updateFreshness(){
+  const el = $('#freshness'); if (!el || !state.loadedAt) return;
+  const mins = Math.floor((Date.now() - state.loadedAt) / 60000);
+  el.textContent = mins < 1 ? 'อัปเดตเมื่อสักครู่'
+    : mins < 60 ? 'อัปเดต ' + mins + ' นาทีที่แล้ว'
+    : 'อัปเดต ' + formatThaiTime(new Date(state.loadedAt)) + ' น.';
+  el.classList.toggle('stale', mins >= 15);
 }
 function renderImageDependent(){
   if (!state.rows.length) return;
@@ -1993,6 +2014,36 @@ function renderOut(){
     s.anyEmpty = true;
     return productCard(p, s, false);
   }).join('');
+}
+
+/* ============================================================
+   NEW BUILD DETECTION
+   The app is a single static file, so a browser can happily keep serving an
+   old copy for hours. Compare our own version against what the server has.
+   ============================================================ */
+async function checkForUpdate(){
+  if (isFileProtocol()) return;
+  try {
+    const res = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const m = /const APP_VERSION = '([\d.]+)'/.exec(await res.text());
+    if (!m || m[1] === APP_VERSION) return;
+    showUpdateBanner(m[1]);
+  } catch (e) {}
+}
+function showUpdateBanner(newV){
+  if (document.getElementById('updBar')) return;
+  const el = document.createElement('div');
+  el.id = 'updBar';
+  el.innerHTML = '<span>มีเวอร์ชันใหม่ <b>v' + esc(newV) + '</b> — ที่เปิดอยู่คือ v' + APP_VERSION + '</span>'
+    + '<button class="btn btn-gold btn-sm" id="updGo">โหลดเวอร์ชันใหม่</button>'
+    + '<button class="btn btn-outline btn-sm" id="updNo">ไว้ก่อน</button>';
+  document.body.appendChild(el);
+  el.querySelector('#updGo').addEventListener('click', () => {
+    if (state.dirty.size && !confirm('มีราคาที่แก้ไว้ ' + state.dirty.size + ' รายการยังไม่ได้บันทึก\nโหลดใหม่จะหายไป — ยืนยัน?')) return;
+    location.replace(location.pathname + '?v=' + Date.now());
+  });
+  el.querySelector('#updNo').addEventListener('click', () => el.remove());
 }
 
 /* ============================================================
@@ -2541,7 +2592,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.5' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.6' });
 }
 
 function doPost(e) {
@@ -2929,6 +2980,9 @@ function bindEvents(){
   $('#viewCard').hidden  = state.view !== 'card';
   $('#viewTable').hidden = state.view !== 'table';
   setupAutoRefresh();
+  setInterval(updateFreshness, 60000);
+  setTimeout(checkForUpdate, 20000);           // after the first load settles
+  setInterval(checkForUpdate, 30 * 60 * 1000); // and every half hour after
   if (isFileProtocol()) showLoadNotice(null);   // explain before the doomed requests
   loadData(true);
 })();
