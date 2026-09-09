@@ -582,7 +582,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.9</span>
+    <span class="ver" id="verTag">v4.10</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
@@ -829,8 +829,8 @@ body.light .oc .im:has(img:not(.rdy)){
             <input class="input" id="setAutoRefresh" type="number" step="30" min="0" value="0">
           </div>
           <label class="flex gap-8 mb-12" style="align-items:center;cursor:pointer;max-width:420px">
-            <input type="checkbox" class="cbx" id="setCutBg" checked>
-            <span class="txt-sm">ลบพื้นหลังขาวออกจากรูปสินค้า <span class="txt-muted">(ปิดถ้ารูปบางตัวดูแหว่ง)</span></span>
+            <input type="checkbox" class="cbx" id="setCutBg">
+            <span class="txt-sm">ลบพื้นหลังขาวออกจากรูปสินค้า <span class="txt-muted">(ปิดไว้ — สินค้าที่ตัวเองสีขาวอาจโดนลบไปด้วย เปิดแล้วลองดูก่อนได้)</span></span>
           </label>
           <button class="btn btn-primary" id="btnSaveSettings">บันทึกการตั้งค่า</button>
         </div>
@@ -979,7 +979,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.9';
+const APP_VERSION = '4.10';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1075,7 +1075,7 @@ const state = {
   products: null,       // barcode -> { image, listings[] }
   sort:  { key:'margin', dir:'asc' },
   sSort: { key:'stock',  dir:'asc' },
-  cfg:   { webApp:'', token:'', minMargin:7, minProfitCS:25, minProfitPA:15, minProfitEA:15, autoRefresh:0, cutBg:true },
+  cfg:   { webApp:'', token:'', minMargin:7, minProfitCS:25, minProfitPA:15, minProfitEA:15, autoRefresh:0, cutBg:false },
   autoTimer:null
 };
 
@@ -1614,8 +1614,94 @@ function imgUrl(u, w){
 
 /** deterministic geometric mark for products with no photo */
 const bgCache = new Map();   // original src -> object URL of the cut-out version
-/** Clear the near-white surround of a product shot so it sits on the dark UI.
-    Only pixels connected to the border are cleared, so white packaging stays intact. */
+/** Lift a product off its studio backdrop — but only when that can be done safely.
+    The backdrop here is white and so is a lot of the packaging, so "clear every
+    pale pixel" erases the product itself. Three rules stop that: the fill may
+    only step between pixels of near-equal brightness, it may not cross an
+    outline, and if what survives comes back as scraps the photo is handed back
+    untouched. Returns how many pixels were cleared, or 0 for "not sure". */
+function cutBackdrop(px, w, h, local){
+  const N = w * h, GLOBAL = 110, EDGE = 18;
+  const lum = new Uint8Array(N);
+  for (let p = 0, i = 0; p < N; p++, i += 4)
+    lum[p] = (px[i] * 77 + px[i+1] * 151 + px[i+2] * 28) >> 8;
+
+  const corner = (x0, y0) => {
+    let r = 0, g = 0, b = 0, a = 0, n = 0;
+    for (let y = y0; y < y0 + 5; y++) for (let x = x0; x < x0 + 5; x++){
+      const i = (y * w + x) * 4; r += px[i]; g += px[i+1]; b += px[i+2]; a += px[i+3]; n++;
+    }
+    return [r/n, g/n, b/n, a/n];
+  };
+  const cs = [corner(0,0), corner(w-5,0), corner(0,h-5), corner(w-5,h-5)];
+  if (cs.every(c => c[3] < 8)) return 0;                    // already a cut-out PNG
+  const br = (cs[0][0]+cs[1][0]+cs[2][0]+cs[3][0]) / 4,
+        bg = (cs[0][1]+cs[1][1]+cs[2][1]+cs[3][1]) / 4,
+        bb = (cs[0][2]+cs[1][2]+cs[2][2]+cs[3][2]) / 4;
+  if ((br + bg + bb) / 3 < 205) return 0;                   // backdrop is not pale
+  const near = p => { const i = p * 4;
+    return Math.abs(px[i]-br) + Math.abs(px[i+1]-bg) + Math.abs(px[i+2]-bb); };
+
+  const edge = new Uint8Array(N);
+  for (let y = 1; y < h - 1; y++)
+    for (let x = 1, p = y * w + 1; x < w - 1; x++, p++)
+      if (Math.abs(lum[p-1] - lum[p+1]) + Math.abs(lum[p-w] - lum[p+w]) > EDGE) edge[p] = 1;
+
+  const mask = new Uint8Array(N), stack = [];
+  let cleared = 0;
+  const seed = p => { if (mask[p] || edge[p] || near(p) > GLOBAL) return;
+                      mask[p] = 1; cleared++; stack.push(p); };
+  for (let x = 0; x < w; x++){ seed(x); seed((h - 1) * w + x); }
+  for (let y = 0; y < h; y++){ seed(y * w); seed(y * w + w - 1); }
+  const step = (p, q) => {
+    if (mask[q] || edge[q]) return;
+    if (Math.abs(lum[q] - lum[p]) > local || near(q) > GLOBAL) return;
+    mask[q] = 1; cleared++; stack.push(q);
+  };
+  while (stack.length){
+    const p = stack.pop(), x = p % w, y = (p - x) / w;
+    if (x > 0)     step(p, p - 1);
+    if (x < w - 1) step(p, p + 1);
+    if (y > 0)     step(p, p - w);
+    if (y < h - 1) step(p, p + w);
+  }
+  // the outline pixels the barrier held back are backdrop too — take two rings
+  for (let it = 0; it < 2; it++){
+    const add = [];
+    for (let p = 0; p < N; p++){
+      if (mask[p]) continue;
+      const x = p % w, y = (p - x) / w;
+      const nb = (x > 0 && mask[p-1]) ? p - 1 : (x < w - 1 && mask[p+1]) ? p + 1
+               : (y > 0 && mask[p-w]) ? p - w : (y < h - 1 && mask[p+w]) ? p + w : -1;
+      if (nb >= 0 && Math.abs(lum[p] - lum[nb]) <= local + 4 && near(p) <= GLOBAL) add.push(p);
+    }
+    for (const p of add){ mask[p] = 1; cleared++; }
+  }
+  if (cleared < N * 0.06 || cleared > N * 0.94) return 0;
+
+  // an untouched product stays a few solid shapes; one that was eaten into
+  // comes back as scraps
+  const comp = new Int32Array(N).fill(-1), sizes = [], st = [];
+  for (let s = 0; s < N; s++){
+    if (mask[s] || comp[s] >= 0) continue;
+    const id = sizes.length; let sz = 0; comp[s] = id; st.push(s);
+    while (st.length){
+      const p = st.pop(); sz++;
+      const x = p % w, y = (p - x) / w;
+      if (x > 0     && !mask[p-1] && comp[p-1] < 0){ comp[p-1] = id; st.push(p-1); }
+      if (x < w - 1 && !mask[p+1] && comp[p+1] < 0){ comp[p+1] = id; st.push(p+1); }
+      if (y > 0     && !mask[p-w] && comp[p-w] < 0){ comp[p-w] = id; st.push(p-w); }
+      if (y < h - 1 && !mask[p+w] && comp[p+w] < 0){ comp[p+w] = id; st.push(p+w); }
+    }
+    sizes.push(sz);
+  }
+  const kept = N - cleared;
+  if (sizes.filter(s => s >= N * 0.004).length > 4) return 0;
+  if (Math.max.apply(null, sizes) < kept * 0.30) return 0;
+
+  for (let p = 0; p < N; p++) if (mask[p]) px[p * 4 + 3] = 0;
+  return cleared;
+}
 function stripBg(im){
   if (!state.cfg.cutBg || im.dataset.cut) return;
   const src = im.dataset.raw || im.currentSrc || im.src;
@@ -1629,26 +1715,15 @@ function stripBg(im){
     cv.width = w; cv.height = h;
     const cx = cv.getContext('2d', { willReadFrequently: true });
     cx.drawImage(im, 0, 0);
-    const img = cx.getImageData(0, 0, w, h), px = img.data;
-    const seen = new Uint8Array(w * h);
-    const stack = [];
-    for (let x = 0; x < w; x++){ stack.push(x, (h - 1) * w + x); }
-    for (let y = 0; y < h; y++){ stack.push(y * w, y * w + w - 1); }
-    let cleared = 0;
-    while (stack.length){
-      const p = stack.pop();
-      if (seen[p]) continue;
-      seen[p] = 1;
-      const i = p * 4;
-      if (px[i] < 233 || px[i+1] < 233 || px[i+2] < 233) continue;   // not background
-      px[i+3] = 0; cleared++;
-      const x = p % w, y = (p - x) / w;
-      if (x > 0)     stack.push(p - 1);
-      if (x < w - 1) stack.push(p + 1);
-      if (y > 0)     stack.push(p - w);
-      if (y < h - 1) stack.push(p + w);
+    const img = cx.getImageData(0, 0, w, h);
+    // cautious first; only reach for a looser fill if the careful one found nothing
+    let done = 0;
+    for (const local of [4, 6, 10]){
+      const trial = new Uint8ClampedArray(img.data);
+      done = cutBackdrop(trial, w, h, local);
+      if (done){ img.data.set(trial); break; }
     }
-    if (cleared < w * h * 0.04) return;      // nothing white around it — leave the photo alone
+    if (!done) return;                  // not confident — the photo is fine as it is
     cx.putImageData(img, 0, 0);
     cv.toBlob(b => {
       if (!b) return;
@@ -2685,7 +2760,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.9' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.10' });
 }
 
 function doPost(e) {
@@ -2744,6 +2819,12 @@ function json(o) {
    ============================================================ */
 function loadCfg(){
   try { Object.assign(state.cfg, JSON.parse(localStorage.getItem(CFG_KEY) || '{}')); } catch(e){}
+  // v4.9 shipped with the cut-out on and it ate white packaging. Switch everyone
+  // back to plain photos once; after that the setting is theirs again.
+  if (!state.cfg.cutBgOff410){
+    state.cfg.cutBg = false; state.cfg.cutBgOff410 = 1;
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg)); } catch(e){}
+  }
   $('#setWebApp').value      = state.cfg.webApp || '';
   $('#setToken').value       = state.cfg.token || '';
   $('#setMinMargin').value   = state.cfg.minMargin;
@@ -2758,7 +2839,7 @@ function loadCfg(){
   $('#setMinProfitPA').value = state.cfg.minProfitPA;
   $('#setMinProfitEA').value = state.cfg.minProfitEA;
   $('#setAutoRefresh').value = state.cfg.autoRefresh || 0;
-  $('#setCutBg').checked = state.cfg.cutBg !== false;
+  $('#setCutBg').checked = !!state.cfg.cutBg;
 }
 function saveCfg(){
   state.cfg.webApp      = $('#setWebApp').value.trim();
