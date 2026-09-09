@@ -311,7 +311,21 @@ body.light .stat-card.success::before,body.light .stat-card.info::before{backgro
 .delta.down{color:var(--neon)}
 
 /* ── Checkbox ── */
-.cbx{width:20px;height:20px;accent-color:var(--crimson);cursor:pointer}
+.cbx{
+  appearance:none;-webkit-appearance:none;
+  width:20px;height:20px;flex-shrink:0;border-radius:50%;
+  border:1.5px solid var(--line-2);background:transparent;cursor:pointer;
+  display:inline-grid;place-content:center;transition:background .15s,border-color .15s;
+}
+.cbx:hover{border-color:var(--crimson)}
+.cbx::after{
+  content:'';width:9px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;
+  transform:rotate(-45deg) translate(1px,-1px);opacity:0;transition:opacity .12s;
+}
+.cbx:checked{background:var(--crimson);border-color:var(--crimson)}
+.cbx:checked::after{opacity:1}
+.cbx:focus-visible{outline:2px solid var(--neon);outline-offset:2px}
+.oc .pick{width:30px;height:30px}
 
 /* ── Modal ── */
 .modal-overlay{
@@ -327,7 +341,8 @@ body.modal-open .page{padding-right:var(--sbw,0px)}
 .modal{
   background:var(--raised);border:1px solid var(--line);
   border-radius:var(--r-lg);max-width:560px;width:100%;max-height:92dvh;overflow-y:auto;
-  box-shadow:var(--sh-lg), var(--edge);animation:slideUp .26s cubic-bezier(.2,.8,.2,1);overflow:hidden;position:relative;
+  box-shadow:var(--sh-lg), var(--edge);animation:slideUp .26s cubic-bezier(.2,.8,.2,1);
+  overflow-y:auto;overflow-x:hidden;position:relative;   /* was overflow:hidden — that blocked scrolling */
 }
 .modal::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,var(--crimson),rgba(230,0,35,0));z-index:2}
 .modal.wide{max-width:820px}
@@ -568,7 +583,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.8</span>
+    <span class="ver" id="verTag">v4.9</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <span class="freshness" id="freshness" title="เวลาที่ดึงข้อมูลจากชีทล่าสุด"></span>
@@ -814,6 +829,10 @@ body.light .oc .im:has(img:not(.rdy)){
             <label>รีเฟรชข้อมูลอัตโนมัติทุก (วินาที) — 0 = ปิด</label>
             <input class="input" id="setAutoRefresh" type="number" step="30" min="0" value="0">
           </div>
+          <label class="flex gap-8 mb-12" style="align-items:center;cursor:pointer;max-width:420px">
+            <input type="checkbox" class="cbx" id="setCutBg" checked>
+            <span class="txt-sm">ลบพื้นหลังขาวออกจากรูปสินค้า <span class="txt-muted">(ปิดถ้ารูปบางตัวดูแหว่ง)</span></span>
+          </label>
           <button class="btn btn-primary" id="btnSaveSettings">บันทึกการตั้งค่า</button>
         </div>
       </div>
@@ -961,7 +980,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.8';
+const APP_VERSION = '4.9';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1057,7 +1076,7 @@ const state = {
   products: null,       // barcode -> { image, listings[] }
   sort:  { key:'margin', dir:'asc' },
   sSort: { key:'stock',  dir:'asc' },
-  cfg:   { webApp:'', token:'', minMargin:7, minProfitCS:25, minProfitPA:15, minProfitEA:15, autoRefresh:0 },
+  cfg:   { webApp:'', token:'', minMargin:7, minProfitCS:25, minProfitPA:15, minProfitEA:15, autoRefresh:0, cutBg:true },
   autoTimer:null
 };
 
@@ -1580,7 +1599,7 @@ function buildProductIndex(){
     if (!p){ p = { key:r.pkey, barcode:r.barcode, name:'', appName:'', image:'', listings:[] }; idx.set(r.pkey, p); }
     if (!p.name    && r.name)    p.name    = r.name;
     if (!p.appName && r.appName) p.appName = r.appName;
-    if (!p.image   && r.image)   p.image   = r.image;
+    // photos come from Stocksync only — the price sheets' PRODUCT IMAGE column is ignored
     p.listings.push(r);
   }
   state.products = idx;
@@ -1590,10 +1609,57 @@ function buildProductIndex(){
 function imgUrl(u, w){
   if (!u) return '';
   const m = /\/file\/d\/([A-Za-z0-9_-]{10,})/.exec(u) || /[?&]id=([A-Za-z0-9_-]{10,})/.exec(u);
-  return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w' + (w || 400) : u;
+  // lh3 sends Access-Control-Allow-Origin, so the pixels can be read for background removal
+  return m ? 'https://lh3.googleusercontent.com/d/' + m[1] + '=w' + (w || 400) : u;
 }
 
 /** deterministic geometric mark for products with no photo */
+const bgCache = new Map();   // original src -> object URL of the cut-out version
+/** Clear the near-white surround of a product shot so it sits on the dark UI.
+    Only pixels connected to the border are cleared, so white packaging stays intact. */
+function stripBg(im){
+  if (!state.cfg.cutBg || im.dataset.cut) return;
+  const src = im.dataset.raw || im.currentSrc || im.src;
+  im.dataset.cut = '1';
+  const cached = bgCache.get(src);
+  if (cached){ im.dataset.raw = src; im.src = cached; return; }
+  try {
+    const w = im.naturalWidth, h = im.naturalHeight;
+    if (!w || !h || w * h > 1600 * 1600) return;
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(im, 0, 0);
+    const img = cx.getImageData(0, 0, w, h), px = img.data;
+    const seen = new Uint8Array(w * h);
+    const stack = [];
+    for (let x = 0; x < w; x++){ stack.push(x, (h - 1) * w + x); }
+    for (let y = 0; y < h; y++){ stack.push(y * w, y * w + w - 1); }
+    let cleared = 0;
+    while (stack.length){
+      const p = stack.pop();
+      if (seen[p]) continue;
+      seen[p] = 1;
+      const i = p * 4;
+      if (px[i] < 233 || px[i+1] < 233 || px[i+2] < 233) continue;   // not background
+      px[i+3] = 0; cleared++;
+      const x = p % w, y = (p - x) / w;
+      if (x > 0)     stack.push(p - 1);
+      if (x < w - 1) stack.push(p + 1);
+      if (y > 0)     stack.push(p - w);
+      if (y < h - 1) stack.push(p + w);
+    }
+    if (cleared < w * h * 0.04) return;      // nothing white around it — leave the photo alone
+    cx.putImageData(img, 0, 0);
+    cv.toBlob(b => {
+      if (!b) return;
+      const url = URL.createObjectURL(b);
+      bgCache.set(src, url);
+      im.dataset.raw = src;
+      im.src = url;
+    }, 'image/png');
+  } catch (e) { /* tainted canvas or no support — keep the original photo */ }
+}
 function imgFail(im){
   if (!im.dataset.retry){
     im.dataset.retry = '1';
@@ -1625,8 +1691,8 @@ function thumbHtml(pkey, seed, cls, phSize){
   const p = state.products && state.products.get(pkey);
   const url = p && p.image ? imgUrl(p.image, 240) : '';
   const ph = '<span class="ph"' + (url ? ' style="display:none"' : '') + '>' + placeholderMark(seed, phSize || 26) + '</span>';
-  const im = url ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" '
-                 + 'onload="this.classList.add(\'rdy\')" '
+  const im = url ? '<img src="' + esc(url) + '" alt="" loading="lazy" decoding="async" crossorigin="anonymous" '
+                 + 'onload="this.classList.add(\'rdy\');stripBg(this)" '
                  + 'onerror="imgFail(this)">' : '';
   return '<span class="' + (cls || 'thumb') + '">' + im + ph + '</span>';
 }
@@ -2620,7 +2686,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.8' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.9' });
 }
 
 function doPost(e) {
@@ -2693,6 +2759,7 @@ function loadCfg(){
   $('#setMinProfitPA').value = state.cfg.minProfitPA;
   $('#setMinProfitEA').value = state.cfg.minProfitEA;
   $('#setAutoRefresh').value = state.cfg.autoRefresh || 0;
+  $('#setCutBg').checked = state.cfg.cutBg !== false;
 }
 function saveCfg(){
   state.cfg.webApp      = $('#setWebApp').value.trim();
@@ -2702,6 +2769,7 @@ function saveCfg(){
   state.cfg.minProfitPA = Number($('#setMinProfitPA').value) || 0;
   state.cfg.minProfitEA = Number($('#setMinProfitEA').value) || 0;
   state.cfg.autoRefresh = Number($('#setAutoRefresh').value) || 0;
+  state.cfg.cutBg       = $('#setCutBg').checked;
   localStorage.setItem(CFG_KEY, JSON.stringify(state.cfg));
   setupAutoRefresh();
   renderAll();
