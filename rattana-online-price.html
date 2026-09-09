@@ -556,7 +556,7 @@ body.light .oc .im:has(img:not(.rdy)){
 <div class="page">
   <header>
     <div class="logo-text">RATTANA <span>ONLINE PRICE</span></div>
-    <span class="ver" id="verTag">v4.3</span>
+    <span class="ver" id="verTag">v4.4</span>
     <div class="hdr-right">
       <button class="btn btn-gold btn-sm" id="btnSave" disabled><span data-ico="save"></span> บันทึก <span id="dirtyCount" class="mono"></span></button>
       <button class="icon-btn" id="btnRefresh" title="รีเฟรช"><span data-ico="refresh"></span></button>
@@ -691,6 +691,8 @@ body.light .oc .im:has(img:not(.rdy)){
         <b>เกณฑ์ที่ใช้:</b> กำไรน้อยกว่า <b id="lowRuleP">25</b> บาท <b class="txt-gold">และ</b> Margin น้อยกว่า <b id="lowRuleM">7</b>% — ต้องเข้าทั้งสองข้อ
         &nbsp;·&nbsp; แก้เกณฑ์ได้ที่แท็บตั้งค่า<br>
         <span class="txt-sm">ตัวอย่าง: กำไร 15 บาท + Margin 2% <b>เข้าเกณฑ์</b> &nbsp;·&nbsp; กำไร 15 บาท + Margin 7.2% <b>ไม่เข้า</b> (Margin ผ่านแล้ว)</span><br>
+        <span class="txt-sm"><b class="txt-gold">ข้อยกเว้น:</b> ช่องทางที่ยังไม่คิดค่าธรรมเนียม (<span id="lowNoFee">—</span>) จะขึ้นเฉพาะตอน<b>ขาดทุน</b>เท่านั้น
+        เพราะไม่ต้องเผื่อกำไรไว้จ่ายค่าธรรมเนียม — วันไหนใส่ค่าธรรมเนียมให้ช่องทางนั้น (ในชีทหรือหน้าตั้งค่า) จะกลับมาใช้เกณฑ์ปกติเอง</span><br>
         กดที่สินค้าเพื่อเปิดหน้าปรับราคาได้ทันที — ราคาที่แก้จะไปรวมกับรายการที่รอบันทึก
       </div>
       <div class="filter-bar">
@@ -932,7 +934,7 @@ body.light .oc .im:has(img:not(.rdy)){
 /* ============================================================
    Rattana Online Price v1.0
    ============================================================ */
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.4';
 const SHEET_ID = '1tSvHAENib_W5e0efrMKRq4oRcZXCaLtw6znxNidIfio';
 
 /* ---- Custom geometric icon set — 24px grid, 1.5px stroke, square caps.
@@ -1801,15 +1803,31 @@ function renderGallery(){
 /* ============================================================
    LOW PRICE — profit or margin under the floor, so it needs re-pricing
    ============================================================ */
+/** does this channel actually deduct anything? (Thaimart charges nothing today) */
+function channelHasFees(gid){
+  const m = state.feeModels[gid];
+  if (!m || !m.length) return false;
+  return m.some(f => f.kind !== 'zero' && Math.abs(f.v) > 0);
+}
 function lowFlags(r){
   const lp = curList(r);
   if (lp == null || lp <= 0) return null;
   const c = calcRow(r, lp);
-  const lowP = c.profit != null && isFinite(c.profit) && c.profit < state.cfg.minProfit;
-  const lowM = c.margin != null && isFinite(c.margin) && c.margin * 100 < state.cfg.minMargin;
+  const profit = c.profit, margin = c.margin;
+  const loss = profit != null && isFinite(profit) && profit < 0;
+
+  // A channel that deducts nothing does not need a fat margin to be worth selling,
+  // so it only belongs here when it is genuinely losing money. The moment fees are
+  // entered for that channel — in the sheet or in Settings — the normal rule applies.
+  if (!channelHasFees(r.gid)){
+    return loss ? { lowP:true, lowM:true, noFee:true, profit, margin } : null;
+  }
+
+  const lowP = profit != null && isFinite(profit) && profit < state.cfg.minProfit;
+  const lowM = margin != null && isFinite(margin) && margin * 100 < state.cfg.minMargin;
   // both must be low — a thin margin on a big-ticket item, or a small baht profit
   // on a healthy margin, is not something to re-price
-  return (lowP && lowM) ? { lowP, lowM, profit: c.profit, margin: c.margin } : null;
+  return (lowP && lowM) ? { lowP, lowM, noFee:false, profit, margin } : null;
 }
 function lowList(){
   const f = state.lFilter, out = [];
@@ -1829,23 +1847,40 @@ function lowList(){
                    - Math.min.apply(null, b.hits.map(h => h.margin == null ? 9 : h.margin)));
   return out;
 }
+/** which channels still deduct nothing — named down to the unit when only some do */
+function noFeeChannels(){
+  const byPlat = {};
+  SHEETS.forEach(c => {
+    if (!state.feeModels[c.gid]) return;
+    const g = byPlat[c.platLabel] = byPlat[c.platLabel] || { all: 0, free: [] };
+    g.all++;
+    if (!channelHasFees(c.gid)) g.free.push(UNIT_WORD[c.unit] || c.unit);
+  });
+  const out = [];
+  Object.keys(byPlat).forEach(p => {
+    const g = byPlat[p];
+    if (!g.free.length) return;
+    out.push(g.free.length === g.all ? p : p + ' (' + g.free.join('/') + ')');
+  });
+  return out;
+}
 function renderLow(){
   if (!state.products) return;
   $('#lowRuleP').textContent = int(state.cfg.minProfit);
   $('#lowRuleM').textContent = state.cfg.minMargin;
-  let prodLow = 0, listLow = 0, onlyP = 0, onlyM = 0;
+  const nf = $('#lowNoFee'); if (nf) nf.textContent = noFeeChannels().join(' · ') || 'ไม่มี';
+  let prodLow = 0, listLow = 0, oneSide = 0, skippedNoFee = 0;
   state.products.forEach(p => {
     let any = false;
     p.listings.forEach(r => {
       const x = lowFlags(r);
       if (x){ any = true; listLow++; return; }
-      // not flagged — but was it close on one side only?
       const lp = curList(r); if (lp == null || lp <= 0) return;
       const c = calcRow(r, lp);
       const lowP = c.profit != null && isFinite(c.profit) && c.profit < state.cfg.minProfit;
       const lowM = c.margin != null && isFinite(c.margin) && c.margin * 100 < state.cfg.minMargin;
-      if (lowP && !lowM) onlyP++;
-      if (lowM && !lowP) onlyM++;
+      if (!channelHasFees(r.gid)){ if (lowP || lowM) skippedNoFee++; return; }
+      if (lowP !== lowM) oneSide++;      // low on exactly one side
     });
     if (any) prodLow++;
   });
@@ -1853,8 +1888,8 @@ function renderLow(){
   $('#lowStats').innerHTML =
       '<div class="stat-card ' + (prodLow ? 'danger' : 'success') + '"><div class="s-label">สินค้าที่ควรปรับราคา</div><div class="s-value">' + int(prodLow) + '</div><div class="s-sub">จาก ' + int(state.products.size) + ' สินค้า</div></div>'
     + '<div class="stat-card"><div class="s-label">รายการขายที่เข้าเกณฑ์</div><div class="s-value">' + int(listLow) + '</div><div class="s-sub">จาก ' + int(state.rows.length) + ' รายการ</div></div>'
-    + '<div class="stat-card"><div class="s-label">กำไรต่ำ แต่ Margin ผ่าน</div><div class="s-value">' + int(onlyP) + '</div><div class="s-sub">ไม่เข้าเกณฑ์ — ของราคาถูก กำไรบางเป็นปกติ</div></div>'
-    + '<div class="stat-card"><div class="s-label">Margin ต่ำ แต่กำไรผ่าน</div><div class="s-value">' + int(onlyM) + '</div><div class="s-sub">ไม่เข้าเกณฑ์ — ของชิ้นใหญ่ กำไรบาทยังคุ้ม</div></div>';
+    + '<div class="stat-card"><div class="s-label">เข้าข้อเดียว — ไม่นับ</div><div class="s-value">' + int(oneSide) + '</div><div class="s-sub">ต่ำแค่กำไร หรือแค่ Margin อย่างใดอย่างหนึ่ง</div></div>'
+    + '<div class="stat-card"><div class="s-label">ยกเว้น: ช่องทางไม่คิดค่าธรรมเนียม</div><div class="s-value">' + int(skippedNoFee) + '</div><div class="s-sub">' + esc(noFeeChannels().join(' · ') || 'ไม่มี') + ' — โชว์เฉพาะตอนขาดทุน</div></div>';
 
   const list = lowList();
   $('#lowCount').textContent = '(' + int(list.length) + ' สินค้า)';
@@ -2479,7 +2514,7 @@ var TOKEN    = '${state.cfg.token || 'CHANGE-THIS-TOKEN'}';   // <<< ต้อ�
 var ALLOWED_HEADERS = ['ราคาตั้ง'];
 
 function doGet(e) {
-  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.3' });
+  return json({ ok: true, name: SpreadsheetApp.openById(SHEET_ID).getName(), version: '4.4' });
 }
 
 function doPost(e) {
